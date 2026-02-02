@@ -13,7 +13,7 @@ import cli.interactive as cli
 # MAIN EXECUTION
 # ==========================================
 def main() -> None:
-    DATA_PATH = Path("data/atp_tennis_data.csv")
+    DATA_PATH = Path("atp_tennis_data.csv")
     MODEL_PATH = Path("tennis_model.pkl")
 
     data = loader.load_cached_data(DATA_PATH, config.START_YEAR, config.END_YEAR)

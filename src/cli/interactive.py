@@ -1,6 +1,7 @@
 import config
 import sys
 import pandas as pd
+import difflib
 
 # ==========================================
 # 5. INTERACTIVE PREDICTION LOOP
@@ -16,12 +17,30 @@ def interactive_prediction_loop(model, data, surf_hist, h2h_hist):
     print("="*40)
     print("Type 'exit' to quit. Use Ctrl+C to stop safely.\n")
 
+    # Pre-fetch all unique player names for fuzzy matching
+    all_players = pd.concat([data['p1_name'], data['p2_name']]).unique().tolist()
+
     while True:
         try:
-            p1 = input("Enter Player 1 (e.g. Carlos Alcaraz): ").strip()
-            if p1.lower() == 'exit': break
-            p2 = input("Enter Player 2 (e.g. Jannik Sinner): ").strip()
-            if p2.lower() == 'exit': break
+            p1_input = input("Enter Player 1 (e.g. Carlos Alcaraz): ").strip()
+            if p1_input.lower() == 'exit': break
+            
+            p1 = resolve_player_name(p1_input, all_players)
+            if p1 is None:
+                print(f"❌ Player '{p1_input}' not found. Please try again.\n")
+                continue
+            if p1 != p1_input:
+                print(f"   -> Deduced: {p1}")
+
+            p2_input = input("Enter Player 2 (e.g. Jannik Sinner): ").strip()
+            if p2_input.lower() == 'exit': break
+
+            p2 = resolve_player_name(p2_input, all_players)
+            if p2 is None:
+                print(f"❌ Player '{p2_input}' not found. Please try again.\n")
+                continue
+            if p2 != p2_input:
+                print(f"   -> Deduced: {p2}")
 
             surf_input = input("Enter Surface (Hard, Clay, Grass): ")
             surf = validate_surface(surf_input)
@@ -71,6 +90,80 @@ def interactive_prediction_loop(model, data, surf_hist, h2h_hist):
 def validate_surface(s: str) -> str | None:
     s = s.strip().capitalize()
     return s if s in config.VALID_SURFACES else None
+
+def resolve_player_name(input_name: str, all_names: list[str]) -> str | None:
+    """
+    Fuzzy match a player name against the list of known names.
+    Supports:
+      - Exact match (case-insensitive)
+      - "F. Lastname" or "F Lastname" format
+      - Partial/Fuzzy string matching
+    """
+    if not input_name:
+        return None
+
+def resolve_player_name(input_name: str, all_names: list[str]) -> str | None:
+    """
+    Fuzzy match a player name against the list of known names.
+    Supports:
+      - Exact match (case-insensitive)
+      - "F. Lastname" or "F Lastname" format
+      - Partial/Fuzzy string matching
+    """
+    if not input_name:
+        return None
+
+    # Normalisation
+    norm_input = input_name.lower().strip()
+    
+    # 1. Exact match (case-insensitive)
+    for name in all_names:
+        if name.lower() == norm_input:
+            return name
+
+    # 2. Initials check (e.g. "C Alcaraz" -> "Carlos Alcaraz")
+    # Gather ALL initial matches to check for ambiguity
+    initial_matches = []
+    parts = norm_input.split()
+    if len(parts) >= 2 and len(parts[0]) == 1:
+        first_initial = parts[0]
+        lastname = " ".join(parts[1:])
+        
+        for name in all_names:
+            name_parts = name.lower().split()
+            if len(name_parts) >= 2:
+                if name_parts[0].startswith(first_initial):
+                    if " ".join(name_parts[1:]) == lastname:
+                        initial_matches.append(name)
+    
+    if len(initial_matches) == 1:
+        return initial_matches[0]
+    elif len(initial_matches) > 1:
+        print(f"Ambiguous: Multiple players match '{input_name}': {', '.join(initial_matches)}. Please be more specific.")
+        return None
+
+    # 3. Substring/Prefix match
+    # Gather ALL matches that contain the string
+    substring_matches = [name for name in all_names if norm_input in name.lower()]
+    
+    if len(substring_matches) == 1:
+        return substring_matches[0]
+    elif len(substring_matches) > 1:
+        print(f"Ambiguous: Multiple players match '{input_name}': {', '.join(substring_matches[:5])}{'...' if len(substring_matches)>5 else ''}. Please be more specific.")
+        return None
+
+    # 4. Fuzzy match using difflib
+    # cutoff=0.6_is a reasonable starting point.
+    matches = difflib.get_close_matches(input_name, all_names, n=3, cutoff=0.6)
+    
+    if matches:
+        if len(matches) > 1:
+             print(f"Did you mean: {', '.join(matches)}?")
+             return None
+        # Return best match if unique
+        return matches[0]
+
+    return None
 
 def get_latest(name: str, data: pd.DataFrame):
     """
