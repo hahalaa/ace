@@ -1,0 +1,134 @@
+.F
+======================================================================
+FAIL: test_rolling_features (__main__.TestRollingFeatures.test_rolling_features)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/harrylao/mycode/projects/tennis-outcome-predictor/tests/test_rolling.py", line 102, in test_rolling_features
+    self.assertAlmostEqual(match_6_row['p2_recent_win_rate_5'], 0.6)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: np.float64(0.6666666666666666) != 0.6 within 7 places (np.float64(0.06666666666666665) difference)
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.024s
+
+FAILED (failures=1)
+   ⏳ Computing rolling features...
+DEBUG: Rolling window 5 for Player A
+    won
+0   1.0
+7   NaN
+2   0.0
+9   NaN
+4   1.0
+11  NaN
+Shifted:
+    won
+0   NaN
+7   1.0
+2   NaN
+9   0.0
+4   NaN
+11  1.0
+Rolling Result:
+         won
+0        NaN
+7   1.000000
+2   1.000000
+9   0.500000
+4   0.500000
+11  0.666667
+DEBUG: Rolling window 10 for Player A
+    won
+0   1.0
+7   NaN
+2   0.0
+9   NaN
+4   1.0
+11  NaN
+Shifted:
+    won
+0   NaN
+7   1.0
+2   NaN
+9   0.0
+4   NaN
+11  1.0
+Rolling Result:
+         won
+0        NaN
+7   1.000000
+2   1.000000
+9   0.500000
+4   0.500000
+11  0.666667
+   ⏳ Computing rolling features...
+DEBUG: Rolling window 5 for Player A
+    won
+0   1.0
+7   NaN
+2   0.0
+9   NaN
+4   1.0
+11  NaN
+Shifted:
+    won
+0   NaN
+7   1.0
+2   NaN
+9   0.0
+4   NaN
+11  1.0
+Rolling Result:
+         won
+0        NaN
+7   1.000000
+2   1.000000
+9   0.500000
+4   0.500000
+11  0.666667
+DEBUG: Rolling window 10 for Player A
+    won
+0   1.0
+7   NaN
+2   0.0
+9   NaN
+4   1.0
+11  NaN
+Shifted:
+    won
+0   NaN
+7   1.0
+2   NaN
+9   0.0
+4   NaN
+11  1.0
+Rolling Result:
+         won
+0        NaN
+7   1.000000
+2   1.000000
+9   0.500000
+4   0.500000
+11  0.666667
+
+Matches involving A:
+Match 0: 2023-01-01 00:00:00 A vs X | Target: 1
+  > A (P1) Recent WinRate 5: 0.5
+  > A (P1) Recent GW Avg 5:  8.25
+Match 1: 2023-01-02 00:00:00 B vs A | Target: 1
+  > A (P2) Recent WinRate 5: 1.0
+  > A (P2) Recent GW Avg 5:  12.0
+Match 2: 2023-01-03 00:00:00 A vs Y | Target: 0
+  > A (P1) Recent WinRate 5: 1.0
+  > A (P1) Recent GW Avg 5:  6.0
+Match 3: 2023-01-04 00:00:00 C vs A | Target: 0
+  > A (P2) Recent WinRate 5: 0.5
+  > A (P2) Recent GW Avg 5:  6.0
+Match 4: 2023-01-05 00:00:00 A vs Z | Target: 1
+  > A (P1) Recent WinRate 5: 0.5
+  > A (P1) Recent GW Avg 5:  8.25
+Match 5: 2023-01-06 00:00:00 D vs A | Target: 1
+  > A (P2) Recent WinRate 5: 0.6666666666666666
+  > A (P2) Recent GW Avg 5:  9.0
+Computed Win Rate: 0.6666666666666666
+Computed GW Avg: 9.0

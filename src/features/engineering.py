@@ -1,5 +1,6 @@
 import config
 import pandas as pd
+import features.rolling as rolling
 
 # ==========================================
 # 3. FEATURE ENGINEERING
@@ -89,5 +90,8 @@ def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
     df["p1_surface_win_pct"] = p1_surface_pct
     df["p2_surface_win_pct"] = p2_surface_pct
     df["h2h_diff"] = h2h_diff
+
+    # Add rolling features
+    df = rolling.compute_rolling_features(df)
 
     return df, surface_history, h2h_history
