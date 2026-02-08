@@ -1,15 +1,22 @@
+"""
+Feature engineering module.
+Generates time-aware features from match data, including:
+- Surface-specific win rates
+- Head-to-Head (H2H) history
+- Recent form (rolling) features
+"""
 import config
 import pandas as pd
 import features.rolling as rolling
 
-# ==========================================
-# 3. FEATURE ENGINEERING
-# ==========================================
 def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
     """
-    Engineer time-aware features using only past match data:
-    - Surface-specific win percentage
-    - Head-to-head win differential (relative to Player 1)
+    Engineer features using only past match data to prevent leakage.
+    
+    Returns:
+        - DataFrame with new feature columns
+        - surface_history dict
+        - h2h_history dict
     """
     print("⚙️  Engineering features...")
 
@@ -17,14 +24,18 @@ def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
     df["tourney_date"] = pd.to_datetime(df["tourney_date"], format="%Y%m%d", errors="coerce")
     df = df.sort_values("tourney_date").reset_index(drop=True)
 
-    surface_history = {} # { 'Player': { 'Hard': [Wins, Total] } }
-    h2h_history = {}     # { tuple('P1', 'P2'): [P1_wins, P2_wins] }
+    # History containers
+    # surface_history: { 'Player': { 'Hard': [Wins, Total] } }
+    # h2h_history:     { tuple('P1', 'P2'): [P1_wins, P2_wins] }
+    surface_history = {} 
+    h2h_history = {}     
 
     p1_surface_pct = []
     p2_surface_pct = []
     h2h_diff = []
 
-    def surface_win_pct(player, surface):
+    def get_surface_win_pct(player: str, surface: str) -> float:
+        """Calculate historical win % for a player on a surface."""
         if surface == "Unknown":
             return config.DEFAULT_WIN_PCT
 
@@ -32,16 +43,16 @@ def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
             wins, total = surface_history[player][surface]
             if total > 0:
                 return wins / total
-            else:
-                return config.DEFAULT_WIN_PCT
             
         return config.DEFAULT_WIN_PCT
 
-    def update_surface(player, surface, won):
+    def update_surface_history(player: str, surface: str, won: bool) -> None:
+        """Update historical record for a player on a surface."""
         if player not in surface_history:
             surface_history[player] = {}
         if surface not in surface_history[player]:
             surface_history[player][surface] = [0, 0]
+            
         surface_history[player][surface][1] += 1
         if won:
             surface_history[player][surface][0] += 1
@@ -53,8 +64,8 @@ def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
         p1_won = row["target"] == 1
 
         # Surface features
-        p1_surface_pct.append(surface_win_pct(p1, surface))
-        p2_surface_pct.append(surface_win_pct(p2, surface))
+        p1_surface_pct.append(get_surface_win_pct(p1, surface))
+        p2_surface_pct.append(get_surface_win_pct(p2, surface))
 
         # H2H feature
         pair = tuple(sorted([p1, p2]))
@@ -72,8 +83,8 @@ def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
         h2h_diff.append(diff)
 
         # Update player surface histories
-        update_surface(p1, surface, p1_won)
-        update_surface(p2, surface, not p1_won)
+        update_surface_history(p1, surface, p1_won)
+        update_surface_history(p2, surface, not p1_won)
 
         if pair not in h2h_history:
             h2h_history[pair] = [0, 0]

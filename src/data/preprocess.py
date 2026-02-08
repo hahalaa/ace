@@ -1,17 +1,18 @@
+"""
+Data preprocessing logic for ATP tennis matches.
+Handles missing values, player order randomization, and target generation.
+"""
 import config
 import pandas as pd
 import numpy as np
 
-# ==========================================
-# 2. DATA PREPROCESSING
-# ==========================================
 def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     Preprocess raw ATP match data by:
     - Handling missing values
-    - Randomizing player order to create a balanced
-      Player 1 vs Player 2 dataset
+    - Randomizing player order to create a balanced dataset
     - Creating a binary target (1 = P1 win, 0 = P1 loss)
+    - Parsing score strings into game/set statistics
     """
     df = df.copy()
 

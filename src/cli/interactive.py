@@ -102,17 +102,6 @@ def resolve_player_name(input_name: str, all_names: list[str]) -> str | None:
     if not input_name:
         return None
 
-def resolve_player_name(input_name: str, all_names: list[str]) -> str | None:
-    """
-    Fuzzy match a player name against the list of known names.
-    Supports:
-      - Exact match (case-insensitive)
-      - "F. Lastname" or "F Lastname" format
-      - Partial/Fuzzy string matching
-    """
-    if not input_name:
-        return None
-
     # Normalisation
     norm_input = input_name.lower().strip()
     
@@ -244,8 +233,36 @@ def build_feature_row(
 ) -> pd.DataFrame:
     """
     Build a single-row DataFrame matching MODEL_FEATURES order.
+    Fills missing rolling features with defaults (neutral form).
     """
-    return pd.DataFrame(
-        [[p1_rank, p2_rank, p1_age, p2_age, p1_pct, p2_pct, h2h_diff]],
-        columns = config.MODEL_FEATURES
-    )
+    # Base features that we can calculate interactively
+    features = {
+        'p1_rank': p1_rank,
+        'p2_rank': p2_rank,
+        'p1_age': p1_age,
+        'p2_age': p2_age,
+        'p1_surface_win_pct': p1_pct,
+        'p2_surface_win_pct': p2_pct,
+        'h2h_diff': h2h_diff
+    }
+    
+    # Create DataFrame with all model features
+    df = pd.DataFrame(columns=config.MODEL_FEATURES)
+    
+    # Fill known features
+    for col, val in features.items():
+        if col in df.columns:
+            df.loc[0, col] = val
+            
+    # Fill remaining (rolling) features with defaults
+    # Win rates -> 0.5, counts -> 0 (or reasonably neutral values)
+    # Since we can't easily fetch the *latest* rolling stats without more complex logic,
+    # we accept this limitation for the CLI tool.
+    
+    df = df.fillna(0) # Initialize with 0
+    
+    # Set neutral win rates
+    win_cols = [c for c in df.columns if 'win_rate' in c]
+    df[win_cols] = config.DEFAULT_WIN_PCT
+    
+    return df

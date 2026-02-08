@@ -1,9 +1,14 @@
+"""
+Visualization utilities for model analysis.
+Generates feature importance plots.
+"""
 import config
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+from typing import Any
 
-def plot_feature_importance(model):
+def plot_feature_importance(model: Any) -> None:
     """
     Plot and display feature importance and save it to a PNG file.
     """

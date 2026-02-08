@@ -1,8 +1,19 @@
-# Constants
+from pathlib import Path
+
+# ==========================================
+# PATHS & CONFIGURATION
+# ==========================================
+OUTPUT_DIR = Path("outputs")
+DATA_PATH = Path("atp_tennis_data.csv") # Keep data in root for now as per gitignore
+MODEL_PATH = OUTPUT_DIR / "tennis_model.pkl"
+ACCURACY_PLOT = OUTPUT_DIR / "accuracy_comparison.png"
+FEATURE_IMPORTANCE_PLOT = OUTPUT_DIR / "feature_importance.png"
+
+# ==========================================
+# MODEL PARAMETERS
+# ==========================================
 START_YEAR = 2014
 END_YEAR = 2024
-ACCURACY_PLOT = "accuracy_comparison.png"
-FEATURE_IMPORTANCE_PLOT = "feature_importance.png"
 DEFAULT_RANK = 2000
 DEFAULT_WIN_PCT = 0.5
 VALID_SURFACES = {"Hard", "Clay", "Grass"}
@@ -10,7 +21,7 @@ VALID_SURFACES = {"Hard", "Clay", "Grass"}
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 
-# The exact list of features used for training and prediction
+# Features used for training and prediction
 MODEL_FEATURES = [
     'p1_rank', 'p2_rank', 
     'p1_age', 'p2_age', 

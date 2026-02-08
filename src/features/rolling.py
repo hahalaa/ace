@@ -1,3 +1,8 @@
+"""
+Rolling window feature computation.
+Calculates recent form statistics (win rate, games/sets won/lost)
+over a sliding window of past matches.
+"""
 import pandas as pd
 import config
 
@@ -76,7 +81,7 @@ def compute_rolling_features(df: pd.DataFrame) -> pd.DataFrame:
             lambda x: x.shift(1).rolling(window=window, min_periods=1).mean()
         )
         
-        # Renaissance of column names
+        # Rename columns
         # e.g. won -> recent_win_rate_5
         # games_won -> recent_games_won_avg_5
         
@@ -86,25 +91,17 @@ def compute_rolling_features(df: pd.DataFrame) -> pd.DataFrame:
         player_df[f'recent_sets_won_avg_{window}'] = rolling_stats['sets_won'].reset_index(0, drop=True)
         player_df[f'recent_sets_lost_avg_{window}'] = rolling_stats['sets_lost'].reset_index(0, drop=True)
 
-    # Fill NaNs (first match of player) with defaults
-    # For win rate, default to 0.5. For others, default to 0 or global average?
-    # Let's stick to simple defaults for now: 0.5 for win rate, 0 for counts/avgs to be safe, 
-    # or better, use global averages from the dataset to avoid bias.
-    # For simplicity and to match plan: Default to "average" behaviour or 0.
-    
-    # Actually, config.DEFAULT_WIN_PCT is 0.5
+    # Fill NaNs for players with insufficient history
+    # Win rate defaults to 0.5 (neutral)
     win_cols = [c for c in player_df.columns if 'win_rate' in c]
     player_df[win_cols] = player_df[win_cols].fillna(config.DEFAULT_WIN_PCT)
     
-    # For games/sets, fill with 0? Or -1? 
-    # If a player has no history, their "average games won" is technically unknown. 
-    # Using specific fillna might be safer. Let's use 0 for now as it indicates no contribution.
-    # However, 0 might imply they played and lost everything. 
-    # Let's use the global mean of the column to be neutral.
-    
+    # Other stats default to the global mean (neutral performance)
     stat_cols = [c for c in player_df.columns if 'recent_' in c and 'win_rate' not in c]
     for col in stat_cols:
          player_df[col] = player_df[col].fillna(player_df[col].mean())
+    
+
 
     # 3. Merge back to original DataFrame
     # We need to pull the features back for p1 and p2 separately

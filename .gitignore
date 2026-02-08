@@ -6,9 +6,9 @@ __pycache__/
 # Ignore Mac system files
 .DS_Store
 
-# Ignore raw data (users can run the script to download it themselves)
-*.csv
+# Ignore generated outputs
+outputs/
+!outputs/.gitkeep
 
-# BUT keep the images for your README!
-!accuracy_comparison.png
-!feature_importance.png
+# Ignore raw data
+*.csv

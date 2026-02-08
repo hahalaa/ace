@@ -1,6 +1,12 @@
+"""
+Model training and evaluation logic.
+Trains multiple classifiers and selects the best performing one.
+"""
 import config
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
+from typing import Any
 
 # Machine Learning Imports
 from sklearn.linear_model import LogisticRegression
@@ -9,10 +15,7 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score
 
-# ==========================================
-# 4. MODEL TRAINING
-# ==========================================
-def train_and_evaluate(df):
+def train_and_evaluate(df: pd.DataFrame) -> Any:
     """
     Train multiple models and evaluate on the test year.
     Returns the best-performing model based on test accuracy.
