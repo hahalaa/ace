@@ -23,6 +23,9 @@ def plot_feature_importance(model: Any) -> None:
     sns.barplot(x='Importance', y='Feature', data=df_imp, hue='Feature', legend=False, palette='viridis')
     plt.title("Feature Importance")
     plt.tight_layout()
+    plt.tight_layout()
+    import os
+    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
     plt.savefig(config.FEATURE_IMPORTANCE_PLOT)
     plt.close()
     

@@ -3,6 +3,7 @@ Model training and evaluation logic.
 Trains multiple classifiers and selects the best performing one.
 """
 import config
+import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
@@ -33,7 +34,7 @@ def train_and_evaluate(df: pd.DataFrame) -> Any:
     
     # Define models
     models = {
-        "Logistic Regression": LogisticRegression(max_iter=1000),
+        "Logistic Regression": LogisticRegression(max_iter=5000),
         "Decision Tree": DecisionTreeClassifier(max_depth=5),
         "Random Forest": RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42),
         "XGBoost": XGBClassifier(eval_metric='logloss', random_state=42)
@@ -55,8 +56,9 @@ def train_and_evaluate(df: pd.DataFrame) -> Any:
             best_acc = acc
 
     # Save Accuracy Plot
+    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
     plt.figure(figsize=(10, 5))
-    sns.barplot(x=list(results.keys()), y=list(results.values()), palette="viridis")
+    sns.barplot(x=list(results.keys()), y=list(results.values()), hue=list(results.keys()), legend=False, palette="viridis")
     plt.title(f"Model Accuracy (Test Year: {config.END_YEAR})")
     plt.ylim(config.DEFAULT_WIN_PCT, 0.75)
     plt.savefig(config.ACCURACY_PLOT)
