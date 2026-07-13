@@ -12,3 +12,9 @@ outputs/
 
 # Ignore raw data
 *.csv
+
+# Claude Code
+CLAUDE.md
+ace-startup-guide.md
+.claude/
+docs/
