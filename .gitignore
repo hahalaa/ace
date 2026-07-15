@@ -10,8 +10,10 @@ __pycache__/
 outputs/
 !outputs/.gitkeep
 
-# Ignore raw data
+# Ignore stray raw data blobs, but keep the vendored per-year files under data/raw/
 *.csv
+!data/raw/*.csv
+!data/raw/.gitkeep
 
 # Claude Code
 CLAUDE.md
