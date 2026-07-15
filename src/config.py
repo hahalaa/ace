@@ -4,7 +4,8 @@ from pathlib import Path
 # PATHS & CONFIGURATION
 # ==========================================
 OUTPUT_DIR = Path("outputs")
-DATA_PATH = Path("atp_tennis_data.csv") # Keep data in root for now as per gitignore
+DATA_PATH = Path("atp_tennis_data.csv") # Legacy root blob; retired by Phase 0 (see RAW_DATA_DIR)
+RAW_DATA_DIR = Path("data/raw")         # Vendored per-year CSVs (T0.1); read offline by the loader (T0.2)
 MODEL_PATH = OUTPUT_DIR / "tennis_model.pkl"
 ACCURACY_PLOT = OUTPUT_DIR / "accuracy_comparison.png"
 FEATURE_IMPORTANCE_PLOT = OUTPUT_DIR / "feature_importance.png"

@@ -12,19 +12,14 @@ def main() -> None:
     Main entry point for the Tennis Match Predictor pipeline.
     
     Steps:
-    1. Load data (cached or download new).
+    1. Load data (vendored, offline).
     2. Preprocess and feature engineer.
     3. Train model (or load existing).
     4. Generate visualizations.
     5. Start interactive prediction loop.
     """
-    # 1. Load Data
-    data = loader.load_cached_data(config.DATA_PATH, config.START_YEAR, config.END_YEAR)
-
-    if data is None:
-        data = loader.load_atp_data(config.START_YEAR, config.END_YEAR)
-        data.to_csv(config.DATA_PATH, index=False)
-        print(f"💾 New data saved to {config.DATA_PATH}")
+    # 1. Load Data (vendored data/raw/ only — no network; run scripts/refresh_data.py to update)
+    data = loader.load_atp_data(config.START_YEAR, config.END_YEAR)
 
     # 2. Preprocess & Feature Engineering
     processed_data = preprocess.preprocess_data(data)

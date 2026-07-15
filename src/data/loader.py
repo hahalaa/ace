@@ -1,60 +1,63 @@
 """
 Data loading utilities for ATP tennis match data.
-Handles downloading from GitHub and local caching.
+
+Reads the vendored per-year CSVs under ``data/raw/`` (see ``config.RAW_DATA_DIR``).
+This module performs **no network access**: refreshing the raw files is an
+explicit, separate action handled by ``scripts/refresh_data.py`` (T0.1). The
+runtime pipeline only ever reads the local vendored files.
 """
+import config
 import pandas as pd
-from pathlib import Path
+
+# Vendored per-year filename pattern, matching scripts/refresh_data.py's LOCAL_NAME.
+RAW_FILENAME = "atp_matches_{year}.csv"
+
 
 def load_atp_data(start_year: int, end_year: int) -> pd.DataFrame:
     """
-    Downloads ATP match data from Jeff Sackmann's GitHub repository
-    for a given range of years as CSV files (inclusive).
+    Load ATP match data for a range of years (inclusive) from the vendored
+    ``data/raw/`` CSVs, concatenate them, add a ``year`` column, and return a
+    single DataFrame.
 
-    Returns a single pandas DataFrame containing all matches.
+    ``tourney_date`` is parsed to datetime here — once, centrally — so every
+    downstream caller sees a consistent dtype (see ace-04-current-state.md §6).
+
+    Args:
+        start_year: First year to load (inclusive).
+        end_year: Last year to load (inclusive).
+
+    Returns:
+        Concatenated DataFrame of all matches in the range.
+
+    Raises:
+        FileNotFoundError: If any year's vendored file is missing. The data is
+            offline by contract, so the loader never fetches it — run
+            ``scripts/refresh_data.py`` instead.
     """
-    BASE_URL = (
-        "https://raw.githubusercontent.com/"
-        "JeffSackmann/tennis_atp/master/atp_matches_{}.csv"
-    )
-
     yearly_dfs = []
-    print(f"⬇️  Downloading ATP data from {start_year} to {end_year}...")
+    print(f"📂 Loading vendored ATP data from {start_year} to {end_year}...")
 
     for year in range(start_year, end_year + 1):
-        try:
-            url = BASE_URL.format(year)
-            df = pd.read_csv(url, on_bad_lines="skip")
-            df["year"] = year
-            yearly_dfs.append(df)
+        path = config.RAW_DATA_DIR / RAW_FILENAME.format(year=year)
 
-            print(f"   ✓ Loaded {year}: {len(df)} matches")
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Missing vendored data file for {year}: {path}. "
+                f"The pipeline reads local data only — refresh it with "
+                f"`python scripts/refresh_data.py --start {start_year} --end {end_year}`."
+            )
 
-        except Exception as err:
-            print(f"   ✗ Failed to load {year}: {err}")
+        df = pd.read_csv(path, on_bad_lines="skip")
+        df["year"] = year
+        yearly_dfs.append(df)
+        print(f"   ✓ Loaded {year}: {len(df)} matches")
 
-    return pd.concat(yearly_dfs, ignore_index=True)
+    combined = pd.concat(yearly_dfs, ignore_index=True)
 
-def load_cached_data(
-    path: Path,
-    start_year: int,
-    end_year: int
-) -> pd.DataFrame | None:
-    """
-    Load cached ATP data if it exists and covers the required year range.
-    Returns None if cache is missing or outdated.
-    """
-    if not path.exists():
-        return None
+    # Parse once, centrally (ace-04-current-state.md §6): downstream of the loader
+    # tourney_date is always datetime, so features/train never depend on the raw int.
+    combined["tourney_date"] = pd.to_datetime(
+        combined["tourney_date"], format="%Y%m%d", errors="coerce"
+    )
 
-    print(f"📂 Loading cached data from {path}...")
-    df = pd.read_csv(path)
-    df['tourney_date'] = pd.to_datetime(df['tourney_date'], format="%Y%m%d", errors="coerce")
-
-    cached_min = df['year'].min()
-    cached_max = df['year'].max()
-
-    if cached_min > start_year or cached_max < end_year:
-        print(f"⚠️  Cache outdated (Have {cached_min}-{cached_max}, need {start_year}-{end_year})")
-        return None
-
-    return df
+    return combined
