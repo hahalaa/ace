@@ -14,7 +14,8 @@ FEATURE_IMPORTANCE_PLOT = OUTPUT_DIR / "feature_importance.png"
 # MODEL PARAMETERS
 # ==========================================
 START_YEAR = 2014
-END_YEAR = 2024
+END_YEAR = 2026            # Data now vendored through 2026 (partial season)
+TEST_YEAR = 2025          # Held-out test season, decoupled from END_YEAR (2026 is partial)
 DEFAULT_RANK = 2000
 DEFAULT_WIN_PCT = 0.5
 VALID_SURFACES = {"Hard", "Clay", "Grass"}

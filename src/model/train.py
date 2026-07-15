@@ -23,9 +23,10 @@ def train_and_evaluate(df: pd.DataFrame) -> Any:
     """
     print("🧠 Training models...")
     
-    # Split by Year (Train: <END_YEAR, Test: END_YEAR)
-    train_mask = df['tourney_date'].dt.year < config.END_YEAR
-    test_mask = df['tourney_date'].dt.year == config.END_YEAR
+    # Split by Year (Train: <TEST_YEAR, Test: ==TEST_YEAR). TEST_YEAR is
+    # decoupled from END_YEAR so the partial 2026 season isn't the test set.
+    train_mask = df['tourney_date'].dt.year < config.TEST_YEAR
+    test_mask = df['tourney_date'].dt.year == config.TEST_YEAR
     
     X_train = df.loc[train_mask, config.MODEL_FEATURES]
     y_train = df.loc[train_mask, 'target']
@@ -59,7 +60,7 @@ def train_and_evaluate(df: pd.DataFrame) -> Any:
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
     plt.figure(figsize=(10, 5))
     sns.barplot(x=list(results.keys()), y=list(results.values()), hue=list(results.keys()), legend=False, palette="viridis")
-    plt.title(f"Model Accuracy (Test Year: {config.END_YEAR})")
+    plt.title(f"Model Accuracy (Test Year: {config.TEST_YEAR})")
     plt.ylim(config.DEFAULT_WIN_PCT, 0.75)
     plt.savefig(config.ACCURACY_PLOT)
     plt.close()
