@@ -16,18 +16,33 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score
 
+def year_split_masks(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
+    """
+    Build the train/test row masks for the held-out season.
+
+    Split by Year (Train: <TEST_YEAR, Test: ==TEST_YEAR). TEST_YEAR is
+    decoupled from END_YEAR so the partial 2026 season isn't the test set.
+
+    Args:
+        df: Frame with a datetime 'tourney_date' column.
+
+    Returns:
+        (train_mask, test_mask), boolean Series aligned to df's index. Seasons
+        after TEST_YEAR fall into neither mask.
+    """
+    years = df['tourney_date'].dt.year
+    return years < config.TEST_YEAR, years == config.TEST_YEAR
+
+
 def train_and_evaluate(df: pd.DataFrame) -> Any:
     """
     Train multiple models and evaluate on the test year.
     Returns the best-performing model based on test accuracy.
     """
     print("🧠 Training models...")
-    
-    # Split by Year (Train: <TEST_YEAR, Test: ==TEST_YEAR). TEST_YEAR is
-    # decoupled from END_YEAR so the partial 2026 season isn't the test set.
-    train_mask = df['tourney_date'].dt.year < config.TEST_YEAR
-    test_mask = df['tourney_date'].dt.year == config.TEST_YEAR
-    
+
+    train_mask, test_mask = year_split_masks(df)
+
     X_train = df.loc[train_mask, config.MODEL_FEATURES]
     y_train = df.loc[train_mask, 'target']
     X_test  = df.loc[test_mask, config.MODEL_FEATURES]
