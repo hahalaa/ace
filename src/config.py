@@ -4,7 +4,6 @@ from pathlib import Path
 # PATHS & CONFIGURATION
 # ==========================================
 OUTPUT_DIR = Path("outputs")
-DATA_PATH = Path("atp_tennis_data.csv") # Legacy root blob; retired by Phase 0 (see RAW_DATA_DIR)
 RAW_DATA_DIR = Path("data/raw")         # Vendored per-year CSVs (T0.1); read offline by the loader (T0.2)
 MODEL_PATH = OUTPUT_DIR / "tennis_model.pkl"
 ACCURACY_PLOT = OUTPUT_DIR / "accuracy_comparison.png"
@@ -17,7 +16,17 @@ START_YEAR = 2014
 END_YEAR = 2026            # Data now vendored through 2026 (partial season)
 TEST_YEAR = 2025          # Held-out test season, decoupled from END_YEAR (2026 is partial)
 DEFAULT_RANK = 2000
+# Fallback win % for an unknown player (no history) and the >0.5 favourite
+# boundary in the CLI. Kept distinct from the two 0.5s below (T0.5): they happen
+# to share the value today but mean different things, so changing one must not
+# silently move the others. See ace-04-current-state.md §2 Gotcha 1.
 DEFAULT_WIN_PCT = 0.5
+# preprocess.py's p1/p2 coin-flip: a row is swapped when rng.random() > threshold.
+PLAYER_SWAP_THRESHOLD = 0.5
+# Seed for that swap's RNG (was hardcoded in preprocess.py before T0.5).
+PLAYER_SWAP_SEED = 42
+# y-axis minimum of train.py's model-accuracy bar plot.
+ACCURACY_PLOT_YMIN = 0.5
 VALID_SURFACES = {"Hard", "Clay", "Grass"}
 
 # Recent Form Windows (N matches)

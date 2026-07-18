@@ -31,9 +31,11 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     df["winner_age"] = df["winner_age"].fillna(df["winner_age"].median())
     df["loser_age"]  = df["loser_age"].fillna(df["loser_age"].median())
 
-    # Randomise player order
-    rng = np.random.default_rng(seed=42)
-    swap_players = rng.random(len(df)) > config.DEFAULT_WIN_PCT
+    # Randomise player order. Threshold and seed are config constants (T0.5),
+    # decoupled from DEFAULT_WIN_PCT even though both are 0.5 today — see the
+    # Gotcha 1 note in ace-04-current-state.md §2.
+    rng = np.random.default_rng(seed=config.PLAYER_SWAP_SEED)
+    swap_players = rng.random(len(df)) > config.PLAYER_SWAP_THRESHOLD
 
     # Build Player 1 / Player 2 dataset
     new_df = pd.DataFrame({

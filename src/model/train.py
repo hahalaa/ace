@@ -76,7 +76,7 @@ def train_and_evaluate(df: pd.DataFrame) -> Any:
     plt.figure(figsize=(10, 5))
     sns.barplot(x=list(results.keys()), y=list(results.values()), hue=list(results.keys()), legend=False, palette="viridis")
     plt.title(f"Model Accuracy (Test Year: {config.TEST_YEAR})")
-    plt.ylim(config.DEFAULT_WIN_PCT, 0.75)
+    plt.ylim(config.ACCURACY_PLOT_YMIN, 0.75)
     plt.savefig(config.ACCURACY_PLOT)
     plt.close()
     print("   [Saved accuracy_comparison.png]")

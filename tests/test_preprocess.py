@@ -6,18 +6,12 @@ they assert the *invariant* it exists to produce (every p1 field comes from the
 same original player, consistent with ``target``), so a mis-mapped column can't
 pass by reimplementing the bug.
 """
-import os
-import sys
-
 import numpy as np
 import pandas as pd
 import pytest
 
-# Make src/ importable (mirrors tests/test_loader.py; the pyproject pythonpath
-# config lands in T0.5).
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
-
-import data.preprocess as preprocess  # noqa: E402
+import config
+import data.preprocess as preprocess
 
 # Serve-stat values are seeded per row as winner = 100 + i, loser = 200 + i, so a
 # column sourced from the wrong player is unambiguous in an assertion failure.
@@ -175,10 +169,45 @@ def test_target_distribution_is_unchanged_by_t0_4():
 
     Pins the swap mask — an extra rng draw added anywhere before it would shift
     every downstream p1/p2 assignment and silently change the training labels.
+    Also pins the T0.5 decoupling: this golden only holds while
+    PLAYER_SWAP_THRESHOLD and PLAYER_SWAP_SEED keep their 0.5 / 42 values.
     """
     out = preprocess.preprocess_data(_raw_matches(n=8))
 
     assert out["target"].tolist() == [0, 1, 0, 0, 1, 0, 0, 0]
+
+
+def test_swap_is_driven_by_the_config_threshold(monkeypatch):
+    """The p1/p2 swap must read config.PLAYER_SWAP_THRESHOLD, not a hardcoded 0.5.
+
+    Decoupling DEFAULT_WIN_PCT into PLAYER_SWAP_THRESHOLD (T0.5) is only safe if
+    preprocess actually consults the new constant — a rename that left a literal
+    0.5 behind would pass a same-value test but silently ignore the constant.
+    Drive the threshold to its extremes: > every draw in [0, 1) means every row
+    swaps (p1 = loser, target 0); > nothing means no row swaps (p1 = winner,
+    target 1). A stray hardcoded 0.5 fails both halves.
+    """
+    monkeypatch.setattr(config, "PLAYER_SWAP_THRESHOLD", 1.0)
+    no_swap = preprocess.preprocess_data(_raw_matches())
+    assert (no_swap["target"] == 1).all()
+    assert no_swap["p1_name"].tolist() == [f"Winner {i}" for i in range(N_ROWS)]
+
+    monkeypatch.setattr(config, "PLAYER_SWAP_THRESHOLD", 0.0)
+    all_swap = preprocess.preprocess_data(_raw_matches())
+    assert (all_swap["target"] == 0).all()
+    assert all_swap["p1_name"].tolist() == [f"Loser {i}" for i in range(N_ROWS)]
+
+
+def test_swap_seed_comes_from_config(monkeypatch):
+    """Changing config.PLAYER_SWAP_SEED changes the mask — proves the seed is
+    config-sourced (T0.5) rather than the previously hardcoded 42."""
+    baseline = preprocess.preprocess_data(_raw_matches(n=8))["target"].tolist()
+
+    monkeypatch.setattr(config, "PLAYER_SWAP_SEED", 1234)
+    changed = preprocess.preprocess_data(_raw_matches(n=8))["target"].tolist()
+
+    assert changed != baseline
+    assert changed == [0, 1, 0, 1, 1, 1, 1, 1]  # rng(1234) > 0.5 over 8 rows
 
 
 def test_existing_classifier_columns_are_unchanged(processed):
