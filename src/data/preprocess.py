@@ -6,6 +6,13 @@ import config
 import pandas as pd
 import numpy as np
 
+# Per-match serve/return MatchStats carried through to p1/p2 (T0.4). In the raw
+# data these are prefixed w_ (winner) / l_ (loser) — see ace-02-data-schema.md.
+# They are raw totals, not rates; rate aggregation is T1.1's job.
+SERVE_STAT_COLUMNS = [
+    "ace", "df", "svpt", "1stIn", "1stWon", "2ndWon", "SvGms", "bpSaved", "bpFaced",
+]
+
 def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     Preprocess raw ATP match data by:
@@ -13,6 +20,7 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     - Randomizing player order to create a balanced dataset
     - Creating a binary target (1 = P1 win, 0 = P1 loss)
     - Parsing score strings into game/set statistics
+    - Carrying the raw serve/return stats and player ids through to p1/p2
     """
     df = df.copy()
 
@@ -32,18 +40,50 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
         "tourney_date": df["tourney_date"],
         "surface": df["surface"],
         "tourney_level": df["tourney_level"],
+        "round": df["round"],
+        "best_of": df["best_of"],
 
+        "p1_id":   np.where(swap_players, df["loser_id"], df["winner_id"]),
         "p1_name": np.where(swap_players, df["loser_name"], df["winner_name"]),
         "p1_rank": np.where(swap_players, df["loser_rank"], df["winner_rank"]),
         "p1_age":  np.where(swap_players, df["loser_age"],  df["winner_age"]),
 
+        "p2_id":   np.where(swap_players, df["winner_id"], df["loser_id"]),
         "p2_name": np.where(swap_players, df["winner_name"], df["loser_name"]),
         "p2_rank": np.where(swap_players, df["winner_rank"], df["loser_rank"]),
         "p2_age":  np.where(swap_players, df["winner_age"],  df["loser_age"]),
     })
 
+    # Player ids are alphanumeric strings ("D875", "H0DC"), not integers — a handful
+    # are digit-only, so an inferred numeric dtype would corrupt them. They are the
+    # canonical join key for sim/ and api/ (ace-02-data-schema.md; §7 of -04).
+    # Use astype("string"), not astype(str): on pandas 2.x (permitted by
+    # requirements.txt) the naive cast turns a missing id into the literal "nan".
+    # On pandas >=3.0 both casts are NaN-preserving and safe, so the tests can't
+    # tell them apart there — the distinction only bites on 2.x.
+    new_df[["p1_id", "p2_id"]] = new_df[["p1_id", "p2_id"]].astype("string")
+
     # Target: did Player 1 win?
     new_df["target"] = (~swap_players).astype(int)
+
+    # ----------------------------------------------------
+    # Raw per-match serve/return stats, winner/loser -> p1/p2
+    # ----------------------------------------------------
+    # Same swap mask as above, so serve stats stay consistent with names/ids/target.
+    # NaNs are left as NaN on purpose: aggregation (T1.1) must be able to tell a
+    # missing stat line from a real zero, so imputing here would be a silent lie.
+    for stat in SERVE_STAT_COLUMNS:
+        new_df[f"p1_{stat}"] = np.where(swap_players, df[f"l_{stat}"], df[f"w_{stat}"])
+        new_df[f"p2_{stat}"] = np.where(swap_players, df[f"w_{stat}"], df[f"l_{stat}"])
+
+    # Explicit availability flag rather than a NaN check scattered downstream.
+    # Zero-svpt rows exist in the real data alongside outright-missing ones.
+    serve_cols = [f"p{p}_{stat}" for p in (1, 2) for stat in SERVE_STAT_COLUMNS]
+    new_df["has_serve_stats"] = (
+        new_df[serve_cols].notna().all(axis=1)
+        & (new_df["p1_svpt"] > 0)
+        & (new_df["p2_svpt"] > 0)
+    )
 
     # ----------------------------------------------------
     # Parse scores to get games/sets won/lost
