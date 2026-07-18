@@ -3,18 +3,11 @@
 No network access: the loader only reads local ``data/raw/`` CSVs. Tests point
 ``config.RAW_DATA_DIR`` at a tmp dir of hand-written fixtures.
 """
-import os
-import sys
-
 import pandas as pd
 import pytest
 
-# Make src/ importable (mirrors tests/test_rolling.py's src-on-path pattern; the
-# pyproject pythonpath config lands in T0.5).
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
-
-import config  # noqa: E402
-import data.loader as loader  # noqa: E402
+import config
+import data.loader as loader
 
 
 def _write_year(raw_dir, year, rows):

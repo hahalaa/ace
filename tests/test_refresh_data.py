@@ -9,7 +9,9 @@ import sys
 
 import pytest
 
-# Make scripts/ importable (mirrors tests/test_rolling.py's src-on-path pattern).
+# Make scripts/ importable. pyproject's ``pythonpath = ["src"]`` covers src
+# modules for the other test files, but refresh_data lives under scripts/, which
+# is not a package on that path — so this hack stays.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../scripts")))
 
 import refresh_data  # noqa: E402

@@ -7,19 +7,13 @@ These tests exercise ``model.train``'s own mask logic. They must never
 reimplement the split locally: a copied mask passes even when train.py's real
 split regresses.
 """
-import os
-import sys
-
 import matplotlib
 import pandas as pd
 import pytest
 
 matplotlib.use("Agg")  # headless: train_and_evaluate writes the accuracy plot
 
-# Make src/ importable (mirrors tests/test_loader.py's src-on-path pattern; the
-# pyproject pythonpath config lands in T0.5).
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
-
+# Imports below matplotlib.use() are intentionally post-statement (E402).
 import config  # noqa: E402
 import model.train as train  # noqa: E402
 

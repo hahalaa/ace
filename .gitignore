@@ -14,6 +14,8 @@ outputs/
 *.csv
 !data/raw/*.csv
 !data/raw/.gitkeep
+# ...and the hand-written test fixtures (T0.5).
+!tests/fixtures/*.csv
 
 # Claude Code
 CLAUDE.md

@@ -1,11 +1,6 @@
 import unittest
 import pandas as pd
 import numpy as np
-import sys
-import os
-
-# Add src directory to Python path so we can import project modules.
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 import features.rolling as rolling
 import config
