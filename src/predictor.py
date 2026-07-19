@@ -23,7 +23,10 @@ def main() -> None:
 
     # 2. Preprocess & Feature Engineering
     processed_data = preprocess.preprocess_data(data)
-    final_df, surf_history, h2h_history = features.add_features(processed_data)
+    # add_features also returns the T1.1 serve/return skill table; the classifier
+    # pipeline/REPL don't consume it yet (the point-based simulator does), so it's
+    # bound and left unused here.
+    final_df, surf_history, h2h_history, _skill_table = features.add_features(processed_data)
     
     # 3. Model Training / Loading
     if config.MODEL_PATH.exists():

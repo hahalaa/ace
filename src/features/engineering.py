@@ -8,15 +8,18 @@ Generates time-aware features from match data, including:
 import config
 import pandas as pd
 import features.rolling as rolling
+import features.serve as serve
 
-def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
+def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict, serve.SkillTable]:
     """
     Engineer features using only past match data to prevent leakage.
-    
+
     Returns:
         - DataFrame with new feature columns
         - surface_history dict
         - h2h_history dict
+        - skill_table: the id-keyed serve/return SkillTable (T1.1), a latest
+          snapshot over all rows (used by the point-based simulator, Phase 1+)
     """
     print("⚙️  Engineering features...")
 
@@ -105,4 +108,8 @@ def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
     # Add rolling features
     df = rolling.compute_rolling_features(df)
 
-    return df, surface_history, h2h_history
+    # Serve/return skill table (T1.1): a latest snapshot keyed on player_id,
+    # built from the same preprocessed frame (which carries serve stats + score).
+    skill_table = serve.build_skill_table(df)
+
+    return df, surface_history, h2h_history, skill_table

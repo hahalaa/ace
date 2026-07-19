@@ -33,6 +33,27 @@ VALID_SURFACES = {"Hard", "Clay", "Grass"}
 # (common/names.py, T0.6). Promoted here from a hardcoded 0.6 in the CLI.
 FUZZY_MATCH_CUTOFF = 0.6
 
+# ==========================================
+# SERVE/RETURN SKILL TABLE (T1.1)
+# ==========================================
+# Exponential-decay half-life (days) for recency-weighting serve/return stats:
+# a match this many days older counts half as much. ~1 season.
+SERVE_RECENCY_HALFLIFE_DAYS = 365.0
+# Empirical-Bayes shrinkage strength, in serve/return-point units: a player's
+# rate is blended with the surface baseline μ as (n·rate + k·μ)/(n + k). Acts as
+# the low-sample control (subsumes a hard MIN_SERVE_POINTS threshold — a single
+# knob rather than two, since EB shrinkage is continuous). k points of prior.
+SERVE_SHRINKAGE_K = 200.0
+# Data-derived tour-average serve-points-won (μ) per surface — the point-model
+# baseline (ace-03-tennis-math.md §1). Canonical home is the table in
+# ace-02-data-schema.md; recompute with features.serve.compute_surface_mu if the
+# vendored data range changes. Values below computed from data/raw 2014–2026.
+SURFACE_MU = {
+    "Hard": 0.6423,
+    "Clay": 0.6196,
+    "Grass": 0.6606,
+}
+
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 

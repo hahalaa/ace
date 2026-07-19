@@ -83,6 +83,15 @@ def test_serve_stats_and_ids_follow_the_same_swap_as_the_target(processed):
             assert row[f"p2_{stat}"] == (loser_val if p1_is_winner else winner_val)
 
 
+def test_raw_score_is_carried_through(processed):
+    """The raw score string is carried through for the T1.1 skill table, which
+    must exclude retirements/walkovers (has_serve_stats can't catch a mid-match
+    RET with a complete stat line). It is not swapped — score is winner-relative
+    but the RET/W-O/def. marker check the skill table applies is order-agnostic."""
+    assert "score" in processed.columns
+    assert processed["score"].tolist() == ["6-4 6-4"] * N_ROWS
+
+
 def test_player_ids_stay_strings_even_when_digit_only():
     """Real ids are alphanumeric ("D875"), but some are digit-only ("104631").
 

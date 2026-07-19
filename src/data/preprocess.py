@@ -44,6 +44,14 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
         "tourney_level": df["tourney_level"],
         "round": df["round"],
         "best_of": df["best_of"],
+        # Raw score string carried through for the T1.1 skill table, which must
+        # exclude retirements/walkovers from serve aggregates (parse_match_score
+        # over-counts pre-RET sets — see ace-02-data-schema.md data-quality note).
+        # has_serve_stats alone can't catch a mid-match RET with a complete stat
+        # line, so the marker (RET/W-O/def.) is needed. Inert for the classifier:
+        # rolling/engineering select feature columns explicitly, so a string
+        # column is never swept into MODEL_FEATURES.
+        "score": df["score"],
 
         "p1_id":   np.where(swap_players, df["loser_id"], df["winner_id"]),
         "p1_name": np.where(swap_players, df["loser_name"], df["winner_name"]),
