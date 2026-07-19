@@ -1,7 +1,8 @@
 import config
 import sys
 import pandas as pd
-import difflib
+
+from common.names import MatchStrategy, NameIndex, resolve_name
 
 # ==========================================
 # 5. INTERACTIVE PREDICTION LOOP
@@ -98,61 +99,29 @@ def resolve_player_name(input_name: str, all_names: list[str]) -> str | None:
       - Exact match (case-insensitive)
       - "F. Lastname" or "F Lastname" format
       - Partial/Fuzzy string matching
+
+    Thin CLI wrapper over the pure resolver in ``common.names`` (T0.6): the
+    matching lives there; this keeps the friendly ``print``-based UX by
+    rendering ambiguity itself and returning a plain matched name (or ``None``).
     """
-    if not input_name:
+    match = resolve_name(input_name, NameIndex.from_names(all_names))
+    if match is None:
         return None
-
-    # Normalisation
-    norm_input = input_name.lower().strip()
-    
-    # 1. Exact match (case-insensitive)
-    for name in all_names:
-        if name.lower() == norm_input:
-            return name
-
-    # 2. Initials check (e.g. "C Alcaraz" -> "Carlos Alcaraz")
-    # Gather ALL initial matches to check for ambiguity
-    initial_matches = []
-    parts = norm_input.split()
-    if len(parts) >= 2 and len(parts[0]) == 1:
-        first_initial = parts[0]
-        lastname = " ".join(parts[1:])
-        
-        for name in all_names:
-            name_parts = name.lower().split()
-            if len(name_parts) >= 2:
-                if name_parts[0].startswith(first_initial):
-                    if " ".join(name_parts[1:]) == lastname:
-                        initial_matches.append(name)
-    
-    if len(initial_matches) == 1:
-        return initial_matches[0]
-    elif len(initial_matches) > 1:
-        print(f"Ambiguous: Multiple players match '{input_name}': {', '.join(initial_matches)}. Please be more specific.")
+    if match.is_ambiguous:
+        _print_ambiguity(input_name, match)
         return None
+    return match.name
 
-    # 3. Substring/Prefix match
-    # Gather ALL matches that contain the string
-    substring_matches = [name for name in all_names if norm_input in name.lower()]
-    
-    if len(substring_matches) == 1:
-        return substring_matches[0]
-    elif len(substring_matches) > 1:
-        print(f"Ambiguous: Multiple players match '{input_name}': {', '.join(substring_matches[:5])}{'...' if len(substring_matches)>5 else ''}. Please be more specific.")
-        return None
-
-    # 4. Fuzzy match using difflib
-    # cutoff=0.6_is a reasonable starting point.
-    matches = difflib.get_close_matches(input_name, all_names, n=3, cutoff=0.6)
-    
-    if matches:
-        if len(matches) > 1:
-             print(f"Did you mean: {', '.join(matches)}?")
-             return None
-        # Return best match if unique
-        return matches[0]
-
-    return None
+def _print_ambiguity(input_name: str, match) -> None:
+    """Render an ambiguous NameMatch exactly as the old resolver did."""
+    if match.strategy is MatchStrategy.FUZZY:
+        print(f"Did you mean: {', '.join(match.candidates)}?")
+    elif match.strategy is MatchStrategy.SUBSTRING:
+        shown = ', '.join(match.candidates[:5])
+        suffix = '...' if len(match.candidates) > 5 else ''
+        print(f"Ambiguous: Multiple players match '{input_name}': {shown}{suffix}. Please be more specific.")
+    else:  # INITIALS
+        print(f"Ambiguous: Multiple players match '{input_name}': {', '.join(match.candidates)}. Please be more specific.")
 
 def get_latest(name: str, data: pd.DataFrame):
     """

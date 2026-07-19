@@ -29,6 +29,10 @@ PLAYER_SWAP_SEED = 42
 ACCURACY_PLOT_YMIN = 0.5
 VALID_SURFACES = {"Hard", "Clay", "Grass"}
 
+# difflib cutoff for the fuzzy (4th-strategy) fallback in the name resolver
+# (common/names.py, T0.6). Promoted here from a hardcoded 0.6 in the CLI.
+FUZZY_MATCH_CUTOFF = 0.6
+
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 
