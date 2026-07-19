@@ -54,6 +54,16 @@ SURFACE_MU = {
     "Grass": 0.6606,
 }
 
+# ==========================================
+# POINT-WIN PROBABILITY MODEL (T1.2)
+# ==========================================
+# Clamp bounds for the opponent-adjusted server point-win probability
+# (ace-03-tennis-math.md §1). Noisy/small-sample skill estimates can push the raw
+# spw − rpw + (1 − μ) outside a sane band; clamping to [P_MIN, P_MAX] avoids
+# degenerate matches (near-certain holds/breaks). §1 suggests [0.50, 0.90].
+P_MIN = 0.50
+P_MAX = 0.90
+
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 
