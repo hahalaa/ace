@@ -82,6 +82,12 @@ def interactive_prediction_loop(model, data, surf_hist, h2h_hist):
         except KeyboardInterrupt:
             print("\n\n👋 Exiting. Thank you!")
             sys.exit()
+        except EOFError:
+            # Closed/empty stdin (piped input, redirected file, Ctrl-D). Without
+            # this, input() raises EOFError every iteration, the broad handler
+            # below swallows it, and the loop spins forever. Leave cleanly.
+            print("\n👋 Input closed. Exiting.")
+            break
         except Exception as e:
             print(f"An error occurred: {e}")
 
