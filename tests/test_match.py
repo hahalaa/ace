@@ -11,14 +11,21 @@ from math import comb
 import numpy as np
 import pytest
 
+import sim.match as match
 from sim.match import (
     GameResult,
+    SetResult,
     TiebreakResult,
+    _set_server,
     _tiebreak_server,
     hold_prob,
     simulate_game,
+    simulate_set,
     simulate_tiebreak,
 )
+
+# Every legal final game score for a set, keyed as (winner_games, loser_games).
+VALID_SET_GAME_SCORES = {(6, 0), (6, 1), (6, 2), (6, 3), (6, 4), (7, 5), (7, 6)}
 
 
 def enumerate_hold_prob(p: float, deuce_cycles: int = 400) -> float:
@@ -253,3 +260,226 @@ def test_tiebreak_rejects_bad_args(kwargs):
     base.update(kwargs)
     with pytest.raises(ValueError):
         simulate_tiebreak(**base)
+
+
+# ---------------------------------------------------------------------------
+# _set_server — game-by-game serve rotation (§3) + the cross-set contract
+# ---------------------------------------------------------------------------
+
+def test_set_server_alternates_each_game():
+    """Server flips every game; the first server owns the even-numbered games."""
+    # A serves first: A on 0,2,4,…  B on 1,3,5,…
+    assert [_set_server(g, True) for g in range(6)] == [0, 1, 0, 1, 0, 1]
+    # B serves first is the mirror image.
+    assert [_set_server(g, False) for g in range(6)] == [1, 0, 1, 0, 1, 0]
+
+
+def test_set_server_at_game_12_is_the_set_first_server():
+    """At 6–6 (12 games played) the due server is the set's first server.
+
+    This is exactly the index :func:`simulate_set` derives for the tiebreak, and
+    the value the cross-set contract uses for a 7–6 set (13 games → flip).
+    """
+    assert _set_server(12, True) == 0
+    assert _set_server(12, False) == 1
+    # A 7–6 set has 13 games → the next set's first server flips.
+    assert _set_server(13, True) == 1
+    assert _set_server(13, False) == 0
+
+
+def test_cross_set_serve_continuity_formula():
+    """The documented cross-set contract holds for an even- and an odd-total set.
+
+    The module docstring specifies the next set's first server as
+    ``next_a_serves_first = (_set_server(games_a + games_b, a_serves_first) == 0)``.
+    Under continuous rotation this must flip iff the set's total games is odd.
+    Exercise it on a genuine even-total set (a forced 6–0, total 6) and a genuine
+    odd-total set (a real 7–6 tiebreak, total 13) — enough because ``_set_server``
+    is a fully characterized parity function.
+    """
+    def next_a_serves_first(res, a_serves_first):
+        total = res.games_a + res.games_b
+        return _set_server(total, a_serves_first) == 0
+
+    # Even total (6–0): continuous rotation keeps the same first server.
+    even_set = simulate_set(0.99, 0.01, True, tb_target=7, rng=np.random.default_rng(1))
+    assert (even_set.games_a + even_set.games_b) % 2 == 0
+    assert next_a_serves_first(even_set, True) is True
+    assert next_a_serves_first(even_set, False) is False
+
+    # Odd total (7–6, tiebreak game counts as one): the first server flips.
+    _, odd_set = _find_tiebreak_set(a_serves_first=True)
+    assert (odd_set.games_a + odd_set.games_b) % 2 == 1
+    assert next_a_serves_first(odd_set, True) is False
+    assert next_a_serves_first(odd_set, False) is True
+
+
+# ---------------------------------------------------------------------------
+# simulate_set — point-by-point set (§3/§5)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("a_serves_first", [True, False])
+def test_simulate_set_ends_on_a_legal_score(a_serves_first):
+    """Every set ends 6–x (x≤4), 7–5, or 7–6 — and never beyond."""
+    rng = np.random.default_rng(20260720)
+    for _ in range(4000):
+        res = simulate_set(0.63, 0.6, a_serves_first, tb_target=7, rng=rng)
+        assert isinstance(res, SetResult)
+        hi = max(res.games_a, res.games_b)
+        lo = min(res.games_a, res.games_b)
+        assert (hi, lo) in VALID_SET_GAME_SCORES
+        # winner index is consistent with the game score.
+        assert res.winner == (0 if res.games_a > res.games_b else 1)
+
+
+def test_simulate_set_extreme_p_gives_near_shutout():
+    """p_a_serving≈1, p_b_serving≈0 → A wins every game → 6–0, winner A.
+
+    A wins on serve (0.99) and breaks B's serve (B only wins 0.01 of its points),
+    so A takes six straight regardless of who serves first.
+    """
+    rng = np.random.default_rng(1)
+    for a_serves_first in (True, False):
+        for _ in range(50):
+            res = simulate_set(0.99, 0.01, a_serves_first, tb_target=7, rng=rng)
+            assert (res.games_a, res.games_b) == (6, 0)
+            assert res.winner == 0
+            assert res.tb_score is None
+
+
+def test_simulate_set_reverse_extreme_p_gives_near_shutout_for_b():
+    """Symmetric check: p_b_serving≈1, p_a_serving≈0 → B wins 6–0."""
+    rng = np.random.default_rng(2)
+    for a_serves_first in (True, False):
+        for _ in range(50):
+            res = simulate_set(0.01, 0.99, a_serves_first, tb_target=7, rng=rng)
+            assert (res.games_a, res.games_b) == (0, 6)
+            assert res.winner == 1
+            assert res.tb_score is None
+
+
+def _find_tiebreak_set(a_serves_first, tb_target=7, max_seeds=500):
+    """Return the first (seed, SetResult) whose set reached a tiebreak.
+
+    High, equal hold probabilities (0.95 on both serves) make breaks rare, so a
+    6–6 tiebreak turns up quickly across seeds.
+    """
+    for seed in range(max_seeds):
+        res = simulate_set(
+            0.95, 0.95, a_serves_first, tb_target, np.random.default_rng(seed)
+        )
+        if res.tb_score is not None:
+            return seed, res
+    raise AssertionError("no tiebreak set found across the searched seeds")
+
+
+@pytest.mark.parametrize("a_serves_first", [True, False])
+def test_simulate_set_tiebreak_at_6_6_records_score(a_serves_first):
+    """A 6–6 set is decided by a tiebreak: game score is 7–6 and tb_score is set.
+
+    Also checks the tiebreak point totals are internally consistent — the set
+    winner is the player with more tiebreak points, and the loser's total is
+    ``min(tb_score)`` (the ``7-6(x)`` parenthetical).
+    """
+    _, res = _find_tiebreak_set(a_serves_first)
+    assert res.tb_score is not None
+    hi, lo = max(res.games_a, res.games_b), min(res.games_a, res.games_b)
+    assert (hi, lo) == (7, 6)
+    pts_a, pts_b = res.tb_score
+    # Tiebreak winner (≥7, win by 2) matches the set winner.
+    assert max(pts_a, pts_b) >= 7
+    assert abs(pts_a - pts_b) >= 2
+    assert res.winner == (0 if pts_a > pts_b else 1)
+    # Winner's game count is 7; loser's is 6.
+    winner_games = res.games_a if res.winner == 0 else res.games_b
+    assert winner_games == 7
+
+
+def test_tb_score_populated_iff_set_went_to_tiebreak():
+    """tb_score is non-None exactly when the game score is 7–6, else None."""
+    rng = np.random.default_rng(555)
+    for _ in range(5000):
+        res = simulate_set(0.7, 0.68, True, tb_target=7, rng=rng)
+        went_to_tb = {res.games_a, res.games_b} == {7, 6}
+        assert (res.tb_score is not None) == went_to_tb
+
+
+def test_tiebreak_first_server_is_the_due_server_not_hardcoded(monkeypatch):
+    """At 6–6 the tiebreak's first server is derived from whose turn it is.
+
+    A naive bug would hardcode ``first_server=0`` (always A) or pass the *last*
+    game's server (game 11 → the wrong player). We spy on ``simulate_tiebreak``
+    to capture the actual ``first_server`` argument in a real 6–6 set and assert
+    it flips with ``a_serves_first``: A (0) when A served first, B (1) otherwise.
+    """
+    captured = {}
+    real_tb = match.simulate_tiebreak
+
+    def spy(p_first, p_other, first_server, target, rng):
+        captured["first_server"] = first_server
+        return real_tb(p_first, p_other, first_server, target, rng)
+
+    monkeypatch.setattr(match, "simulate_tiebreak", spy)
+
+    for a_serves_first, expected in [(True, 0), (False, 1)]:
+        captured.clear()
+        for seed in range(500):
+            res = simulate_set(
+                0.95, 0.95, a_serves_first, 7, np.random.default_rng(seed)
+            )
+            if res.tb_score is not None:
+                break
+        assert res.tb_score is not None, "expected to reach a tiebreak"
+        assert captured["first_server"] == expected
+
+
+def test_simulate_set_server_alternates_via_captured_probabilities(monkeypatch):
+    """Each game is drawn with the current server's p, alternating game to game.
+
+    Spying on ``simulate_game`` records the point-win probability handed to each
+    game. With distinct per-server probabilities, the recorded sequence must
+    alternate ``p_a, p_b, p_a, …`` (A serving first) — proving serve alternates
+    correctly and that the right player's probability is used each game.
+    """
+    seen_p = []
+    real_game = match.simulate_game
+
+    def spy(p, rng):
+        seen_p.append(p)
+        return real_game(p, rng)
+
+    monkeypatch.setattr(match, "simulate_game", spy)
+    simulate_set(0.71, 0.62, a_serves_first=True, tb_target=7,
+                 rng=np.random.default_rng(20260720))
+    expected = [0.71 if i % 2 == 0 else 0.62 for i in range(len(seen_p))]
+    assert seen_p == expected
+
+
+def test_simulate_set_is_deterministic():
+    """Same seed → identical SetResult (value equality on the dataclass)."""
+    r1 = simulate_set(0.66, 0.61, True, 7, np.random.default_rng(2024))
+    r2 = simulate_set(0.66, 0.61, True, 7, np.random.default_rng(2024))
+    assert r1 == r2
+
+
+def test_simulate_set_tb_target_10_every_winner_reaches_ten():
+    """tb_target=10 is threaded into the tiebreak (deciding-set variant).
+
+    Collects many 6–6 tiebreak sets and asserts the *winner's* tiebreak points
+    are ≥10 on **every** one. A genuine target-10 breaker can never end with a
+    winner below 10 (e.g. 7–5 is impossible), whereas a target-7 breaker ends
+    7–x constantly — so this kills a ``tb_target``-hardcoded-to-7 mutant, which
+    a single ``max(tb_score) >= 10`` check does not (a long 7-target win-by-2
+    breaker can coincidentally reach 10+).
+    """
+    tb_sets = []
+    for seed in range(500):
+        res = simulate_set(0.95, 0.95, True, 10, np.random.default_rng(seed))
+        if res.tb_score is not None:
+            tb_sets.append(res)
+        if len(tb_sets) >= 30:
+            break
+    assert len(tb_sets) >= 30, "not enough tiebreak sets to exercise tb_target=10"
+    for res in tb_sets:
+        winner_pts = res.tb_score[res.winner]
+        assert winner_pts >= 10

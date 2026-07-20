@@ -9,9 +9,31 @@ The point-by-point match layer (``ace-03-tennis-math.md``). Landed so far:
   score, for building real scorelines (``§5``, T1.3).
 - :func:`simulate_tiebreak` — a point-by-point tiebreak with the real
   ``1-2-2-2`` alternating serve schedule (``§4``, T1.4).
+- :func:`simulate_set` — a point-by-point set: serve alternates by game, first
+  to 6 win by 2, 7–5, or a tiebreak at 6–6 (``§3``/``§5``, T1.5).
 
-Later tickets extend this module with the set and match layers (T1.5+); do not
-add them here.
+Later tickets extend this module with the best-of-3 / best-of-5 match layers
+(T1.6/T1.7); do not add them here.
+
+**Serve-continuity contract across sets (decided in T1.5 — T1.6/T1.7 depend on
+this).** Serve alternates *continuously* game-by-game across the set boundary;
+it is **not** reset per set. The match layer maintains a single running
+"who serves next" state and passes it into each set as ``a_serves_first``.
+:func:`simulate_set` deliberately does **not** store or return any next-server
+field — the next set's first server is *derived* by the caller from the set it
+just played, because it is fully determined by the running rotation::
+
+    next_a_serves_first = (_set_server(games_a + games_b, a_serves_first) == 0)
+
+i.e. whoever is due to serve game number ``games_a + games_b`` (the game that
+would come next) serves first in the following set. This is exact for every set
+type because the tiebreak counts as one game, so a 7–6 set has
+``games_a + games_b == 13`` (odd → the first server flips), and a normal set of
+``T`` games flips the first server iff ``T`` is odd. Note this is the *general*
+continuous-rotation rule; ``§3``'s shorthand "the player who received first in
+the previous set serves first in the next set" is only the special case that
+holds for odd-game sets (all tiebreak sets, plus 6–1/6–3/7–5/…), and this
+contract intentionally supersedes that shorthand.
 
 This module is **pure** apart from the RNG explicitly threaded into
 :func:`simulate_game`: no pandas, no file/network I/O, and never the global
@@ -215,3 +237,136 @@ def simulate_tiebreak(
 
     winner = first_server if pts_first > pts_other else 1 - first_server
     return TiebreakResult(winner=winner, pts_first=pts_first, pts_other=pts_other)
+
+
+@dataclass(frozen=True)
+class SetResult:
+    """Outcome of a single simulated set (``ace-03-tennis-math.md §3``/``§5``).
+
+    Player identity follows the same convention as the game/tiebreak layers:
+    the two players are ``0`` (referred to as A below) and ``1`` (B). ``games_a``
+    / ``games_b`` are A's and B's final game counts — for a tiebreak set the
+    winner's count includes the tiebreak game, so a 7–6 set stores ``7`` and
+    ``6``.
+
+    Attributes:
+        winner: Index (``0`` = A, ``1`` = B) of the player who won the set.
+        games_a: Games won by player A (e.g. ``7`` in a 7–5 or 7–6 set).
+        games_b: Games won by player B.
+        tb_score: The tiebreak point score as ``(points_a, points_b)`` keyed by
+            player (A, B) — **only** populated when the set actually went to a
+            tiebreak (6–6). ``None`` for every non-tiebreak set. To render a
+            ``7-6(x)`` line, take the loser's total, ``min(tb_score)``.
+    """
+
+    winner: int
+    games_a: int
+    games_b: int
+    tb_score: tuple[int, int] | None = None
+
+
+def _set_server(game_index: int, a_serves_first: bool) -> int:
+    """Index (``0`` = A, ``1`` = B) of the player serving game ``game_index``.
+
+    Serve alternates every game within a set (``§3``): if A serves first (game 0)
+    then A serves the even-numbered games and B the odd ones, and vice versa.
+
+    The match layer reuses this with ``game_index = games_a + games_b`` (the game
+    that *would* be played next) to derive the following set's first server —
+    see the serve-continuity contract in the module docstring.
+
+    Args:
+        game_index: Zero-based index of the game within the set.
+        a_serves_first: ``True`` if player A serves the first game of the set.
+
+    Returns:
+        The index (``0`` or ``1``) of the player serving that game.
+    """
+    a_serving = (game_index % 2 == 0) == a_serves_first
+    return 0 if a_serving else 1
+
+
+def simulate_set(
+    p_a_serving: float,
+    p_b_serving: float,
+    a_serves_first: bool,
+    tb_target: int,
+    rng: np.random.Generator,
+) -> SetResult:
+    """Simulate one set point-by-point (``ace-03-tennis-math.md §3``/``§5``).
+
+    Games are played until one player reaches 6 with a ≥2 lead (6–0…6–4), wins
+    7–5, or the set reaches 6–6 and is decided by a tiebreak. Serve alternates
+    each game starting with ``a_serves_first``; each game is drawn by
+    :func:`simulate_game` using the *current server's* point-win probability
+    (``p_a_serving`` on A's serve, ``p_b_serving`` on B's serve).
+
+    At 6–6 the tiebreak's first server is the player *due to serve the next
+    game* — ``_set_server(12, a_serves_first)`` — which, because 12 games have
+    been played, is the set's first server. It is derived here rather than
+    hardcoded; the set's serving probabilities carry into the tiebreak via
+    :func:`simulate_tiebreak`, and the tiebreak game is credited to its winner
+    (making the game score 7–6).
+
+    See the module docstring for the cross-set serve-continuity contract: this
+    function does not expose a next-server value; the match layer derives it
+    from ``games_a + games_b`` and ``a_serves_first``.
+
+    Args:
+        p_a_serving: Probability player A wins a point on A's own serve.
+        p_b_serving: Probability player B wins a point on B's own serve.
+        a_serves_first: ``True`` if A serves the first game of the set.
+        tb_target: The tiebreak target — ``7`` for a standard 6–6 tiebreak,
+            ``10`` for a deciding-set match tiebreak. Only used if 6–6 is reached.
+        rng: A ``numpy`` ``Generator`` (from ``numpy.random.default_rng(seed)``).
+            Passed explicitly for determinism — the global ``np.random`` is never
+            used, and the generator is never reseeded.
+
+    Returns:
+        A :class:`SetResult` with the winner, the game score, and ``tb_score``
+        populated iff the set went to a tiebreak.
+    """
+    games_a = 0
+    games_b = 0
+    game_index = 0
+    while True:
+        server = _set_server(game_index, a_serves_first)
+        p = p_a_serving if server == 0 else p_b_serving
+        game = simulate_game(p, rng)
+        game_winner = server if game.server_won else 1 - server
+        if game_winner == 0:
+            games_a += 1
+        else:
+            games_b += 1
+        game_index += 1
+
+        # 6–6 → tiebreak. The first server is whoever is due to serve the next
+        # game (game index 12), derived — not assumed to be A. §3/§4.
+        if games_a == 6 and games_b == 6:
+            first_server = _set_server(game_index, a_serves_first)
+            if first_server == 0:
+                p_first, p_other = p_a_serving, p_b_serving
+            else:
+                p_first, p_other = p_b_serving, p_a_serving
+            tb = simulate_tiebreak(p_first, p_other, first_server, tb_target, rng)
+            # Map serving-role tallies back to players (A, B).
+            if first_server == 0:
+                pts_a, pts_b = tb.pts_first, tb.pts_other
+            else:
+                pts_a, pts_b = tb.pts_other, tb.pts_first
+            # The tiebreak game goes to its winner → 7–6.
+            if tb.winner == 0:
+                games_a += 1
+            else:
+                games_b += 1
+            return SetResult(
+                winner=tb.winner,
+                games_a=games_a,
+                games_b=games_b,
+                tb_score=(pts_a, pts_b),
+            )
+
+        # Standard set win: reach 6 with a ≥2 lead (covers 6–0…6–4 and 7–5).
+        if max(games_a, games_b) >= 6 and abs(games_a - games_b) >= 2:
+            winner = 0 if games_a > games_b else 1
+            return SetResult(winner=winner, games_a=games_a, games_b=games_b)
