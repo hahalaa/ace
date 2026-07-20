@@ -11,7 +11,14 @@ from math import comb
 import numpy as np
 import pytest
 
-from sim.match import GameResult, hold_prob, simulate_game
+from sim.match import (
+    GameResult,
+    TiebreakResult,
+    _tiebreak_server,
+    hold_prob,
+    simulate_game,
+    simulate_tiebreak,
+)
 
 
 def enumerate_hold_prob(p: float, deuce_cycles: int = 400) -> float:
@@ -121,3 +128,128 @@ def test_different_seeds_can_differ():
     }
     # Expect a spread of scorelines across seeds, not a single fixed result.
     assert len(results) > 1
+
+
+# ---------------------------------------------------------------------------
+# simulate_tiebreak — point-by-point §4
+# ---------------------------------------------------------------------------
+
+def test_tiebreak_serve_schedule_matches_1_2_2_2():
+    """§4: first server serves point 0, then serve alternates every 2 points.
+
+    Asserts the server per point directly (not just the final score) for the
+    first 12 points, for both possible first servers — the real A, BB, AA, BB, …
+    pattern.
+    """
+    # first_server = 0 -> A BB AA BB AA BB
+    expected_a_first = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]
+    assert [_tiebreak_server(n, 0) for n in range(12)] == expected_a_first
+    # first_server = 1 is the mirror image.
+    expected_b_first = [1 - s for s in expected_a_first]
+    assert [_tiebreak_server(n, 1) for n in range(12)] == expected_b_first
+
+
+def test_tiebreak_win_by_two_and_target_reached():
+    """Winner has >= target points and leads by exactly >= 2; totals consistent."""
+    rng = np.random.default_rng(20260720)
+    for target in (7, 10):
+        for _ in range(3000):
+            res = simulate_tiebreak(0.62, 0.6, first_server=0, target=target, rng=rng)
+            assert isinstance(res, TiebreakResult)
+            hi = max(res.pts_first, res.pts_other)
+            lo = min(res.pts_first, res.pts_other)
+            assert hi >= target
+            assert hi - lo >= 2
+            # winner index is consistent with the point totals and first_server=0.
+            assert res.winner == (0 if res.pts_first > res.pts_other else 1)
+
+
+def test_tiebreak_can_end_exactly_at_target():
+    """A tiebreak can end at exactly `target` points (e.g. 7–0..7–5), not only
+    beyond it — pins the win condition at `>= target` and rejects `> target`
+    (first-to-8), which would never produce a winner on exactly 7 points."""
+    rng = np.random.default_rng(20260720)
+    saw_exact = False
+    for _ in range(2000):
+        res = simulate_tiebreak(0.62, 0.6, first_server=0, target=7, rng=rng)
+        if max(res.pts_first, res.pts_other) == 7:
+            saw_exact = True
+            break
+    assert saw_exact, "no tiebreak ever ended with the winner on exactly 7 points"
+
+
+def test_tiebreak_long_breaker_possible():
+    """A long win-by-2 tiebreak (e.g. 12–10) can occur — target is not a cap."""
+    rng = np.random.default_rng(1)
+    max_points = 0
+    for _ in range(20000):
+        res = simulate_tiebreak(0.6, 0.6, first_server=0, target=7, rng=rng)
+        max_points = max(max_points, res.pts_first + res.pts_other)
+        if max(res.pts_first, res.pts_other) >= 12:
+            break
+    else:
+        raise AssertionError(
+            f"never saw a tiebreak reaching 12 points (max total {max_points})"
+        )
+
+
+def test_tiebreak_first_server_index_labels_winner():
+    """winner == first_server when the first server wins, else 1 - first_server."""
+    # A strong first server who never misses on serve and a weak opponent: the
+    # first server should take it, and winner must equal first_server.
+    res = simulate_tiebreak(
+        0.99, 0.01, first_server=1, target=7, rng=np.random.default_rng(3)
+    )
+    assert res.winner == 1
+    assert res.pts_first > res.pts_other
+
+
+def test_tiebreak_symmetry_equal_p_is_fifty_fifty():
+    """With p_server_first == p_other, each player wins ~50% over many sims."""
+    rng = np.random.default_rng(2026)
+    n = 30000
+    first_wins = 0
+    for _ in range(n):
+        res = simulate_tiebreak(0.63, 0.63, first_server=0, target=7, rng=rng)
+        first_wins += res.winner == 0
+    assert first_wins / n == pytest.approx(0.5, abs=0.02)
+
+
+def test_tiebreak_supports_target_10():
+    """target=10 is honoured — the winner needs at least 10 points."""
+    rng = np.random.default_rng(99)
+    res = simulate_tiebreak(0.6, 0.6, first_server=0, target=10, rng=rng)
+    assert max(res.pts_first, res.pts_other) >= 10
+
+
+def test_tiebreak_is_deterministic():
+    """Same seed → identical tiebreak outcome (value equality on the dataclass)."""
+    r1 = simulate_tiebreak(0.62, 0.58, 0, 7, np.random.default_rng(456))
+    r2 = simulate_tiebreak(0.62, 0.58, 0, 7, np.random.default_rng(456))
+    assert r1 == r2
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"p_server_first": 0.0},
+        {"p_server_first": 1.0},
+        {"p_other": 0.0},
+        {"p_other": 1.0},
+        {"first_server": 2},
+        {"first_server": -1},
+        {"target": 0},
+    ],
+)
+def test_tiebreak_rejects_bad_args(kwargs):
+    """Degenerate probabilities, bad server index, or non-positive target raise."""
+    base = {
+        "p_server_first": 0.6,
+        "p_other": 0.6,
+        "first_server": 0,
+        "target": 7,
+        "rng": np.random.default_rng(0),
+    }
+    base.update(kwargs)
+    with pytest.raises(ValueError):
+        simulate_tiebreak(**base)
