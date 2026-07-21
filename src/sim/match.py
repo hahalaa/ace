@@ -10,10 +10,28 @@ The point-by-point match layer (``ace-03-tennis-math.md``). Landed so far:
 - :func:`simulate_tiebreak` — a point-by-point tiebreak with the real
   ``1-2-2-2`` alternating serve schedule (``§4``, T1.4).
 - :func:`simulate_set` — a point-by-point set: serve alternates by game, first
-  to 6 win by 2, 7–5, or a tiebreak at 6–6 (``§3``/``§5``, T1.5).
+  to 6 win by 2, 7–5, or a tiebreak at 6–6 (``§3``/``§5``, T1.5). With
+  ``tb_target=None`` it plays a **no-tiebreak advantage set** — win by 2 games
+  indefinitely — used by the ``"advantage"`` deciding-set rule (T1.6).
+- :func:`simulate_match_bo3` — a best-of-3 match: first to 2 sets, threading the
+  running server across sets and applying the ``final_set_rule`` only in the
+  deciding (3rd) set (``§5``, T1.6).
 
-Later tickets extend this module with the best-of-3 / best-of-5 match layers
-(T1.6/T1.7); do not add them here.
+The best-of-5 match layer (T1.7) extends this module later; do not add it here.
+
+**Two decisions taken in T1.6 (documented at their call sites too):**
+
+1. *Standard (non-deciding-set) tiebreak target.* Added
+   ``config.STANDARD_TIEBREAK_TARGET = 7`` rather than hardcoding ``7`` in this
+   module — threading a bare magic number through the match layer is worse, and
+   the ticket sanctions the small config addition. The deciding set instead
+   takes its target from the per-match ``final_set_rule``.
+2. *"advantage" deciding sets.* Implemented by **extending
+   :func:`simulate_set`** with ``tb_target=None`` ("no tiebreak, keep playing
+   games until a 2-game lead") rather than duplicating a game loop in the match
+   layer. The existing win-by-2 game check already loops indefinitely at 6–6, so
+   ``None`` simply suppresses the 6–6 tiebreak branch; ``tb_score`` stays
+   ``None`` for advantage sets.
 
 **Serve-continuity contract across sets (decided in T1.5 — T1.6/T1.7 depend on
 this).** Serve alternates *continuously* game-by-game across the set boundary;
@@ -37,7 +55,8 @@ contract intentionally supersedes that shorthand.
 
 This module is **pure** apart from the RNG explicitly threaded into
 :func:`simulate_game`: no pandas, no file/network I/O, and never the global
-``np.random`` (see the determinism rule in ``CLAUDE.md``). It belongs to the
+``np.random`` (see the determinism rule in ``CLAUDE.md``). Its only project
+import is ``config`` (for ``STANDARD_TIEBREAK_TARGET``); it belongs to the
 ``sim/`` core and must not import from ``cli/``.
 """
 
@@ -46,6 +65,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+
+import config
 
 
 @dataclass(frozen=True)
@@ -290,7 +311,7 @@ def simulate_set(
     p_a_serving: float,
     p_b_serving: float,
     a_serves_first: bool,
-    tb_target: int,
+    tb_target: int | None,
     rng: np.random.Generator,
 ) -> SetResult:
     """Simulate one set point-by-point (``ace-03-tennis-math.md §3``/``§5``).
@@ -300,6 +321,11 @@ def simulate_set(
     each game starting with ``a_serves_first``; each game is drawn by
     :func:`simulate_game` using the *current server's* point-win probability
     (``p_a_serving`` on A's serve, ``p_b_serving`` on B's serve).
+
+    With ``tb_target=None`` the set is an **advantage set** (``§4``): there is no
+    6–6 tiebreak — play simply continues until one player leads by two games
+    (e.g. 8–6, 12–10, …). This is driven by the ``"advantage"`` deciding-set
+    rule; ``tb_score`` is ``None`` for such sets.
 
     At 6–6 the tiebreak's first server is the player *due to serve the next
     game* — ``_set_server(12, a_serves_first)`` — which, because 12 games have
@@ -317,7 +343,8 @@ def simulate_set(
         p_b_serving: Probability player B wins a point on B's own serve.
         a_serves_first: ``True`` if A serves the first game of the set.
         tb_target: The tiebreak target — ``7`` for a standard 6–6 tiebreak,
-            ``10`` for a deciding-set match tiebreak. Only used if 6–6 is reached.
+            ``10`` for a deciding-set match tiebreak, or ``None`` for a
+            no-tiebreak advantage set. Only used if 6–6 is reached.
         rng: A ``numpy`` ``Generator`` (from ``numpy.random.default_rng(seed)``).
             Passed explicitly for determinism — the global ``np.random`` is never
             used, and the generator is never reseeded.
@@ -325,7 +352,23 @@ def simulate_set(
     Returns:
         A :class:`SetResult` with the winner, the game score, and ``tb_score``
         populated iff the set went to a tiebreak.
+
+    Raises:
+        ValueError: If either serving probability is not strictly inside
+            ``(0, 1)``. A degenerate 0/1 probability can make the win-by-2
+            condition unreachable — most acutely in an advantage set
+            (``tb_target is None``), where equal degenerate holds would loop
+            forever without a tiebreak to terminate the set.
     """
+    if not (0.0 < p_a_serving < 1.0):
+        raise ValueError(
+            f"p_a_serving must be strictly in (0, 1), got {p_a_serving!r}"
+        )
+    if not (0.0 < p_b_serving < 1.0):
+        raise ValueError(
+            f"p_b_serving must be strictly in (0, 1), got {p_b_serving!r}"
+        )
+
     games_a = 0
     games_b = 0
     game_index = 0
@@ -340,9 +383,11 @@ def simulate_set(
             games_b += 1
         game_index += 1
 
-        # 6–6 → tiebreak. The first server is whoever is due to serve the next
-        # game (game index 12), derived — not assumed to be A. §3/§4.
-        if games_a == 6 and games_b == 6:
+        # 6–6 → tiebreak, unless this is an advantage set (tb_target is None), in
+        # which case the standard win-by-2 game check below just keeps looping.
+        # The first server is whoever is due to serve the next game (game index
+        # 12), derived — not assumed to be A. §3/§4.
+        if tb_target is not None and games_a == 6 and games_b == 6:
             first_server = _set_server(game_index, a_serves_first)
             if first_server == 0:
                 p_first, p_other = p_a_serving, p_b_serving
@@ -366,7 +411,117 @@ def simulate_set(
                 tb_score=(pts_a, pts_b),
             )
 
-        # Standard set win: reach 6 with a ≥2 lead (covers 6–0…6–4 and 7–5).
+        # Standard set win: reach 6 with a ≥2 lead (covers 6–0…6–4 and 7–5). In
+        # an advantage set (tb_target is None) this also covers 8–6, 12–10, …
         if max(games_a, games_b) >= 6 and abs(games_a - games_b) >= 2:
             winner = 0 if games_a > games_b else 1
             return SetResult(winner=winner, games_a=games_a, games_b=games_b)
+
+
+# Deciding-set tiebreak target per final_set_rule (ace-03-tennis-math.md §4).
+# ``None`` selects the no-tiebreak advantage mode of :func:`simulate_set`. All
+# four current Grand Slams use ``"10pt_at_6_6"``; ``"advantage"`` is historical
+# but kept for completeness.
+FINAL_SET_TB_TARGET: dict[str, int | None] = {
+    "7pt_at_6_6": 7,
+    "10pt_at_6_6": 10,
+    "advantage": None,
+}
+
+
+@dataclass(frozen=True)
+class MatchResult:
+    """Outcome of a single simulated match (``ace-03-tennis-math.md §5``).
+
+    Player identity follows the game/set/tiebreak convention: ``0`` = A (whose
+    serve carries ``pA``), ``1`` = B.
+
+    Attributes:
+        winner: Index (``0`` = A, ``1`` = B) of the player who won the match.
+        sets: Every set played, in order, each a :class:`SetResult` (which
+            carries its game score and, for a 6–6 set, its ``tb_score``).
+        best_of: The match format — ``3`` for :func:`simulate_match_bo3`.
+    """
+
+    winner: int
+    sets: list[SetResult]
+    best_of: int = 3
+
+
+def simulate_match_bo3(
+    pA: float,
+    pB: float,
+    first_server: int,
+    final_set_rule: str,
+    rng: np.random.Generator,
+) -> MatchResult:
+    """Simulate a best-of-3 match point-by-point (``ace-03-tennis-math.md §5``).
+
+    Sets are played until one player wins 2 (so 2–0 or 2–1). ``pA``/``pB`` are
+    the two players' point-win probabilities on their own serve (T1.2 output) and
+    are held **constant across the whole match** — no momentum/fatigue (``§5``).
+
+    Serve continuity across sets follows the T1.5 contract exactly: the running
+    "who serves next" state is carried from one set into the next via
+    :func:`_set_server` on ``games_a + games_b`` (the game that would come next),
+    rather than being reset per set.
+
+    The ``final_set_rule`` is applied **only** to the deciding set — the 3rd,
+    reached at one set all. Non-deciding sets use the standard tiebreak target
+    ``config.STANDARD_TIEBREAK_TARGET``. The rule maps to a
+    :func:`simulate_set` ``tb_target`` via :data:`FINAL_SET_TB_TARGET`:
+    ``"7pt_at_6_6"`` → ``7``, ``"10pt_at_6_6"`` → ``10``, ``"advantage"`` →
+    ``None`` (no-tiebreak advantage set).
+
+    Args:
+        pA: Probability player A wins a point on A's own serve.
+        pB: Probability player B wins a point on B's own serve.
+        first_server: Index (``0`` = A, ``1`` = B) of the player who serves the
+            first game of the match.
+        final_set_rule: One of ``"7pt_at_6_6"``, ``"10pt_at_6_6"``,
+            ``"advantage"`` — applied only to the deciding set.
+        rng: A ``numpy`` ``Generator`` (from ``numpy.random.default_rng(seed)``).
+            Passed explicitly for determinism — the global ``np.random`` is never
+            used, and the generator is never reseeded.
+
+    Returns:
+        A :class:`MatchResult` with the winner, every :class:`SetResult` in
+        order, and ``best_of=3``.
+
+    Raises:
+        ValueError: If ``first_server`` is not ``0`` or ``1``, or
+            ``final_set_rule`` is not a recognised rule.
+    """
+    if first_server not in (0, 1):
+        raise ValueError(f"first_server must be 0 or 1, got {first_server!r}")
+    if final_set_rule not in FINAL_SET_TB_TARGET:
+        raise ValueError(
+            f"final_set_rule must be one of {sorted(FINAL_SET_TB_TARGET)}, "
+            f"got {final_set_rule!r}"
+        )
+
+    sets: list[SetResult] = []
+    sets_a = 0
+    sets_b = 0
+    a_serves_first = first_server == 0
+    while sets_a < 2 and sets_b < 2:
+        # The deciding set is the 3rd, reached only at one set all.
+        deciding = sets_a == 1 and sets_b == 1
+        tb_target = (
+            FINAL_SET_TB_TARGET[final_set_rule]
+            if deciding
+            else config.STANDARD_TIEBREAK_TARGET
+        )
+        result = simulate_set(pA, pB, a_serves_first, tb_target, rng)
+        sets.append(result)
+        if result.winner == 0:
+            sets_a += 1
+        else:
+            sets_b += 1
+        # Serve continuity (T1.5 contract): the next set's first server is
+        # whoever is due to serve the game after this set's last one.
+        a_serves_first = (
+            _set_server(result.games_a + result.games_b, a_serves_first) == 0
+        )
+
+    return MatchResult(winner=0 if sets_a == 2 else 1, sets=sets, best_of=3)

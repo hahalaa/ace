@@ -64,6 +64,16 @@ SURFACE_MU = {
 P_MIN = 0.50
 P_MAX = 0.90
 
+# ==========================================
+# MATCH SIMULATION (T1.6+)
+# ==========================================
+# Tiebreak target for a *non-deciding* set — the standard 7-point tiebreak at
+# 6–6 (ace-03-tennis-math.md §3/§4). The deciding set instead uses the
+# per-match final_set_rule (7 / 10 / advantage). Kept here rather than hardcoded
+# in sim/match.py so the "standard" and "final-set" targets are both nameable
+# and independently changeable.
+STANDARD_TIEBREAK_TARGET = 7
+
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 

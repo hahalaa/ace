@@ -11,15 +11,19 @@ from math import comb
 import numpy as np
 import pytest
 
+import config
 import sim.match as match
 from sim.match import (
+    FINAL_SET_TB_TARGET,
     GameResult,
+    MatchResult,
     SetResult,
     TiebreakResult,
     _set_server,
     _tiebreak_server,
     hold_prob,
     simulate_game,
+    simulate_match_bo3,
     simulate_set,
     simulate_tiebreak,
 )
@@ -483,3 +487,257 @@ def test_simulate_set_tb_target_10_every_winner_reaches_ten():
     for res in tb_sets:
         winner_pts = res.tb_score[res.winner]
         assert winner_pts >= 10
+
+
+def test_simulate_set_advantage_mode_never_tiebreaks(monkeypatch):
+    """``tb_target=None`` → no tiebreak; play continues past 6–6, win by 2.
+
+    Spies on ``simulate_tiebreak`` to prove it is *never* called, and searches
+    for a genuine extended set (winner on ≥8 games) that a 6–6 tiebreak would
+    have prevented. Every advantage set must end on an exactly-2-game margin with
+    ``tb_score is None``.
+    """
+    monkeypatch.setattr(
+        match,
+        "simulate_tiebreak",
+        lambda *a, **k: pytest.fail("advantage set must not call simulate_tiebreak"),
+    )
+    saw_extended = False
+    for seed in range(3000):
+        res = simulate_set(0.9, 0.9, True, tb_target=None, rng=np.random.default_rng(seed))
+        assert res.tb_score is None
+        hi, lo = max(res.games_a, res.games_b), min(res.games_a, res.games_b)
+        assert hi >= 6 and hi - lo >= 2
+        if lo >= 6:  # extended past 6–6: must end on an exact 2-game margin
+            assert hi - lo == 2
+        if hi >= 8:
+            saw_extended = True
+    assert saw_extended, "never saw an advantage set extend past 7 games"
+
+
+@pytest.mark.parametrize("tb_target", [7, None], ids=["tiebreak", "advantage"])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"p_a_serving": 0.0},
+        {"p_a_serving": 1.0},
+        {"p_b_serving": 0.0},
+        {"p_b_serving": 1.0},
+    ],
+)
+def test_simulate_set_rejects_degenerate_p(tb_target, kwargs):
+    """Degenerate 0/1 serving probabilities raise for both players, both modes.
+
+    Mirrors :func:`simulate_tiebreak`'s ``(0, 1)`` guard. Applied regardless of
+    ``tb_target`` so the int (tiebreak) path is protected too — and, crucially,
+    so an advantage set (``tb_target=None``) rejects a degenerate ``p`` up front
+    rather than looping forever (no tiebreak exists to terminate it).
+    """
+    base = {
+        "p_a_serving": 0.6,
+        "p_b_serving": 0.6,
+        "a_serves_first": True,
+        "tb_target": tb_target,
+        "rng": np.random.default_rng(0),
+    }
+    base.update(kwargs)
+    with pytest.raises(ValueError):
+        simulate_set(**base)
+
+
+# ---------------------------------------------------------------------------
+# simulate_match_bo3 — best-of-3 match (§5, T1.6)
+# ---------------------------------------------------------------------------
+
+def _fake_set_sequence(monkeypatch, winners, captured):
+    """Replace ``simulate_set`` with a fake returning ``winners`` in order.
+
+    Records each call's ``(a_serves_first, tb_target)`` into ``captured`` and
+    returns a clean 6–0 / 0–6 set for the scheduled winner, so a match's set
+    sequence (and thus whether a deciding set is reached) is forced
+    deterministically, independent of the RNG.
+    """
+    it = iter(winners)
+
+    def fake_set(p_a, p_b, a_serves_first, tb_target, rng):
+        captured.append({"a_serves_first": a_serves_first, "tb_target": tb_target})
+        w = next(it)
+        return SetResult(winner=w, games_a=6 if w == 0 else 0,
+                         games_b=6 if w == 1 else 0)
+
+    monkeypatch.setattr(match, "simulate_set", fake_set)
+
+
+def test_match_ends_when_a_player_reaches_two_sets():
+    """A Bo3 is always 2 or 3 sets, and the winner wins exactly 2 of them."""
+    rng = np.random.default_rng(20260722)
+    for _ in range(500):
+        res = simulate_match_bo3(0.63, 0.6, 0, "10pt_at_6_6", rng)
+        assert isinstance(res, MatchResult)
+        assert res.best_of == 3
+        assert len(res.sets) in (2, 3)
+        winner_sets = sum(s.winner == res.winner for s in res.sets)
+        assert winner_sets == 2
+        # The loser never reached 2 sets.
+        assert len(res.sets) - winner_sets < 2
+
+
+def test_extreme_p_wins_in_straight_sets():
+    """p_a≈1, p_b≈0 → A wins 2–0 with two 6–0 sets; symmetric for B."""
+    for seed in range(50):
+        res = simulate_match_bo3(0.99, 0.01, 0, "10pt_at_6_6", np.random.default_rng(seed))
+        assert res.winner == 0
+        assert len(res.sets) == 2
+        for s in res.sets:
+            assert (s.games_a, s.games_b) == (6, 0)
+    for seed in range(50):
+        res = simulate_match_bo3(0.01, 0.99, 0, "10pt_at_6_6", np.random.default_rng(seed))
+        assert res.winner == 1
+        assert len(res.sets) == 2
+        for s in res.sets:
+            assert (s.games_a, s.games_b) == (0, 6)
+
+
+def test_balanced_p_is_fifty_fifty_with_realistic_set_split():
+    """Equal players → ~50/50 winner and ~50% straight-sets (2–0) matches.
+
+    With independent 50/50 sets, P(2–0) = P(same player wins the first two
+    sets) = 0.5 exactly, and P(2–1) = 0.5 — a realistic, analytically-pinned
+    split, not a hand-tuned constant.
+    """
+    rng = np.random.default_rng(20260722)
+    n = 20000
+    a_wins = 0
+    straight = 0
+    for _ in range(n):
+        res = simulate_match_bo3(0.63, 0.63, 0, "10pt_at_6_6", rng)
+        a_wins += res.winner == 0
+        if len(res.sets) == 2:
+            straight += 1
+    assert a_wins / n == pytest.approx(0.5, abs=0.02)
+    assert straight / n == pytest.approx(0.5, abs=0.03)
+
+
+def test_final_set_rule_applied_only_to_deciding_set(monkeypatch):
+    """Each rule's target reaches the *3rd* set only; sets 1–2 use the standard.
+
+    Forces a 2–1 match (A, B, A) with a fake ``simulate_set`` and asserts the
+    ``tb_target`` handed to each set: the standard target for the first two, the
+    rule-specific target for the deciding third — for every enum value including
+    ``"advantage"`` (``None``). A bug applying the rule to an earlier set, or the
+    standard target to the decider, is caught here.
+    """
+    for rule, expected_target in FINAL_SET_TB_TARGET.items():
+        captured: list[dict] = []
+        _fake_set_sequence(monkeypatch, [0, 1, 0], captured)
+        res = simulate_match_bo3(0.6, 0.6, 0, rule, np.random.default_rng(0))
+        assert [c["tb_target"] for c in captured] == [
+            config.STANDARD_TIEBREAK_TARGET,
+            config.STANDARD_TIEBREAK_TARGET,
+            expected_target,
+        ]
+        assert res.winner == 0
+        assert len(res.sets) == 3
+
+
+def test_advantage_deciding_set_is_a_real_no_tiebreak_set():
+    """A real ``"advantage"`` match: the deciding set never tiebreaks and can
+    extend past 7 games (e.g. 8–6, 10–8), while a *non-deciding* set in the same
+    format still uses the standard 7-point tiebreak (so ``tb_score`` can appear
+    there). Not an untested enum pass-through — the deciding set is exercised.
+    """
+    saw_extended = False
+    checked = 0
+    for seed in range(6000):
+        res = simulate_match_bo3(0.9, 0.9, 0, "advantage", np.random.default_rng(seed))
+        if len(res.sets) < 3:
+            continue
+        checked += 1
+        deciding = res.sets[2]
+        assert deciding.tb_score is None  # advantage set: no tiebreak, ever
+        hi, lo = max(deciding.games_a, deciding.games_b), min(deciding.games_a, deciding.games_b)
+        assert hi >= 6 and hi - lo >= 2
+        if lo >= 6:  # extended past 6–6 must end on an exact 2-game margin
+            assert hi - lo == 2
+        if hi >= 8:
+            saw_extended = True
+    assert checked > 0, "no 3-set advantage match found to exercise the decider"
+    assert saw_extended, "advantage decider never extended past 7 games"
+
+
+def test_deciding_set_10pt_tiebreak_is_recorded():
+    """A 10-point deciding tiebreak is applied and its score is recorded.
+
+    Confirms ``MatchResult`` carries tiebreak scores where relevant and that the
+    ``"10pt_at_6_6"`` target actually reaches the decider: the winner's tiebreak
+    points are ≥10 (impossible under a 7-point breaker's 7–x endings short of
+    deuce).
+    """
+    for seed in range(6000):
+        res = simulate_match_bo3(0.9, 0.9, 0, "10pt_at_6_6", np.random.default_rng(seed))
+        if len(res.sets) == 3 and res.sets[2].tb_score is not None:
+            deciding = res.sets[2]
+            assert max(deciding.tb_score) >= 10
+            assert deciding.tb_score[deciding.winner] == max(deciding.tb_score)
+            break
+    else:
+        raise AssertionError("no 3-set match with a 10-point deciding tiebreak found")
+
+
+@pytest.mark.parametrize("first_server", [0, 1])
+def test_serve_continuity_across_set_boundaries_uses_t15_formula(first_server, monkeypatch):
+    """The a_serves_first handed to each set follows the exact T1.5 contract.
+
+    Wraps the real ``simulate_set`` to record ``(a_serves_first, SetResult)`` per
+    set, then asserts the first set starts with ``first_server`` and every
+    subsequent set's first server equals
+    ``_set_server(prev.games_a + prev.games_b, prev_a_serves_first) == 0`` — the
+    documented formula, reused rather than re-derived. A Bo3 is always ≥2 sets,
+    so at least one boundary is exercised for each ``first_server``.
+    """
+    calls: list[tuple[bool, SetResult]] = []
+    real_set = match.simulate_set
+
+    def spy(p_a, p_b, a_serves_first, tb_target, rng):
+        res = real_set(p_a, p_b, a_serves_first, tb_target, rng)
+        calls.append((a_serves_first, res))
+        return res
+
+    monkeypatch.setattr(match, "simulate_set", spy)
+    simulate_match_bo3(0.63, 0.6, first_server, "10pt_at_6_6",
+                       np.random.default_rng(20260722))
+
+    assert calls[0][0] is (first_server == 0)
+    for (a_first_prev, res_prev), (a_first_next, _) in zip(calls, calls[1:]):
+        total = res_prev.games_a + res_prev.games_b
+        assert a_first_next == (_set_server(total, a_first_prev) == 0)
+
+
+def test_simulate_match_bo3_is_deterministic():
+    """Same seed → identical MatchResult (value equality through the set list)."""
+    r1 = simulate_match_bo3(0.64, 0.6, 0, "10pt_at_6_6", np.random.default_rng(2024))
+    r2 = simulate_match_bo3(0.64, 0.6, 0, "10pt_at_6_6", np.random.default_rng(2024))
+    assert r1 == r2
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"first_server": 2},
+        {"first_server": -1},
+        {"final_set_rule": "bogus"},
+        {"final_set_rule": "7pt"},
+    ],
+)
+def test_simulate_match_bo3_rejects_bad_args(kwargs):
+    """Bad server index or unrecognised final_set_rule raises ValueError."""
+    base = {
+        "pA": 0.6,
+        "pB": 0.6,
+        "first_server": 0,
+        "final_set_rule": "10pt_at_6_6",
+        "rng": np.random.default_rng(0),
+    }
+    base.update(kwargs)
+    with pytest.raises(ValueError):
+        simulate_match_bo3(**base)
