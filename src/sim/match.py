@@ -16,8 +16,15 @@ The point-by-point match layer (``ace-03-tennis-math.md``). Landed so far:
 - :func:`simulate_match_bo3` — a best-of-3 match: first to 2 sets, threading the
   running server across sets and applying the ``final_set_rule`` only in the
   deciding (3rd) set (``§5``, T1.6).
+- :func:`simulate_match_bo5` — a best-of-5 match: first to 3 sets, deciding set
+  the 5th (``§5``, T1.7). It shares the whole set-loop/continuity/deciding-set
+  body with the Bo3 layer via the internal :func:`_simulate_match` helper.
 
-The best-of-5 match layer (T1.7) extends this module later; do not add it here.
+Both public match entry points delegate to :func:`_simulate_match`, a single
+best-of-N set loop parameterised only by how many sets it takes to win. The two
+functions stay distinct (each pins its own ``best_of``) but share one
+implementation, so the extraction is deliberately careful: a bug in the helper
+now affects **both** formats at once.
 
 **Two decisions taken in T1.6 (documented at their call sites too):**
 
@@ -440,12 +447,110 @@ class MatchResult:
         winner: Index (``0`` = A, ``1`` = B) of the player who won the match.
         sets: Every set played, in order, each a :class:`SetResult` (which
             carries its game score and, for a 6–6 set, its ``tb_score``).
-        best_of: The match format — ``3`` for :func:`simulate_match_bo3`.
+        best_of: The match format — ``3`` for :func:`simulate_match_bo3`, ``5``
+            for :func:`simulate_match_bo5`.
     """
 
     winner: int
     sets: list[SetResult]
     best_of: int = 3
+
+
+def _simulate_match(
+    sets_to_win: int,
+    pA: float,
+    pB: float,
+    first_server: int,
+    final_set_rule: str,
+    rng: np.random.Generator,
+) -> MatchResult:
+    """Shared best-of-N set loop underlying both public match entry points.
+
+    A single implementation of the set-by-set loop, cross-set serve continuity,
+    and deciding-set rule handling, parameterised **only** by how many sets it
+    takes to win the match (``sets_to_win``). :func:`simulate_match_bo3` calls it
+    with ``sets_to_win=2`` and :func:`simulate_match_bo5` with ``sets_to_win=3``;
+    the two remain distinct public entry points but share this body, so a bug
+    here affects **both** formats simultaneously — hence the care taken in the
+    T1.7 extraction.
+
+    Contract:
+
+    - **Termination.** The match ends the instant one player reaches
+      ``sets_to_win`` sets, so it lasts between ``sets_to_win`` and
+      ``2·sets_to_win − 1`` sets.
+    - **``best_of``.** Recorded on the returned :class:`MatchResult` as
+      ``2 * sets_to_win - 1`` — ``3`` for Bo3, ``5`` for Bo5.
+    - **Deciding set.** The last set that could possibly be played, reached when
+      both players sit one set short: ``sets_a == sets_to_win - 1 and sets_b ==
+      sets_to_win - 1``. For ``sets_to_win == 2`` this collapses **exactly** to
+      T1.6's ``sets_a == 1 and sets_b == 1`` (the Bo3 3rd set); for
+      ``sets_to_win == 3`` it is the Bo5 5th set. Only the deciding set uses
+      ``final_set_rule`` (via :data:`FINAL_SET_TB_TARGET`); every earlier set
+      uses ``config.STANDARD_TIEBREAK_TARGET``.
+    - **Serve continuity.** Follows the T1.5 contract verbatim (see the module
+      docstring): one running ``a_serves_first`` toggle is threaded set to set
+      via :func:`_set_server` on ``games_a + games_b`` — never reset per set.
+
+    Args:
+        sets_to_win: Sets needed to win the match — ``2`` (Bo3) or ``3`` (Bo5).
+        pA: Probability player A wins a point on A's own serve.
+        pB: Probability player B wins a point on B's own serve.
+        first_server: Index (``0`` = A, ``1`` = B) of the player who serves the
+            first game of the match.
+        final_set_rule: One of ``"7pt_at_6_6"``, ``"10pt_at_6_6"``,
+            ``"advantage"`` — applied only to the deciding set.
+        rng: A ``numpy`` ``Generator`` (from ``numpy.random.default_rng(seed)``).
+            Passed explicitly for determinism — the global ``np.random`` is never
+            used, and the generator is never reseeded.
+
+    Returns:
+        A :class:`MatchResult` with the winner, every :class:`SetResult` in
+        order, and ``best_of = 2 * sets_to_win - 1``.
+
+    Raises:
+        ValueError: If ``first_server`` is not ``0`` or ``1``, or
+            ``final_set_rule`` is not a recognised rule.
+    """
+    if first_server not in (0, 1):
+        raise ValueError(f"first_server must be 0 or 1, got {first_server!r}")
+    if final_set_rule not in FINAL_SET_TB_TARGET:
+        raise ValueError(
+            f"final_set_rule must be one of {sorted(FINAL_SET_TB_TARGET)}, "
+            f"got {final_set_rule!r}"
+        )
+
+    sets: list[SetResult] = []
+    sets_a = 0
+    sets_b = 0
+    a_serves_first = first_server == 0
+    while sets_a < sets_to_win and sets_b < sets_to_win:
+        # The deciding set is the last one that can be played — both players one
+        # set short. Collapses to sets_a == 1 and sets_b == 1 (T1.6) when
+        # sets_to_win == 2, and is the 5th set when sets_to_win == 3.
+        deciding = sets_a == sets_to_win - 1 and sets_b == sets_to_win - 1
+        tb_target = (
+            FINAL_SET_TB_TARGET[final_set_rule]
+            if deciding
+            else config.STANDARD_TIEBREAK_TARGET
+        )
+        result = simulate_set(pA, pB, a_serves_first, tb_target, rng)
+        sets.append(result)
+        if result.winner == 0:
+            sets_a += 1
+        else:
+            sets_b += 1
+        # Serve continuity (T1.5 contract): the next set's first server is
+        # whoever is due to serve the game after this set's last one.
+        a_serves_first = (
+            _set_server(result.games_a + result.games_b, a_serves_first) == 0
+        )
+
+    return MatchResult(
+        winner=0 if sets_a == sets_to_win else 1,
+        sets=sets,
+        best_of=2 * sets_to_win - 1,
+    )
 
 
 def simulate_match_bo3(
@@ -492,36 +597,53 @@ def simulate_match_bo3(
         ValueError: If ``first_server`` is not ``0`` or ``1``, or
             ``final_set_rule`` is not a recognised rule.
     """
-    if first_server not in (0, 1):
-        raise ValueError(f"first_server must be 0 or 1, got {first_server!r}")
-    if final_set_rule not in FINAL_SET_TB_TARGET:
-        raise ValueError(
-            f"final_set_rule must be one of {sorted(FINAL_SET_TB_TARGET)}, "
-            f"got {final_set_rule!r}"
-        )
+    # First to 2 sets: the shared best-of-N loop with sets_to_win=2. The deciding
+    # (3rd) set is reached at one set all — see :func:`_simulate_match`.
+    return _simulate_match(2, pA, pB, first_server, final_set_rule, rng)
 
-    sets: list[SetResult] = []
-    sets_a = 0
-    sets_b = 0
-    a_serves_first = first_server == 0
-    while sets_a < 2 and sets_b < 2:
-        # The deciding set is the 3rd, reached only at one set all.
-        deciding = sets_a == 1 and sets_b == 1
-        tb_target = (
-            FINAL_SET_TB_TARGET[final_set_rule]
-            if deciding
-            else config.STANDARD_TIEBREAK_TARGET
-        )
-        result = simulate_set(pA, pB, a_serves_first, tb_target, rng)
-        sets.append(result)
-        if result.winner == 0:
-            sets_a += 1
-        else:
-            sets_b += 1
-        # Serve continuity (T1.5 contract): the next set's first server is
-        # whoever is due to serve the game after this set's last one.
-        a_serves_first = (
-            _set_server(result.games_a + result.games_b, a_serves_first) == 0
-        )
 
-    return MatchResult(winner=0 if sets_a == 2 else 1, sets=sets, best_of=3)
+def simulate_match_bo5(
+    pA: float,
+    pB: float,
+    first_server: int,
+    final_set_rule: str,
+    rng: np.random.Generator,
+) -> MatchResult:
+    """Simulate a best-of-5 match point-by-point (``ace-03-tennis-math.md §5``).
+
+    The men's Grand Slam format. Sets are played until one player wins 3 (so the
+    match lasts 3, 4, or 5 sets). ``pA``/``pB`` are the two players' point-win
+    probabilities on their own serve (T1.2 output) and are held **constant across
+    the whole match** — no momentum/fatigue (``§5``).
+
+    Serve continuity across sets and the ``final_set_rule`` handling are
+    identical to :func:`simulate_match_bo3` — both delegate to the shared
+    :func:`_simulate_match` helper — except that this format needs 3 sets to win
+    and the deciding set is the **5th**, reached only at two sets all. The rule
+    maps to a :func:`simulate_set` ``tb_target`` via :data:`FINAL_SET_TB_TARGET`:
+    ``"7pt_at_6_6"`` → ``7``, ``"10pt_at_6_6"`` → ``10``, ``"advantage"`` →
+    ``None`` (no-tiebreak advantage set). Non-deciding sets use the standard
+    tiebreak target ``config.STANDARD_TIEBREAK_TARGET``.
+
+    Args:
+        pA: Probability player A wins a point on A's own serve.
+        pB: Probability player B wins a point on B's own serve.
+        first_server: Index (``0`` = A, ``1`` = B) of the player who serves the
+            first game of the match.
+        final_set_rule: One of ``"7pt_at_6_6"``, ``"10pt_at_6_6"``,
+            ``"advantage"`` — applied only to the deciding (5th) set.
+        rng: A ``numpy`` ``Generator`` (from ``numpy.random.default_rng(seed)``).
+            Passed explicitly for determinism — the global ``np.random`` is never
+            used, and the generator is never reseeded.
+
+    Returns:
+        A :class:`MatchResult` with the winner, every :class:`SetResult` in
+        order, and ``best_of=5``.
+
+    Raises:
+        ValueError: If ``first_server`` is not ``0`` or ``1``, or
+            ``final_set_rule`` is not a recognised rule.
+    """
+    # First to 3 sets: the shared best-of-N loop with sets_to_win=3. The deciding
+    # (5th) set is reached at two sets all — see :func:`_simulate_match`.
+    return _simulate_match(3, pA, pB, first_server, final_set_rule, rng)

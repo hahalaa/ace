@@ -20,10 +20,12 @@ from sim.match import (
     SetResult,
     TiebreakResult,
     _set_server,
+    _simulate_match,
     _tiebreak_server,
     hold_prob,
     simulate_game,
     simulate_match_bo3,
+    simulate_match_bo5,
     simulate_set,
     simulate_tiebreak,
 )
@@ -741,3 +743,224 @@ def test_simulate_match_bo3_rejects_bad_args(kwargs):
     base.update(kwargs)
     with pytest.raises(ValueError):
         simulate_match_bo3(**base)
+
+
+# ---------------------------------------------------------------------------
+# simulate_match_bo5 — best-of-5 match (§5, T1.7)
+# ---------------------------------------------------------------------------
+
+def test_bo5_match_ends_when_a_player_reaches_three_sets():
+    """A Bo5 is always 3, 4, or 5 sets, and the winner wins exactly 3 of them."""
+    rng = np.random.default_rng(20260722)
+    for _ in range(500):
+        res = simulate_match_bo5(0.63, 0.6, 0, "10pt_at_6_6", rng)
+        assert isinstance(res, MatchResult)
+        assert res.best_of == 5
+        assert len(res.sets) in (3, 4, 5)
+        winner_sets = sum(s.winner == res.winner for s in res.sets)
+        assert winner_sets == 3
+        # The loser never reached 3 sets.
+        assert len(res.sets) - winner_sets < 3
+
+
+def test_bo5_extreme_p_wins_in_three_sets():
+    """p_a≈1, p_b≈0 → A wins 3–0 with three 6–0 sets; symmetric for B."""
+    for seed in range(50):
+        res = simulate_match_bo5(0.99, 0.01, 0, "10pt_at_6_6", np.random.default_rng(seed))
+        assert res.winner == 0
+        assert len(res.sets) == 3
+        for s in res.sets:
+            assert (s.games_a, s.games_b) == (6, 0)
+    for seed in range(50):
+        res = simulate_match_bo5(0.01, 0.99, 0, "10pt_at_6_6", np.random.default_rng(seed))
+        assert res.winner == 1
+        assert len(res.sets) == 3
+        for s in res.sets:
+            assert (s.games_a, s.games_b) == (0, 6)
+
+
+def test_bo5_balanced_p_has_plausible_length_distribution():
+    """Equal players → ~50/50 winner and an analytically-pinned length split.
+
+    With independent 50/50 sets and first-to-3, the match length distribution is
+    exact, not hand-tuned: P(3 sets) = 2·(½)³ = 0.25, P(4) = 2·C(3,1)·(½)⁴ =
+    0.375, P(5) = 2·C(4,2)·(½)⁵ = 0.375. (Full statistical validation is T1.9;
+    this is just a plausibility pin.)
+    """
+    rng = np.random.default_rng(20260722)
+    n = 20000
+    a_wins = 0
+    lengths = {3: 0, 4: 0, 5: 0}
+    for _ in range(n):
+        res = simulate_match_bo5(0.63, 0.63, 0, "10pt_at_6_6", rng)
+        a_wins += res.winner == 0
+        lengths[len(res.sets)] += 1
+    assert a_wins / n == pytest.approx(0.5, abs=0.02)
+    assert lengths[3] / n == pytest.approx(0.25, abs=0.02)
+    assert lengths[4] / n == pytest.approx(0.375, abs=0.02)
+    assert lengths[5] / n == pytest.approx(0.375, abs=0.02)
+
+
+def test_bo5_final_set_rule_applied_only_to_fifth_set(monkeypatch):
+    """Each rule's target reaches the *5th* set only; sets 1–4 use the standard.
+
+    Forces a 3–2 match (A, B, A, B, A) with a fake ``simulate_set`` and asserts
+    the ``tb_target`` handed to each set: the standard target for the first four,
+    the rule-specific target for the deciding fifth — for every enum value
+    including ``"advantage"`` (``None``). Catches a rule applied to an earlier
+    set, or the standard target leaking into the decider.
+    """
+    for rule, expected_target in FINAL_SET_TB_TARGET.items():
+        captured: list[dict] = []
+        _fake_set_sequence(monkeypatch, [0, 1, 0, 1, 0], captured)
+        res = simulate_match_bo5(0.6, 0.6, 0, rule, np.random.default_rng(0))
+        assert [c["tb_target"] for c in captured] == [
+            config.STANDARD_TIEBREAK_TARGET,
+            config.STANDARD_TIEBREAK_TARGET,
+            config.STANDARD_TIEBREAK_TARGET,
+            config.STANDARD_TIEBREAK_TARGET,
+            expected_target,
+        ]
+        assert res.winner == 0
+        assert len(res.sets) == 5
+
+
+def test_bo5_deciding_condition_only_fires_at_two_sets_all(monkeypatch):
+    """The shared helper's deciding set is the 5th and *only* the 5th (Bo5 boundary).
+
+    Directly pins the ``sets_a == sets_b == sets_to_win - 1`` condition at the
+    Bo5 boundary (2–2), mirroring how the Bo3 test pins its 1–1 boundary:
+      - A 3–1 match (never reaches 2–2) must apply the *standard* target to all
+        four sets — the rule target appears nowhere.
+      - A 3–2 match applies the rule target on the 5th set only.
+    A helper that computed ``deciding`` off the wrong count (e.g. an early set, or
+    2–2 collapsing wrongly) would be caught here.
+    """
+    # 3–1: A, B, A, A — decider never reached, so no set sees the rule target.
+    captured: list[dict] = []
+    _fake_set_sequence(monkeypatch, [0, 1, 0, 0], captured)
+    res = simulate_match_bo5(0.6, 0.6, 0, "10pt_at_6_6", np.random.default_rng(0))
+    assert len(res.sets) == 4
+    assert [c["tb_target"] for c in captured] == [config.STANDARD_TIEBREAK_TARGET] * 4
+
+    # 3–2: only the 5th set (reached at exactly 2–2) sees the rule target.
+    captured = []
+    _fake_set_sequence(monkeypatch, [0, 1, 0, 1, 0], captured)
+    res = simulate_match_bo5(0.6, 0.6, 0, "10pt_at_6_6", np.random.default_rng(0))
+    assert len(res.sets) == 5
+    assert captured[4]["tb_target"] == 10
+    assert [c["tb_target"] for c in captured[:4]] == [config.STANDARD_TIEBREAK_TARGET] * 4
+
+
+def test_bo5_deciding_set_10pt_tiebreak_is_recorded():
+    """A 10-point deciding (5th-set) tiebreak is applied and its score recorded.
+
+    The winner's tiebreak points are ≥10 — impossible under a 7-point breaker's
+    7–x endings short of deuce — confirming the rule reaches the 5th set.
+    """
+    for seed in range(8000):
+        res = simulate_match_bo5(0.9, 0.9, 0, "10pt_at_6_6", np.random.default_rng(seed))
+        if len(res.sets) == 5 and res.sets[4].tb_score is not None:
+            deciding = res.sets[4]
+            assert max(deciding.tb_score) >= 10
+            assert deciding.tb_score[deciding.winner] == max(deciding.tb_score)
+            break
+    else:
+        raise AssertionError("no 5-set match with a 10-point deciding tiebreak found")
+
+
+@pytest.mark.parametrize("first_server", [0, 1])
+def test_bo5_serve_continuity_across_set_boundaries_uses_t15_formula(first_server, monkeypatch):
+    """The a_serves_first handed to each Bo5 set follows the exact T1.5 contract.
+
+    Same spy as the Bo3 continuity test, but a Bo5 has ≥2 boundaries, so more of
+    the running rotation is exercised.
+    """
+    calls: list[tuple[bool, SetResult]] = []
+    real_set = match.simulate_set
+
+    def spy(p_a, p_b, a_serves_first, tb_target, rng):
+        res = real_set(p_a, p_b, a_serves_first, tb_target, rng)
+        calls.append((a_serves_first, res))
+        return res
+
+    monkeypatch.setattr(match, "simulate_set", spy)
+    simulate_match_bo5(0.63, 0.6, first_server, "10pt_at_6_6",
+                       np.random.default_rng(20260722))
+
+    assert calls[0][0] is (first_server == 0)
+    for (a_first_prev, res_prev), (a_first_next, _) in zip(calls, calls[1:]):
+        total = res_prev.games_a + res_prev.games_b
+        assert a_first_next == (_set_server(total, a_first_prev) == 0)
+
+
+def test_simulate_match_bo5_is_deterministic():
+    """Same seed → identical MatchResult (value equality through the set list)."""
+    r1 = simulate_match_bo5(0.64, 0.6, 0, "10pt_at_6_6", np.random.default_rng(2024))
+    r2 = simulate_match_bo5(0.64, 0.6, 0, "10pt_at_6_6", np.random.default_rng(2024))
+    assert r1 == r2
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"first_server": 2},
+        {"first_server": -1},
+        {"final_set_rule": "bogus"},
+        {"final_set_rule": "7pt"},
+    ],
+)
+def test_simulate_match_bo5_rejects_bad_args(kwargs):
+    """Bad server index or unrecognised final_set_rule raises ValueError."""
+    base = {
+        "pA": 0.6,
+        "pB": 0.6,
+        "first_server": 0,
+        "final_set_rule": "10pt_at_6_6",
+        "rng": np.random.default_rng(0),
+    }
+    base.update(kwargs)
+    with pytest.raises(ValueError):
+        simulate_match_bo5(**base)
+
+
+# ---------------------------------------------------------------------------
+# _simulate_match — shared helper (extraction correctness, §5, T1.7)
+# ---------------------------------------------------------------------------
+
+def test_shared_helper_collapses_to_bo3_when_sets_to_win_is_two():
+    """``_simulate_match(2, …)`` is byte-for-byte the public Bo3 for the same seed.
+
+    Direct evidence that ``simulate_match_bo3`` genuinely delegates to the shared
+    helper and that the deciding condition collapses to T1.6's exact 1–1 case
+    when ``sets_to_win == 2``.
+    """
+    for seed in range(200):
+        args = (0.64, 0.6, seed % 2, "10pt_at_6_6")
+        helper = _simulate_match(2, *args, np.random.default_rng(seed))
+        public = simulate_match_bo3(*args, np.random.default_rng(seed))
+        assert helper == public
+        assert public.best_of == 3
+
+
+def test_shared_helper_collapses_to_bo5_when_sets_to_win_is_three():
+    """``_simulate_match(3, …)`` is byte-for-byte the public Bo5 for the same seed."""
+    for seed in range(200):
+        args = (0.64, 0.6, seed % 2, "10pt_at_6_6")
+        helper = _simulate_match(3, *args, np.random.default_rng(seed))
+        public = simulate_match_bo5(*args, np.random.default_rng(seed))
+        assert helper == public
+        assert public.best_of == 5
+
+
+def test_both_public_match_functions_exist_and_pin_distinct_best_of():
+    """Both entry points remain independently callable with the right ``best_of``.
+
+    The extraction must not collapse the two public functions into one: they are
+    distinct callables, and each stamps its own format onto the result.
+    """
+    assert simulate_match_bo3 is not simulate_match_bo5
+    bo3 = simulate_match_bo3(0.6, 0.6, 0, "10pt_at_6_6", np.random.default_rng(1))
+    bo5 = simulate_match_bo5(0.6, 0.6, 0, "10pt_at_6_6", np.random.default_rng(1))
+    assert bo3.best_of == 3
+    assert bo5.best_of == 5
