@@ -74,6 +74,28 @@ P_MAX = 0.90
 # and independently changeable.
 STANDARD_TIEBREAK_TARGET = 7
 
+# ==========================================
+# RECONCILIATION + CALIBRATION (T1.8)
+# ==========================================
+# How sim/reconcile.py fuses the classifier's match-win probability (P_clf) with
+# the point model's (P_point). See ace-03-tennis-math.md §6.
+#   "classifier_anchor" — trust P_clf for the winner; the point model only shapes
+#                         the scoreline (serve probs are shifted by δ so the
+#                         simulated win rate reproduces P_clf).
+#   "blend"             — P = w·P_clf + (1−w)·P_point, then the same δ shift is
+#                         solved to reproduce the blended P for scorelines.
+RECONCILE_MODE = "classifier_anchor"
+# Blend weight w on the classifier in "blend" mode (ignored by "classifier_anchor").
+RECONCILE_BLEND_WEIGHT = 0.5
+# Convergence tolerance (in match-win-probability units) for the δ bisection
+# solver in reconcile.solve_delta.
+RECONCILE_DELTA_TOL = 1e-4
+
+# Calibration artefact (reliability curve) produced on the held-out TEST_YEAR.
+CALIBRATION_PLOT = OUTPUT_DIR / "calibration.png"
+# Number of equal-width probability bins for the reliability curve.
+CALIBRATION_BINS = 10
+
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 
