@@ -1,7 +1,12 @@
 """Tests for src/sim/points.py — the T1.2 point-win probability model.
 
-Covers ace-03-tennis-math.md §1: P = spw_server − rpw_returner + (1 − μ),
-clamped to [P_MIN, P_MAX]. Every expected value here is hand-computed.
+Covers ace-03-tennis-math.md §1 with the T1.9b skill-gap amplification:
+    base = spw_server − rpw_returner + (1 − μ)      # §1
+    P    = μ + γ·(base − μ)                          # T1.9b (γ = config.POINT_GAP_GAMMA)
+then clamped to [P_MIN, P_MAX]. Every expected value here is hand-computed. The
+§1-identity, clamp-guard and default-bound tests are γ-invariant (the identity
+holds for any γ, the clamp fires regardless of γ) and are unchanged from T1.2;
+the value-pinning tests were recomputed under the amplified formula for T1.9b.
 """
 import pytest
 
@@ -25,18 +30,39 @@ def test_average_server_vs_average_returner_returns_mu():
 
 
 def test_formula_matches_hand_computed_unclamped():
-    """P = spw − rpw + (1 − μ), inside the bounds so no clamp fires."""
-    # 0.66 − 0.30 + (1 − 0.64) = 0.72
-    p = point_win_prob(0.66, 0.30, 0.64, p_min=0.0, p_max=1.0)
+    """Amplified §1 with an explicit γ, inside the bounds so no clamp fires.
+
+    Recomputed under the T1.9b amplified formula (was pinned to 0.72 at γ=1):
+      base = 0.66 − 0.30 + (1 − 0.64) = 0.72
+      P    = μ + γ·(base − μ) = 0.64 + 1.9·(0.72 − 0.64) = 0.792
+    γ is passed explicitly so this value is config-independent.
+    """
+    p = point_win_prob(0.66, 0.30, 0.64, p_min=0.0, p_max=1.0, gamma=1.9)
+    assert p == pytest.approx(0.792, abs=1e-12)
+
+
+def test_gamma_one_recovers_pure_additive_formula():
+    """γ = 1 must reproduce the un-amplified §1 value exactly (backward-compat).
+
+    Anchors the amplification semantics: γ=1 ⇒ P = base = spw − rpw + (1 − μ),
+    the pre-T1.9b formula. 0.66 − 0.30 + (1 − 0.64) = 0.72.
+    """
+    p = point_win_prob(0.66, 0.30, 0.64, p_min=0.0, p_max=1.0, gamma=1.0)
     assert p == pytest.approx(0.72, abs=1e-12)
 
 
 def test_strong_server_weak_returner_is_high():
-    """A big server facing a poor returner should clear the surface baseline."""
+    """A big server facing a poor returner should clear the surface baseline.
+
+    Recomputed under the T1.9b amplified formula with an explicit γ.
+    """
     mu = config.SURFACE_MU["Grass"]
-    p = point_win_prob(0.72, 1.0 - mu - 0.05, mu, p_min=0.0, p_max=1.0)
-    # 0.72 − (0.3394 − 0.05) + (1 − 0.6606) = 0.72 − 0.2894 + 0.3394 = 0.77
-    assert p == pytest.approx(0.72 - (1.0 - mu - 0.05) + (1.0 - mu), abs=1e-12)
+    gamma = 1.9
+    returner_rpw = 1.0 - mu - 0.05
+    p = point_win_prob(0.72, returner_rpw, mu, p_min=0.0, p_max=1.0, gamma=gamma)
+    # base = 0.72 − (0.3394 − 0.05) + (1 − 0.6606) = 0.77; P = μ + γ·(0.77 − μ).
+    base = 0.72 - returner_rpw + (1.0 - mu)
+    assert p == pytest.approx(mu + gamma * (base - mu), abs=1e-12)
     assert p > mu
 
 
@@ -61,18 +87,24 @@ def test_default_clamp_bounds_come_from_config():
 
 
 def test_matchup_returns_both_directions():
-    """Wrapper computes §1 for each player serving; spw/rpw differ per player,
-    so the two directions are genuinely distinct."""
+    """Wrapper computes amplified §1 for each player serving; spw/rpw differ per
+    player, so the two directions are genuinely distinct.
+
+    matchup_point_probs does not take a γ argument — it applies the shipped
+    config.POINT_GAP_GAMMA — so the expected values reference that constant
+    (recomputed under the amplified formula; was the pure base at γ=1).
+    """
     mu = config.SURFACE_MU["Hard"]
+    gamma = config.POINT_GAP_GAMMA
     skill_a = PlayerSkill(spw=0.68, rpw=0.38, n_serve_pts=500, n_return_pts=500)
     skill_b = PlayerSkill(spw=0.63, rpw=0.34, n_serve_pts=500, n_return_pts=500)
 
     p_a, p_b = matchup_point_probs(skill_a, skill_b, mu, p_min=0.0, p_max=1.0)
 
-    expected_a = 0.68 - 0.34 + (1.0 - mu)  # A serves: A's spw vs B's rpw
-    expected_b = 0.63 - 0.38 + (1.0 - mu)  # B serves: B's spw vs A's rpw
-    assert p_a == pytest.approx(expected_a, abs=1e-12)
-    assert p_b == pytest.approx(expected_b, abs=1e-12)
+    base_a = 0.68 - 0.34 + (1.0 - mu)  # A serves: A's spw vs B's rpw
+    base_b = 0.63 - 0.38 + (1.0 - mu)  # B serves: B's spw vs A's rpw
+    assert p_a == pytest.approx(mu + gamma * (base_a - mu), abs=1e-12)
+    assert p_b == pytest.approx(mu + gamma * (base_b - mu), abs=1e-12)
     assert p_a != p_b
 
 
@@ -83,3 +115,14 @@ def test_matchup_of_two_average_players_is_mu_both_ways():
     p_a, p_b = matchup_point_probs(avg, avg, mu, p_min=0.0, p_max=1.0)
     assert p_a == pytest.approx(mu, abs=1e-12)
     assert p_b == pytest.approx(mu, abs=1e-12)
+
+
+def test_point_gap_gamma_is_pinned_to_calibrated_value():
+    """Regression guard: the T1.9b amplification factor must not drift silently.
+
+    γ=1.9 was calibrated against scripts/validate_sim.py's hard set-count gate,
+    which is run manually (not in CI). Without this pin an accidental edit to
+    config.POINT_GAP_GAMMA would reintroduce the skill-gap compression bug undetected
+    by the test suite. A deliberate recalibration should update this value consciously.
+    """
+    assert config.POINT_GAP_GAMMA == 1.9

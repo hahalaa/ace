@@ -23,17 +23,27 @@ def point_win_prob(
     mu_surface: float,
     p_min: float = config.P_MIN,
     p_max: float = config.P_MAX,
+    gamma: float | None = None,
 ) -> float:
     """Probability the server wins a point on serve, clamped to ``[p_min, p_max]``.
 
-    Implements ``ace-03-tennis-math.md §1``::
+    Implements ``ace-03-tennis-math.md §1`` with the T1.9b skill-gap
+    amplification::
 
-        P = spw_server − rpw_returner + (1 − μ)
+        base = spw_server − rpw_returner + (1 − μ)       # §1
+        P    = μ + γ·(base − μ)                           # amplify deviation from μ
 
-    Baseline is ``μ``; the server's serve-skill deviation (``spw − μ``) is added
-    and the returner's return-skill deviation (``rpw − (1 − μ)``) subtracted,
-    which reduces to the expression above. An average server (``spw = μ``) facing
-    an average returner (``rpw = 1 − μ``) yields exactly ``μ``.
+    Baseline is ``μ``; §1 adds the server's serve-skill deviation (``spw − μ``)
+    and subtracts the returner's return-skill deviation (``rpw − (1 − μ)``),
+    which reduces to ``base``. T1.9b then scales ``base``'s deviation from ``μ``
+    by ``γ`` (``config.POINT_GAP_GAMMA``): the §1 additive model compresses real
+    skill gaps (mean ``|pA−pB| ≈ 0.05`` vs the ≈0.10 needed to match historical
+    Slam set-count distributions — see T1.9), and a constant-``p`` match model
+    under-produces dominance without it. ``γ = 1`` recovers pure §1.
+
+    The §1 sanity identity is preserved for **any** ``γ``: an average server
+    (``spw = μ``) facing an average returner (``rpw = 1 − μ``) has ``base = μ``,
+    so the deviation ``base − μ`` is 0 and ``P = μ`` regardless of ``γ``.
 
     Args:
         server_spw: Server's serve-points-won rate on the surface.
@@ -41,11 +51,17 @@ def point_win_prob(
         mu_surface: Tour-average serve-points-won for the surface (``config.SURFACE_MU``).
         p_min: Lower clamp bound (default ``config.P_MIN``).
         p_max: Upper clamp bound (default ``config.P_MAX``).
+        gamma: Skill-gap amplification factor. ``None`` (default) reads
+            ``config.POINT_GAP_GAMMA`` at call time, so a runtime override of the
+            config constant (e.g. a calibration sweep) takes effect.
 
     Returns:
         The clamped point-win probability in ``[p_min, p_max]``.
     """
-    p = server_spw - returner_rpw + (1.0 - mu_surface)  # §1
+    if gamma is None:
+        gamma = config.POINT_GAP_GAMMA
+    base = server_spw - returner_rpw + (1.0 - mu_surface)  # §1
+    p = mu_surface + gamma * (base - mu_surface)  # T1.9b: amplify deviation from μ
     # Clamp to guard against noisy/small-sample skill estimates producing
     # degenerate (near-certain hold/break) points. §1.
     return min(max(p, p_min), p_max)

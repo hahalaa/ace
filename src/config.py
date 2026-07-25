@@ -63,6 +63,17 @@ SURFACE_MU = {
 # degenerate matches (near-certain holds/breaks). §1 suggests [0.50, 0.90].
 P_MIN = 0.50
 P_MAX = 0.90
+# Skill-gap amplification factor for the point-win model (T1.9b). The §1 additive
+# model maps genuinely-modest season-average serve/return differences to point-win
+# gaps of mean |pA−pB| ≈ 0.05 — about half the ≈0.10 that reproduces the historical
+# Slam straight-set share (T1.9 finding). A constant-p i.i.d. match structurally
+# under-produces match-level dominance (the momentum/consistency effect v1 omits),
+# so we amplify each server's deviation from the surface baseline μ before clamping:
+#   P = μ + γ·(spw_server − rpw_returner + (1 − μ) − μ)
+# γ = 1 recovers the pure §1 formula. γ was calibrated against scripts/validate_sim.py
+# to bring the bo5/bo3 set-count distributions into T1.9's tolerance bands while
+# keeping games/set and tiebreak frequency in range. Investigation & sweep: T1.9b.
+POINT_GAP_GAMMA = 1.9
 
 # ==========================================
 # MATCH SIMULATION (T1.6+)
