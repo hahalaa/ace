@@ -11,6 +11,10 @@ Covers the ticket's acceptance + testing criteria:
   * --seed reproducibility: the same seed replays the same scoreline AND the
     same MC estimate; a different seed generally does not.
   * The cli -> sim import direction only: sim/reconcile.py never imports cli/.
+
+Plus the seam-7 mitigation follow-up: the CLI defaults to "blend"
+(config.SIM_CLI_RECONCILE_MODE), --reconcile-mode classifier_anchor is honoured
+and warned about, and config.RECONCILE_MODE is left alone.
 """
 
 from __future__ import annotations
@@ -333,6 +337,123 @@ def test_format_scoreline_uses_the_losers_tiebreak_points():
     """A tiebreak lost by A still shows the loser's (A's) points in parens."""
     s = SetResult(winner=1, games_a=6, games_b=7, tb_score=(4, 7))
     assert SM.format_set(s) == "6-7(4)"
+
+
+# --------------------------------------------------------------------------- #
+# Reconciliation mode (seam-7 mitigation): CLI defaults to blend.
+# --------------------------------------------------------------------------- #
+def run_main(monkeypatch, argv: list[str]) -> tuple[int, dict]:
+    """Drive main() against the fixture context, capturing simulate_named_match's kwargs."""
+    ctx, _ = make_context()
+    captured: dict = {}
+    real = SM.simulate_named_match
+
+    def spy(*args, **kwargs):
+        captured.update(kwargs)
+        sim = real(*args, **kwargs)
+        captured["sim"] = sim
+        return sim
+
+    monkeypatch.setattr(SM, "build_context", lambda *a, **k: ctx)
+    monkeypatch.setattr(SM, "simulate_named_match", spy)
+    return SM.main(argv), captured
+
+
+def test_cli_defaults_to_blend_mode(monkeypatch, capsys):
+    """No --reconcile-mode flag -> blend, from config.SIM_CLI_RECONCILE_MODE.
+
+    The CLI must NOT fall through to config.RECONCILE_MODE
+    ("classifier_anchor"), which would anchor every scoreline on the adapter's
+    form-blind P_clf (ace-04-current-state.md §7 seam 7).
+    """
+    assert config.SIM_CLI_RECONCILE_MODE == "blend"
+    assert SM._parse_args(["Player A", "Player B"]).reconcile_mode == "blend"
+
+    code, captured = run_main(
+        monkeypatch, ["Player A", "Player B", "--sims", "5", "--seed", "1"]
+    )
+    assert code == 0
+    assert captured["reconcile_mode"] == "blend"
+    assert captured["sim"].reconcile_mode == "blend"
+
+    out = capsys.readouterr().out
+    assert "mode: blend" in out
+    assert SM.ANCHOR_MODE_CAVEAT not in out  # no warning in blend mode
+
+
+def test_reconcile_mode_flag_opts_into_classifier_anchor(monkeypatch, capsys):
+    """--reconcile-mode classifier_anchor is respected and prints the caveat."""
+    code, captured = run_main(
+        monkeypatch,
+        [
+            "Player A", "Player B",
+            "--sims", "5", "--seed", "1",
+            "--reconcile-mode", "classifier_anchor",
+        ],
+    )
+    assert code == 0
+    assert captured["reconcile_mode"] == "classifier_anchor"
+    assert captured["sim"].reconcile_mode == "classifier_anchor"
+
+    out = capsys.readouterr().out
+    assert "mode: classifier_anchor" in out
+    assert SM.ANCHOR_MODE_CAVEAT in out
+    assert "synthetic-filled" in out
+
+
+def test_mode_reaches_the_sim_layer(monkeypatch):
+    """The mode is threaded into sim.reconcile, not just stored on the result."""
+    ctx, _ = make_context()
+    seen: list[str] = []
+    real = SM.simulate_reconciled_match
+
+    def spy(*args, **kwargs):
+        seen.append(kwargs["mode"])
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(SM, "simulate_reconciled_match", spy)
+
+    SM.simulate_named_match("Player A", "Player B", "Hard", ctx, best_of=3, n_sims=3, seed=2)
+    assert seen and set(seen) == {"blend"}
+
+    seen.clear()
+    SM.simulate_named_match(
+        "Player A", "Player B", "Hard", ctx,
+        best_of=3, n_sims=3, seed=2, reconcile_mode="classifier_anchor",
+    )
+    assert seen and set(seen) == {"classifier_anchor"}
+
+
+def test_blend_lets_the_point_model_speak_when_p_clf_is_flat():
+    """Why the default was changed: a 50/50 P_clf must not flatten a real gap.
+
+    A is the clearly stronger player in the fixture skill table. Anchoring on a
+    coin-flip P_clf reproduces the coin flip; blending keeps half the point
+    model's edge.
+    """
+    ctx, _ = make_context(p_a=0.5)  # the flattened P_clf seam 7 measured
+    kwargs = dict(best_of=5, n_sims=400, seed=11)
+
+    anchored = SM.simulate_named_match(
+        "Player A", "Player B", "Hard", ctx, reconcile_mode="classifier_anchor", **kwargs
+    )
+    blended = SM.simulate_named_match(
+        "Player A", "Player B", "Hard", ctx, reconcile_mode="blend", **kwargs
+    )
+
+    assert anchored.win_prob_a == pytest.approx(0.5, abs=0.06)
+    assert blended.win_prob_a > anchored.win_prob_a
+
+
+def test_global_reconcile_mode_is_untouched():
+    """This fix is CLI-scoped: T1.8's system-wide default must not have moved."""
+    import sim.reconcile as reconcile
+
+    assert config.RECONCILE_MODE == "classifier_anchor"
+    assert config.SIM_CLI_RECONCILE_MODE != config.RECONCILE_MODE
+    # sim/ still defaults to the global constant for non-CLI callers.
+    for fn in (reconcile.reconciled_prob, reconcile.simulate_reconciled_match):
+        assert inspect.signature(fn).parameters["mode"].default == config.RECONCILE_MODE
 
 
 # --------------------------------------------------------------------------- #

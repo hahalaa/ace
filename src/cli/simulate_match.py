@@ -31,6 +31,15 @@ structures come from ``features.engineering.add_features``, which is run **once*
 at startup by :func:`build_context`, not per simulated match. The adapter also
 memoises per ``(player_a, player_b, surface)``: the feature row is constant for a
 matchup, so the ~1,000 MC runs cost exactly one ``predict_proba`` call.
+
+**Reconciliation mode.** This CLI defaults to ``config.SIM_CLI_RECONCILE_MODE``
+(``"blend"``), *not* the system-wide ``config.RECONCILE_MODE``. The adapter's
+feature row synthesises the 20 recent-form columns, which flattens ``P_clf``
+toward 0.5 (``ace-04-current-state.md §7`` seam 7); under
+``"classifier_anchor"`` that flattened value would be the target every simulated
+scoreline is solved to reproduce. ``--reconcile-mode classifier_anchor`` still
+opts in explicitly, with a printed caveat. This is a mitigation of the default,
+not a fix — the underlying rolling-feature gap is untouched.
 """
 
 from __future__ import annotations
@@ -298,6 +307,16 @@ def resolve_display_name(query: str, index: NameIndex) -> NameResolution:
 # --------------------------------------------------------------------------- #
 # Simulation + rendering.
 # --------------------------------------------------------------------------- #
+# Shown only in "classifier_anchor" mode, where P_clf is the authoritative
+# target δ reproduces — so the adapter's synthetic rolling features drive the
+# scoreline directly (ace-04-current-state.md §7 seam 7). "blend" already
+# dilutes that, so it is not warned about.
+ANCHOR_MODE_CAVEAT = (
+    "⚠️  classifier_anchor: this tool's rolling-form features are "
+    "synthetic-filled, so P_clf is less informative here than in blend mode."
+)
+
+
 def format_set(s: SetResult) -> str:
     """Render one set from A's perspective, e.g. ``6-4`` or ``7-6(5)``."""
     line = f"{s.games_a}-{s.games_b}"
@@ -327,6 +346,7 @@ class MatchSimulation:
     n_sims: int
     p_clf: float
     stats: MatchupStats
+    reconcile_mode: str = config.SIM_CLI_RECONCILE_MODE
 
 
 def simulate_named_match(
@@ -338,6 +358,7 @@ def simulate_named_match(
     final_set_rule: str = config.SIM_CLI_FINAL_SET_RULE,
     n_sims: int = config.SIM_CLI_MC_RUNS,
     seed: int | None = None,
+    reconcile_mode: str = config.SIM_CLI_RECONCILE_MODE,
 ) -> MatchSimulation:
     """Simulate one reconciled match and estimate the win probability by MC.
 
@@ -353,6 +374,12 @@ def simulate_named_match(
         final_set_rule: ``"7pt_at_6_6"``/``"10pt_at_6_6"``/``"advantage"``.
         n_sims: Monte Carlo runs behind the reported win %.
         seed: Seed for ``numpy.random.default_rng``.
+        reconcile_mode: ``"blend"``/``"classifier_anchor"``. Defaults to
+            ``config.SIM_CLI_RECONCILE_MODE`` (``"blend"``), **not** the
+            system-wide ``config.RECONCILE_MODE``: this CLI's ``P_clf`` is
+            form-blind and flattened toward 0.5 (``ace-04-current-state.md §7``
+            seam 7), and anchoring on it would push every scoreline toward a
+            coin flip. Blending dilutes that; it does not fix it.
 
     Returns:
         A :class:`MatchSimulation`.
@@ -374,6 +401,7 @@ def simulate_named_match(
             ctx.skill_table,
             ctx.classifier,
             rng,
+            mode=reconcile_mode,
         )
 
     result = run()  # the storybook match — one full scoreline
@@ -394,6 +422,7 @@ def simulate_named_match(
         stats=matchup_stats(
             player_a, player_b, surface, ctx.data, ctx.surface_history, ctx.h2h_history
         ),
+        reconcile_mode=reconcile_mode,
     )
 
 
@@ -423,8 +452,10 @@ def print_simulation(sim: MatchSimulation) -> None:
           f"{sim.scoreline}")
     print(
         f"   {sim.player_a} wins {sim.win_prob_a:.1%} of {sim.n_sims:,} simulations "
-        f"(classifier: {sim.p_clf:.1%}, mode: {config.RECONCILE_MODE})"
+        f"(classifier: {sim.p_clf:.1%}, mode: {sim.reconcile_mode})"
     )
+    if sim.reconcile_mode == "classifier_anchor":
+        print(f"   {ANCHOR_MODE_CAVEAT}")
     print("-" * 60 + "\n")
 
 
@@ -461,6 +492,16 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=int,
         default=config.SIM_CLI_MC_RUNS,
         help=f"Monte Carlo runs behind the win %% (default: {config.SIM_CLI_MC_RUNS}).",
+    )
+    parser.add_argument(
+        "--reconcile-mode",
+        choices=("blend", "classifier_anchor"),
+        default=config.SIM_CLI_RECONCILE_MODE,
+        help=f"How P_clf and the point model are fused (default: "
+             f"{config.SIM_CLI_RECONCILE_MODE}). This CLI defaults to 'blend' "
+             f"rather than config.RECONCILE_MODE because its P_clf is built "
+             f"from a partly synthetic feature row; 'classifier_anchor' is "
+             f"available for comparison and prints a caveat.",
     )
     parser.add_argument(
         "--seed",
@@ -514,6 +555,7 @@ def main(argv: list[str] | None = None) -> int:
             final_set_rule=args.final_set_rule,
             n_sims=args.sims,
             seed=args.seed,
+            reconcile_mode=args.reconcile_mode,
         )
     except ValueError as exc:
         print(f"❌ {exc}")

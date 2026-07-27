@@ -121,6 +121,18 @@ SIM_CLI_BEST_OF = 5
 SIM_CLI_FINAL_SET_RULE = "10pt_at_6_6"
 # Default surface when the CLI isn't told one.
 SIM_CLI_SURFACE = "Hard"
+# Reconciliation mode for *this CLI only* — deliberately NOT RECONCILE_MODE.
+# The CLI's ClassifierProb adapter builds its feature row with
+# cli/interactive.build_feature_row, which synthesises 20 of the 27
+# MODEL_FEATURES (every recent-form rolling column), so the P_clf it emits is
+# form-blind and collapses toward 0.5 (ace-04-current-state.md §7 seam 7).
+# Under "classifier_anchor" that flattened P_clf *is* the target δ is solved to
+# reproduce, which would anchor every CLI scoreline near a coin flip regardless
+# of real skill gap; "blend" dilutes it with the point model instead. This is a
+# mitigation for the CLI's default, not a fix for the underlying feature gap —
+# override per run with --reconcile-mode. config.RECONCILE_MODE stays the
+# system-wide default for callers with real engineered rows.
+SIM_CLI_RECONCILE_MODE = "blend"
 
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
