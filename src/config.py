@@ -107,6 +107,21 @@ CALIBRATION_PLOT = OUTPUT_DIR / "calibration.png"
 # Number of equal-width probability bins for the reliability curve.
 CALIBRATION_BINS = 10
 
+# ==========================================
+# SINGLE-MATCH SIMULATION CLI (T1.10)
+# ==========================================
+# Monte Carlo runs the single-match CLI averages to report "A wins X% of
+# simulations". ~1,000 is the ticket's figure: enough for a ±1.5pp standard
+# error while keeping a manual sanity run to a couple of seconds.
+SIM_CLI_MC_RUNS = 1000
+# Default match format for that CLI. Best-of-5 with a 10-point deciding-set
+# tiebreak is the current Grand Slam standard, which is what this simulator is
+# aimed at; override per run with --best-of / --final-set-rule.
+SIM_CLI_BEST_OF = 5
+SIM_CLI_FINAL_SET_RULE = "10pt_at_6_6"
+# Default surface when the CLI isn't told one.
+SIM_CLI_SURFACE = "Hard"
+
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 

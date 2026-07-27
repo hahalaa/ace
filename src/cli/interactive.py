@@ -118,16 +118,25 @@ def resolve_player_name(input_name: str, all_names: list[str]) -> str | None:
         return None
     return match.name
 
-def _print_ambiguity(input_name: str, match) -> None:
-    """Render an ambiguous NameMatch exactly as the old resolver did."""
+def ambiguity_message(input_name: str, match) -> str:
+    """Render an ambiguous NameMatch as the message the old resolver printed.
+
+    The single home for the three candidate-list templates, so every CLI entry
+    point (the REPL below, T1.10's simulate_match) surfaces ambiguity the same
+    way. Pure — returns the string and lets the caller decide where it goes.
+    """
     if match.strategy is MatchStrategy.FUZZY:
-        print(f"Did you mean: {', '.join(match.candidates)}?")
-    elif match.strategy is MatchStrategy.SUBSTRING:
+        return f"Did you mean: {', '.join(match.candidates)}?"
+    if match.strategy is MatchStrategy.SUBSTRING:
         shown = ', '.join(match.candidates[:5])
         suffix = '...' if len(match.candidates) > 5 else ''
-        print(f"Ambiguous: Multiple players match '{input_name}': {shown}{suffix}. Please be more specific.")
-    else:  # INITIALS
-        print(f"Ambiguous: Multiple players match '{input_name}': {', '.join(match.candidates)}. Please be more specific.")
+        return f"Ambiguous: Multiple players match '{input_name}': {shown}{suffix}. Please be more specific."
+    # INITIALS
+    return f"Ambiguous: Multiple players match '{input_name}': {', '.join(match.candidates)}. Please be more specific."
+
+def _print_ambiguity(input_name: str, match) -> None:
+    """Print the ambiguity message (the REPL's rendering of it)."""
+    print(ambiguity_message(input_name, match))
 
 def get_latest(name: str, data: pd.DataFrame):
     """
