@@ -429,11 +429,14 @@ def simulate_set(
 # ``None`` selects the no-tiebreak advantage mode of :func:`simulate_set`. All
 # four current Grand Slams use ``"10pt_at_6_6"``; ``"advantage"`` is historical
 # but kept for completeness.
-FINAL_SET_TB_TARGET: dict[str, int | None] = {
-    "7pt_at_6_6": 7,
-    "10pt_at_6_6": 10,
-    "advantage": None,
-}
+#
+# The map itself was promoted to ``config`` in T2.1 and is re-exported here
+# under its established name: the T2.1 draw schema spells the same enum
+# ``final_set_tiebreak`` and must validate against the *same* values this module
+# accepts, and config cannot import ``sim`` (this module imports config), so
+# config is the only place both layers can share. Every existing importer of
+# ``sim.match.FINAL_SET_TB_TARGET`` keeps working unchanged.
+FINAL_SET_TB_TARGET: dict[str, int | None] = config.FINAL_SET_TB_TARGET
 
 
 @dataclass(frozen=True)

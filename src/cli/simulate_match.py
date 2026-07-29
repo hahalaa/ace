@@ -483,7 +483,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--final-set-rule",
-        choices=("7pt_at_6_6", "10pt_at_6_6", "advantage"),
+        # Choices come from the canonical enum (T2.1) so they cannot drift from
+        # what sim/match.py accepts.
+        choices=sorted(config.FINAL_SET_TB_TARGET),
         default=config.SIM_CLI_FINAL_SET_RULE,
         help=f"Deciding-set rule (default: {config.SIM_CLI_FINAL_SET_RULE}).",
     )

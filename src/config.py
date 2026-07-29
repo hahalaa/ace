@@ -84,6 +84,18 @@ POINT_GAP_GAMMA = 1.9
 # in sim/match.py so the "standard" and "final-set" targets are both nameable
 # and independently changeable.
 STANDARD_TIEBREAK_TARGET = 7
+# Canonical deciding-set rule enum: rule name -> tiebreak target, where None
+# means "advantage set" (no tiebreak, win by 2 games). Lives here rather than in
+# sim/match.py so that everything needing the allowed values — the match layer
+# (sim/match.FINAL_SET_TB_TARGET is an alias of this), sim/reconcile.py, the
+# draw validator (T2.1, whose JSON field is spelled `final_set_tiebreak`) and
+# the CLIs' argparse choices — reads one definition instead of re-listing the
+# three string literals. See ace-03-tennis-math.md §4.
+FINAL_SET_TB_TARGET: dict[str, int | None] = {
+    "7pt_at_6_6": 7,
+    "10pt_at_6_6": 10,
+    "advantage": None,
+}
 
 # ==========================================
 # RECONCILIATION + CALIBRATION (T1.8)
@@ -133,6 +145,30 @@ SIM_CLI_SURFACE = "Hard"
 # override per run with --reconcile-mode. config.RECONCILE_MODE stays the
 # system-wide default for callers with real engineered rows.
 SIM_CLI_RECONCILE_MODE = "blend"
+
+# ==========================================
+# TOURNAMENT DRAWS (T2.1)
+# ==========================================
+# Hand-entered draw JSON files, one per event (ace-02-data-schema.md
+# "Tournament draw JSON schema"); read by sim/draw.py.
+DRAWS_DIR = Path("data/draws")
+# Allowed `draw_size` values — the powers of two a real singles draw uses. A
+# power-of-2 size is what makes the bracket halve cleanly round by round.
+VALID_DRAW_SIZES = frozenset({8, 16, 32, 64, 128})
+# Allowed `best_of` values for a draw's match format.
+VALID_BEST_OF = frozenset({3, 5})
+# Allowed `final_set_tiebreak` values. DERIVED from the canonical rule enum
+# above (FINAL_SET_TB_TARGET) — never re-list the literals here, so the draw
+# validator cannot drift out of sync with what sim/match.py actually accepts.
+VALID_FINAL_SET_TIEBREAKS = frozenset(FINAL_SET_TB_TARGET)
+# Entrant strings that name a *slot* rather than a player. These are not
+# resolved against the skill table; they receive SkillTable.default(surface) —
+# the surface-baseline profile (spw = μ, rpw = 1 − μ). Compared lower-cased and
+# whitespace-stripped, and a "/"-joined entrant ("Qualifier/Lucky Loser") counts
+# as a placeholder when every part does.
+DRAW_PLACEHOLDER_ENTRANTS = frozenset(
+    {"qualifier", "q", "lucky loser", "ll", "bye", "tbd", "alternate"}
+)
 
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
