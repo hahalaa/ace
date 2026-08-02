@@ -861,8 +861,11 @@ def _require_picklable(classifier: ClassifierProb) -> None:
     histories in a module-level class with a ``__call__`` makes it picklable and
     the multi-worker path works unchanged. T2.3's ticket scopes its diff to this
     module and ``config.py``, so rewriting ``cli/simulate_match.py`` was out of
-    bounds; building that adapter belongs to **T2.5** (the tournament CLI, the
-    first caller likely to want ``--workers``). Until then this check turns the
+    bounds. **T2.5 did not close it either — deliberately: a picklable adapter
+    means rewriting ``cli/simulate_match.make_classifier_prob``, outside that
+    ticket's Files scope. The gap is now unowned
+    (``ace-04-current-state.md`` §7 seam 8); whoever wants ``--workers`` owns
+    both the adapter and its re-verification.** Until then this check turns the
     gap into a fast, legible refusal rather than a crash inside a worker.
     """
     try:
@@ -947,8 +950,8 @@ def monte_carlo(
     ``__main__`` module: **any script or CLI that calls this with
     ``workers > 1`` must guard its entry point with
     ``if __name__ == "__main__":``**, or the re-import will re-run the job in
-    every child. Flagged here for T2.5, which is the first caller likely to
-    expose a ``--workers`` flag.
+    every child. Flagged here for whoever first exposes a ``--workers`` flag;
+    T2.5 deliberately did not (seam 8).
 
     **Reconciliation mode is the caller's decision, not this function's (T2.3
     decision).** ``mode`` defaults to ``config.RECONCILE_MODE``
@@ -1280,9 +1283,9 @@ def storybook_run(
     the core making a modelling decision on evidence it does not have. What
     changes for a *showcase* run is only the cost of getting it wrong, and that
     is addressed where the knowledge lives: the layer that builds the adapter
-    picks the mode (T2.5 should pass ``config.SIM_CLI_RECONCILE_MODE`` while it
-    reuses the CLI adapter), and :class:`StorybookResult` records ``mode``/``w``
-    so any published story states which model produced it.
+    picks the mode (T2.5 accordingly passes ``config.SIM_CLI_RECONCILE_MODE``
+    while it reuses the CLI adapter), and :class:`StorybookResult` records
+    ``mode``/``w`` so any published story states which model produced it.
     """
     rng = np.random.default_rng(seed)
     bracket = simulate_bracket(

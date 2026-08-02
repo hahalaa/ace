@@ -13,9 +13,10 @@ simulated by `sim/tournament.py` (`simulate_bracket`, T2.2). Each file's own
 a toy 8-slot bracket with invented structure, kept because it is the only
 example that exercises placeholder handling. It **cannot be simulated**:
 `simulate_bracket` refuses any draw containing placeholders, because a
-`"Qualifier"` slot has no `player_id`, no skill profile and no
-classifier-visible history, so no reconciled match-win probability exists for
-it. That refusal is deliberate and is not a bug to work around.
+`"Qualifier"` slot has no `player_id` and no classifier-visible history, so no
+reconciled match-win probability exists for it. (It *does* get a skill profile —
+`Draw.skill_for` returns `SkillTable.default(surface)` — but the point model
+alone is not what `simulate_bracket` reconciles against.) That refusal is deliberate and is not a bug to work around.
 
 `example_usopen_2024_full.json` is the one to simulate. It is the **real**
 128-player men's singles bracket of the 2024 US Open, reconstructed from the
