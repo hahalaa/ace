@@ -110,6 +110,27 @@ class SkillTable:
         mu = self._mu[surface]
         return PlayerSkill(spw=mu, rpw=1.0 - mu, n_serve_pts=0.0, n_return_pts=0.0)
 
+    @property
+    def name_index(self) -> NameIndex:
+        """The resolvable name→id index behind :meth:`resolve_name` (read-only).
+
+        Exposed for callers that need the resolver's *structured* result rather
+        than this class's single-id convenience — notably the API's ``/players``
+        search (T3.1), which surfaces an ambiguous query's candidate list
+        instead of collapsing it to ``None``. ``len(name_index.names)`` is the
+        searchable player universe: every display name seen in the source frame,
+        including players with no usable serve line (they resolve to an id and
+        then fall back to :meth:`default`).
+
+        "Read-only" means there is no setter: it hands back the *live*
+        :class:`~common.names.NameIndex`, whose ``names`` list and ``ids`` dict
+        are ordinary mutable containers, so mutating them would mutate this
+        table. Callers must treat the result as immutable; no copy is taken
+        because the index is rebuilt per table and copying it on every
+        ``/players`` request would be pure waste.
+        """
+        return self._name_index
+
     def resolve_name(self, name: str) -> str | None:
         """Resolve a display name to a ``player_id`` (thin adapter over T0.6).
 

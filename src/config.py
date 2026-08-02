@@ -194,6 +194,23 @@ MC_SEED = 0
 # --top overrides it, and --top 0 lists the whole field.
 SIM_TOURNAMENT_CLI_TOP_N = 20
 
+# ==========================================
+# API (T3.1)
+# ==========================================
+# OpenAPI identity for the FastAPI app (api/main.py).
+API_TITLE = "ace — tennis Grand Slam simulator API"
+API_VERSION = "0.1.0"
+# Browser origins allowed to call the API (CORS). Deliberately an explicit
+# allow-list, never "*": these responses are read by a browser app, and a
+# wildcard would let any page on the internet read them. The defaults are the
+# Phase 4 frontend's local dev server (Vite's default port, both hostname
+# spellings a dev machine uses). A deployed frontend's origin is NOT here —
+# whoever deploys the API must add it explicitly (T5.1).
+API_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 
