@@ -185,6 +185,15 @@ MC_RUNS = 5000
 # care which one, so an undirected run is still reproducible.
 MC_SEED = 0
 
+# ==========================================
+# TOURNAMENT SIMULATION CLI (T2.5)
+# ==========================================
+# How many entrants cli/simulate_tournament.py lists in its Monte Carlo title
+# table by default. 20 covers every plausible champion of a 128 draw (the tail
+# below that is rounding noise at 5,000 runs) while still fitting on one screen;
+# --top overrides it, and --top 0 lists the whole field.
+SIM_TOURNAMENT_CLI_TOP_N = 20
+
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 
