@@ -289,6 +289,120 @@ def test_unknown_surface_raises():
 
 
 # --------------------------------------------------------------------------- #
+# first_server (T2.2's backwards-compatible addition to this T1.8 entry point)
+# --------------------------------------------------------------------------- #
+# `first_server=None` must behave exactly as the pre-T2.2 code did — same result
+# *and* same RNG stream position — because every existing caller relies on it.
+# The pinned branch must consume no draw at all, which is what makes that true.
+# These tests exist to pin that guarantee: without them, removing the rng draw,
+# adding one to the pinned branch, or ignoring the caller's value all pass.
+
+
+class _IntegersSpy:
+    """Wraps a Generator, recording only the ``integers`` calls made through it."""
+
+    def __init__(self, rng: np.random.Generator) -> None:
+        self._rng = rng
+        self.calls: list[tuple] = []
+
+    def integers(self, *args, **kwargs):
+        self.calls.append((args, kwargs))
+        return self._rng.integers(*args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._rng, name)
+
+
+def test_first_server_none_draws_exactly_one_integer_from_rng():
+    """The default branch draws the opening server from the threaded RNG."""
+    table = make_skill_table()
+    spy = _IntegersSpy(np.random.default_rng(7))
+
+    R.simulate_reconciled_match(
+        "Player A", "Player B", "Hard", 5, "10pt_at_6_6",
+        table, const_classifier(0.6), spy,
+    )
+
+    assert spy.calls == [((2,), {})]
+
+
+def test_pinned_first_server_consumes_no_integers_draw():
+    """The new branch must NOT draw — that is what keeps T1.8's callers intact."""
+    table = make_skill_table()
+    spy = _IntegersSpy(np.random.default_rng(7))
+
+    R.simulate_reconciled_match(
+        "Player A", "Player B", "Hard", 5, "10pt_at_6_6",
+        table, const_classifier(0.6), spy, first_server=0,
+    )
+
+    assert spy.calls == []
+
+
+def test_first_server_none_reproduces_the_pre_t2_2_rng_stream():
+    """Byte-for-byte equivalence with the T1.8 code path.
+
+    Pre-T2.2 the opening server was *always* ``int(rng.integers(2))``. Drawing
+    that value by hand and pinning it must give the same match and leave the
+    generator in the same state as letting the default branch draw it.
+    """
+    table = make_skill_table()
+    r_default = np.random.default_rng(11)
+    r_manual = np.random.default_rng(11)
+    expected_server = int(r_manual.integers(2))
+
+    got = R.simulate_reconciled_match(
+        "Player A", "Player B", "Hard", 5, "advantage",
+        table, const_classifier(0.6), r_default,
+    )
+    want = R.simulate_reconciled_match(
+        "Player A", "Player B", "Hard", 5, "advantage",
+        table, const_classifier(0.6), r_manual, first_server=expected_server,
+    )
+
+    assert got == want
+    assert r_default.bit_generator.state == r_manual.bit_generator.state
+
+
+@pytest.mark.parametrize(
+    ("best_of", "rule", "sim_name"),
+    [(3, "7pt_at_6_6", "simulate_match_bo3"), (5, "10pt_at_6_6", "simulate_match_bo5")],
+)
+@pytest.mark.parametrize("first_server", [0, 1])
+def test_pinned_first_server_reaches_the_match_simulator(
+    best_of, rule, sim_name, first_server, monkeypatch
+):
+    """The caller's value is *honoured*, not merely accepted and discarded."""
+    table = make_skill_table()
+    seen = []
+    real = getattr(R, sim_name)
+
+    def spy(pA, pB, fs, final_set_rule, rng):
+        seen.append(fs)
+        return real(pA, pB, fs, final_set_rule, rng)
+
+    monkeypatch.setattr(R, sim_name, spy)
+    R.simulate_reconciled_match(
+        "Player A", "Player B", "Hard", best_of, rule,
+        table, const_classifier(0.6), np.random.default_rng(3),
+        first_server=first_server,
+    )
+
+    assert seen == [first_server]
+
+
+@pytest.mark.parametrize("bad", [2, -1, 99, "0"])
+def test_invalid_first_server_raises(bad):
+    table = make_skill_table()
+    with pytest.raises(ValueError, match="first_server must be 0, 1 or None"):
+        R.simulate_reconciled_match(
+            "Player A", "Player B", "Hard", 5, "10pt_at_6_6",
+            table, const_classifier(0.6), np.random.default_rng(1),
+            first_server=bad,
+        )
+
+
+# --------------------------------------------------------------------------- #
 # model pinning
 # --------------------------------------------------------------------------- #
 def test_load_pinned_classifier_records_identity():

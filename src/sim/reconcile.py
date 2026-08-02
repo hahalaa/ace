@@ -450,6 +450,7 @@ def simulate_reconciled_match(
     rng: np.random.Generator,
     mode: str = config.RECONCILE_MODE,
     w: float = config.RECONCILE_BLEND_WEIGHT,
+    first_server: int | None = None,
 ) -> MatchResult:
     """Simulate one reconciled match — the entry point Phase 2 calls.
 
@@ -471,15 +472,22 @@ def simulate_reconciled_match(
         classifier: A :class:`ClassifierProb` returning ``P(A beats B)`` from names
             + surface.
         rng: A ``numpy`` ``Generator`` (never the global ``np.random``); also draws
-            the opening server.
+            the opening server when ``first_server`` is ``None``.
         mode, w: Reconciliation mode / blend weight (default from ``config``).
+        first_server: Index (``0`` = A, ``1`` = B) of the player serving the first
+            game, or ``None`` (the default) to draw it from ``rng`` — the original
+            T1.8 behaviour, unchanged for every existing caller. T2.2's bracket
+            simulation passes an explicit value because a tournament needs a
+            *deterministic serve-first convention* per match (see
+            ``sim/tournament.py``), which a per-match coin flip cannot express.
 
     Returns:
         A :class:`~sim.match.MatchResult` for the simulated match.
 
     Raises:
         ValueError: If either name fails to resolve (fail loudly — no silent
-            fallback), the surface is unknown, or ``best_of`` is not 3/5.
+            fallback), the surface is unknown, ``best_of`` is not 3/5, or
+            ``first_server`` is neither ``0``, ``1`` nor ``None``.
     """
     # 1. Name → id, exactly once each. Fail loudly rather than let a bad name
     #    become a KeyError or a silent default-profile (wrong-player) result.
@@ -524,7 +532,15 @@ def simulate_reconciled_match(
     pB_adj = min(max(pB - delta, config.P_MIN), config.P_MAX)
 
     # 5. Simulate the real scoreline (serve continuity honoured by the sim layer).
-    first_server = int(rng.integers(2))
+    #    The opening server is drawn from the same threaded RNG unless the caller
+    #    pinned one; only the None branch consumes a draw, so existing callers'
+    #    random streams are byte-identical to before this parameter existed.
+    if first_server is None:
+        first_server = int(rng.integers(2))
+    elif first_server not in (0, 1):
+        raise ValueError(
+            f"first_server must be 0, 1 or None, got {first_server!r}"
+        )
     if best_of == 3:
         return simulate_match_bo3(pA_adj, pB_adj, first_server, final_set_rule, rng)
     if best_of == 5:
