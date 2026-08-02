@@ -18,10 +18,13 @@ import pandas as pd
 import pytest
 
 import config
+import data.loader as loader
+import data.preprocess as preprocess
+import features.serve as serve
 import sim.match as match
 import sim.reconcile as reconcile
 from features.serve import PlayerSkill, SkillTable
-from sim.draw import parse_draw
+from sim.draw import load_draw, parse_draw
 from sim.match import MatchResult, SetResult
 from sim.tournament import (
     format_scoreline,
@@ -758,6 +761,51 @@ def test_placeholder_entrants_are_rejected_upfront(skill_table, classifier):
     assert "6:'Qualifier'" in message and "8:'Lucky Loser'" in message
     # Refused before anything was simulated.
     assert classifier.calls == []
+
+
+# ---------------------------------------------------------------------------
+# The shipped placeholder-free example draw (addendum to T2.1/T2.2)
+# ---------------------------------------------------------------------------
+
+
+def test_full_example_draw_loads_and_simulates_end_to_end():
+    """Smoke test for ``example_usopen_2024_full.json``.
+
+    ``example_usopen_2026.json`` carries ``"Qualifier"``/``"Lucky Loser"`` slots
+    and so is *correctly* refused by :func:`simulate_bracket`. This second
+    example is a real, completed 128-draw in which every slot was filled by a
+    named player, so it is the fixture T2.3 can actually measure against.
+
+    Deliberately a smoke test: structure, labels and determinism are already
+    covered above against toy draws. What is unique here is that the file
+    resolves against skills built from the **real** vendored data and then runs
+    to a champion in both modes. The classifier is the usual stub — the T2.2
+    boundary — since this checks the draw, not the model.
+    """
+    df = loader.load_atp_data(config.START_YEAR, config.END_YEAR)
+    table = serve.build_skill_table(preprocess.preprocess_data(df))
+
+    draw = load_draw(config.DRAWS_DIR / "example_usopen_2024_full.json", table)
+
+    assert draw.draw_size == len(draw.bracket) == 128
+    # The whole point of this file: nothing for _reject_placeholders to catch.
+    assert not any(slot.is_placeholder for slot in draw.bracket)
+    assert all(slot.player_id is not None for slot in draw.bracket)
+
+    for outcome_only in (False, True):
+        result = simulate_bracket(
+            draw,
+            table,
+            CountingClassifier(),
+            np.random.default_rng(2026),
+            outcome_only=outcome_only,
+        )
+        assert len(result.matches) == 127
+        assert result.champion in draw.bracket
+        assert result.rounds[-1].matches[0].winner == result.champion
+        assert [r.label for r in result.rounds] == [
+            "R128", "R64", "R32", "R16", "QF", "SF", "F",
+        ]
 
 
 # ---------------------------------------------------------------------------

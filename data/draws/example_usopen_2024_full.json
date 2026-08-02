@@ -1,0 +1,555 @@
+{
+  "note": "REAL DRAW, HISTORICAL — the actual 128-player men's singles bracket of the 2024 US Open, reconstructed from the vendored round-by-round results in data/raw/. Every entrant is a genuine named player who really played that match, including the qualifiers and wildcards, so there are no placeholder slots and the draw simulates end-to-end (T2.2's simulate_bracket refuses any draw containing placeholders). Seeds are the event's real seedings. Bracket order is the event's true tree, recovered from the results rather than from match_num (which is not draw order) and verified by replaying all 127 matches through the reconstructed pairings. Each pairing is oriented so the half holding the better seed sits higher: a canonical labelling that puts every seed at the top of its block (seed 1 -> position 1, seed 2 -> 65, seed 3 -> 33, seed 4 -> 97). That is NOT the official draw-sheet numbering, which places seed 2 at position 128; the bracket structure -- who can meet whom, and in which round -- is identical either way, and positions are only labels for it. NOT A FORECAST: the default snapshot skill table is built from all vendored seasons, which includes this event and everything after it, so simulating this file re-plays a known draw with hindsight-informed skills. Use build_skill_table(df, as_of=...) for a genuine backtest. Purpose: a full-size, placeholder-free fixture for T2.3 Monte Carlo performance work and end-to-end smoke tests.",
+  "source": "data/raw/atp_matches_2024.csv (tourney_id 2024-560)",
+  "tournament_id": "usopen_2024_atp_full",
+  "name": "US Open 2024 — Men's Singles (real 128 draw)",
+  "surface": "Hard",
+  "best_of": 5,
+  "final_set_tiebreak": "10pt_at_6_6",
+  "draw_size": 128,
+  "seeds": {
+    "Jannik Sinner": 1,
+    "Novak Djokovic": 2,
+    "Carlos Alcaraz": 3,
+    "Alexander Zverev": 4,
+    "Daniil Medvedev": 5,
+    "Andrey Rublev": 6,
+    "Hubert Hurkacz": 7,
+    "Casper Ruud": 8,
+    "Grigor Dimitrov": 9,
+    "Stefanos Tsitsipas": 11,
+    "Taylor Fritz": 12,
+    "Ben Shelton": 13,
+    "Tommy Paul": 14,
+    "Holger Rune": 15,
+    "Sebastian Korda": 16,
+    "Ugo Humbert": 17,
+    "Lorenzo Musetti": 18,
+    "Frances Tiafoe": 20,
+    "Sebastian Baez": 21,
+    "Alejandro Tabilo": 22,
+    "Karen Khachanov": 23,
+    "Arthur Fils": 24,
+    "Jack Draper": 25,
+    "Alexander Bublik": 27,
+    "Alexei Popyrin": 28,
+    "Francisco Cerundolo": 29,
+    "Matteo Arnaldi": 30,
+    "Flavio Cobolli": 31,
+    "Jiri Lehecka": 32
+  },
+  "bracket": [
+    {
+      "position": 1,
+      "player": "Jannik Sinner"
+    },
+    {
+      "position": 2,
+      "player": "Mackenzie McDonald"
+    },
+    {
+      "position": 3,
+      "player": "Alex Michelsen"
+    },
+    {
+      "position": 4,
+      "player": "Eliot Spizzirri"
+    },
+    {
+      "position": 5,
+      "player": "Christopher O'Connell"
+    },
+    {
+      "position": 6,
+      "player": "Nicolas Jarry"
+    },
+    {
+      "position": 7,
+      "player": "Mattia Bellucci"
+    },
+    {
+      "position": 8,
+      "player": "Stan Wawrinka"
+    },
+    {
+      "position": 9,
+      "player": "Tommy Paul"
+    },
+    {
+      "position": 10,
+      "player": "Lorenzo Sonego"
+    },
+    {
+      "position": 11,
+      "player": "Max Purcell"
+    },
+    {
+      "position": 12,
+      "player": "Aleksandar Vukic"
+    },
+    {
+      "position": 13,
+      "player": "Arthur Fils"
+    },
+    {
+      "position": 14,
+      "player": "Learner Tien"
+    },
+    {
+      "position": 15,
+      "player": "Gabriel Diallo"
+    },
+    {
+      "position": 16,
+      "player": "Jaume Munar"
+    },
+    {
+      "position": 17,
+      "player": "Daniil Medvedev"
+    },
+    {
+      "position": 18,
+      "player": "Dusan Lajovic"
+    },
+    {
+      "position": 19,
+      "player": "Fabian Marozsan"
+    },
+    {
+      "position": 20,
+      "player": "Hamad Medjedovic"
+    },
+    {
+      "position": 21,
+      "player": "Flavio Cobolli"
+    },
+    {
+      "position": 22,
+      "player": "James Duckworth"
+    },
+    {
+      "position": 23,
+      "player": "Zizou Bergs"
+    },
+    {
+      "position": 24,
+      "player": "Pavel Kotov"
+    },
+    {
+      "position": 25,
+      "player": "Stefanos Tsitsipas"
+    },
+    {
+      "position": 26,
+      "player": "Thanasi Kokkinakis"
+    },
+    {
+      "position": 27,
+      "player": "Nuno Borges"
+    },
+    {
+      "position": 28,
+      "player": "Federico Coria"
+    },
+    {
+      "position": 29,
+      "player": "Jakub Mensik"
+    },
+    {
+      "position": 30,
+      "player": "Felix Auger-Aliassime"
+    },
+    {
+      "position": 31,
+      "player": "Tristan Schoolkate"
+    },
+    {
+      "position": 32,
+      "player": "Taro Daniel"
+    },
+    {
+      "position": 33,
+      "player": "Carlos Alcaraz"
+    },
+    {
+      "position": 34,
+      "player": "Li Tu"
+    },
+    {
+      "position": 35,
+      "player": "Botic van de Zandschulp"
+    },
+    {
+      "position": 36,
+      "player": "Denis Shapovalov"
+    },
+    {
+      "position": 37,
+      "player": "Jack Draper"
+    },
+    {
+      "position": 38,
+      "player": "Zhizhen Zhang"
+    },
+    {
+      "position": 39,
+      "player": "Facundo Diaz Acosta"
+    },
+    {
+      "position": 40,
+      "player": "Hugo Gaston"
+    },
+    {
+      "position": 41,
+      "player": "Sebastian Korda"
+    },
+    {
+      "position": 42,
+      "player": "Corentin Moutet"
+    },
+    {
+      "position": 43,
+      "player": "Tomas Machac"
+    },
+    {
+      "position": 44,
+      "player": "Fabio Fognini"
+    },
+    {
+      "position": 45,
+      "player": "Alejandro Tabilo"
+    },
+    {
+      "position": 46,
+      "player": "David Goffin"
+    },
+    {
+      "position": 47,
+      "player": "Adrian Mannarino"
+    },
+    {
+      "position": 48,
+      "player": "Borna Coric"
+    },
+    {
+      "position": 49,
+      "player": "Hubert Hurkacz"
+    },
+    {
+      "position": 50,
+      "player": "Timofey Skatov"
+    },
+    {
+      "position": 51,
+      "player": "Jordan Thompson"
+    },
+    {
+      "position": 52,
+      "player": "Constant Lestienne"
+    },
+    {
+      "position": 53,
+      "player": "Matteo Arnaldi"
+    },
+    {
+      "position": 54,
+      "player": "Zachary Svajda"
+    },
+    {
+      "position": 55,
+      "player": "Roman Safiullin"
+    },
+    {
+      "position": 56,
+      "player": "Matthew Forbes"
+    },
+    {
+      "position": 57,
+      "player": "Karen Khachanov"
+    },
+    {
+      "position": 58,
+      "player": "Daniel Evans"
+    },
+    {
+      "position": 59,
+      "player": "Mariano Navone"
+    },
+    {
+      "position": 60,
+      "player": "Daniel Altmaier"
+    },
+    {
+      "position": 61,
+      "player": "Alex de Minaur"
+    },
+    {
+      "position": 62,
+      "player": "Marcos Giron"
+    },
+    {
+      "position": 63,
+      "player": "Otto Virtanen"
+    },
+    {
+      "position": 64,
+      "player": "Quentin Halys"
+    },
+    {
+      "position": 65,
+      "player": "Novak Djokovic"
+    },
+    {
+      "position": 66,
+      "player": "Radu Albot"
+    },
+    {
+      "position": 67,
+      "player": "Laslo Djere"
+    },
+    {
+      "position": 68,
+      "player": "Jan-Lennard Struff"
+    },
+    {
+      "position": 69,
+      "player": "Alexei Popyrin"
+    },
+    {
+      "position": 70,
+      "player": "Soonwoo Kwon"
+    },
+    {
+      "position": 71,
+      "player": "Pedro Martinez"
+    },
+    {
+      "position": 72,
+      "player": "Maks Kasnikowski"
+    },
+    {
+      "position": 73,
+      "player": "Ben Shelton"
+    },
+    {
+      "position": 74,
+      "player": "Dominic Thiem"
+    },
+    {
+      "position": 75,
+      "player": "Roberto Bautista Agut"
+    },
+    {
+      "position": 76,
+      "player": "Luca Nardi"
+    },
+    {
+      "position": 77,
+      "player": "Frances Tiafoe"
+    },
+    {
+      "position": 78,
+      "player": "Aleksandar Kovacevic"
+    },
+    {
+      "position": 79,
+      "player": "Alexander Shevchenko"
+    },
+    {
+      "position": 80,
+      "player": "Dominik Koepfer"
+    },
+    {
+      "position": 81,
+      "player": "Andrey Rublev"
+    },
+    {
+      "position": 82,
+      "player": "Thiago Seyboth Wild"
+    },
+    {
+      "position": 83,
+      "player": "Arthur Rinderknech"
+    },
+    {
+      "position": 84,
+      "player": "Christopher Eubanks"
+    },
+    {
+      "position": 85,
+      "player": "Jiri Lehecka"
+    },
+    {
+      "position": 86,
+      "player": "Marton Fucsovics"
+    },
+    {
+      "position": 87,
+      "player": "Mitchell Krueger"
+    },
+    {
+      "position": 88,
+      "player": "Hugo Grenier"
+    },
+    {
+      "position": 89,
+      "player": "Grigor Dimitrov"
+    },
+    {
+      "position": 90,
+      "player": "Kyrian Jacquet"
+    },
+    {
+      "position": 91,
+      "player": "Rinky Hijikata"
+    },
+    {
+      "position": 92,
+      "player": "Alejandro Davidovich Fokina"
+    },
+    {
+      "position": 93,
+      "player": "Sebastian Baez"
+    },
+    {
+      "position": 94,
+      "player": "Luciano Darderi"
+    },
+    {
+      "position": 95,
+      "player": "Tallon Griekspoor"
+    },
+    {
+      "position": 96,
+      "player": "Sumit Nagal"
+    },
+    {
+      "position": 97,
+      "player": "Alexander Zverev"
+    },
+    {
+      "position": 98,
+      "player": "Maximilian Marterer"
+    },
+    {
+      "position": 99,
+      "player": "Alexandre Muller"
+    },
+    {
+      "position": 100,
+      "player": "Adam Walton"
+    },
+    {
+      "position": 101,
+      "player": "Francisco Cerundolo"
+    },
+    {
+      "position": 102,
+      "player": "Sebastian Ofner"
+    },
+    {
+      "position": 103,
+      "player": "Tomas Martin Etcheverry"
+    },
+    {
+      "position": 104,
+      "player": "Giovanni Mpetshi Perricard"
+    },
+    {
+      "position": 105,
+      "player": "Holger Rune"
+    },
+    {
+      "position": 106,
+      "player": "Brandon Nakashima"
+    },
+    {
+      "position": 107,
+      "player": "Arthur Cazaux"
+    },
+    {
+      "position": 108,
+      "player": "Pablo Carreno Busta"
+    },
+    {
+      "position": 109,
+      "player": "Lorenzo Musetti"
+    },
+    {
+      "position": 110,
+      "player": "Reilly Opelka"
+    },
+    {
+      "position": 111,
+      "player": "Miomir Kecmanovic"
+    },
+    {
+      "position": 112,
+      "player": "Yoshihito Nishioka"
+    },
+    {
+      "position": 113,
+      "player": "Casper Ruud"
+    },
+    {
+      "position": 114,
+      "player": "Yunchaokete Bu"
+    },
+    {
+      "position": 115,
+      "player": "Gael Monfils"
+    },
+    {
+      "position": 116,
+      "player": "Diego Schwartzman"
+    },
+    {
+      "position": 117,
+      "player": "Alexander Bublik"
+    },
+    {
+      "position": 118,
+      "player": "Juncheng Shang"
+    },
+    {
+      "position": 119,
+      "player": "Roberto Carballes Baena"
+    },
+    {
+      "position": 120,
+      "player": "Jan Choinski"
+    },
+    {
+      "position": 121,
+      "player": "Taylor Fritz"
+    },
+    {
+      "position": 122,
+      "player": "Camilo Ugo Carabelli"
+    },
+    {
+      "position": 123,
+      "player": "Matteo Berrettini"
+    },
+    {
+      "position": 124,
+      "player": "Albert Ramos-Vinolas"
+    },
+    {
+      "position": 125,
+      "player": "Ugo Humbert"
+    },
+    {
+      "position": 126,
+      "player": "Thiago Monteiro"
+    },
+    {
+      "position": 127,
+      "player": "Francisco Comesana"
+    },
+    {
+      "position": 128,
+      "player": "Dominic Stricker"
+    }
+  ]
+}
