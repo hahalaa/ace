@@ -1,4 +1,4 @@
-"""Single bracket simulation (T2.2) and the Monte Carlo runner over it (T2.3).
+"""Bracket simulation (T2.2), the Monte Carlo runner (T2.3), storybook (T2.4).
 
 Plays one full tournament: pair the current round's entrants, simulate every
 match, advance the winners, repeat until one player is left. The entry point is
@@ -107,6 +107,26 @@ single-threaded job (and one *fresh* cache lives inside each worker process when
 runs are split across workers; and the reconciliation ``mode`` is a pass-through
 parameter, because this module does not build the classifier and therefore does
 not own the choice (see the classifier caveat below).
+
+**Storybook (T2.4).** :func:`storybook_run` is the opposite end of the same
+machinery: **one** ``simulate_bracket(..., outcome_only=False)`` call, every
+match played out point by point, wrapped in a presentation-friendly structure
+for the shareable "watch the tournament play out" view.
+:func:`render_storybook` turns that structure into text. The two are kept
+strictly apart — :class:`StorybookResult` is data the API/frontend can consume
+directly, and the renderer only ever composes its public fields, never
+computes a fact of its own.
+
+The **run summary** shape T2.5 (and later the API) can rely on is
+:class:`PlayerRun`, one per entrant: identity (``position``, ``player``,
+``player_id``, ``seed``), how far they got (``furthest_round`` — the label of
+the last round they *contested* — plus ``matches_won`` and ``is_champion``),
+who they beat on the way (``beat``, opponent names in round order), and how it
+ended (``eliminated_by``, ``None`` iff champion, and ``last_match``, the
+:class:`StorybookMatch` in which they went out — the final, won, for the
+champion). ``StorybookResult.runs`` is sorted by finishing position: champion,
+runner-up, then losing semi-finalists and so on, ties broken by bracket
+position.
 
 Like every other ``sim/`` module this one never imports from ``cli/``: its
 project imports are ``config``, ``features.serve`` (typing), ``sim.draw``,
@@ -1013,3 +1033,338 @@ def monte_carlo(
         round_labels=labels,
         players=tuple(players),
     )
+
+
+# ---------------------------------------------------------------------------
+# Storybook single run (T2.4).
+# ---------------------------------------------------------------------------
+
+
+def format_match_line(winner: str, loser: str, scoreline: str) -> str:
+    """Render one bracket match as ``"A def. B 6-4 3-6 7-6(5) 6-2"``.
+
+    The scoreline is passed in already rendered — :func:`format_scoreline` (used
+    by :func:`_simulate_match` and stored on every :class:`BracketMatch`) is the
+    single scoreline formatter in this module, and this only wraps names around
+    its output.
+    """
+    return f"{winner} def. {loser} {scoreline}"
+
+
+@dataclass(frozen=True)
+class StorybookMatch:
+    """One played-out match, ready to display.
+
+    Attributes:
+        round_index, round_label, match_index: Where the match sits in the
+            bracket — the same coordinates as :class:`BracketMatch`.
+        winner, loser: Display names.
+        winner_seed, loser_seed: Their tournament seeds, ``None`` if unseeded.
+        scoreline: Winner-first scoreline (``6-4 3-6 7-6(5) 6-2``).
+        line: The rendered match line — ``"<winner> def. <loser> <scoreline>"``.
+        match: The underlying :class:`BracketMatch`, whose ``result`` carries
+            the full set-by-set :class:`~sim.match.MatchResult` for any caller
+            that wants more than the line.
+    """
+
+    round_index: int
+    round_label: str
+    match_index: int
+    winner: str
+    loser: str
+    winner_seed: int | None
+    loser_seed: int | None
+    scoreline: str
+    line: str
+    match: BracketMatch
+
+
+@dataclass(frozen=True)
+class StorybookRound:
+    """One round of a storybook run, top of the draw first."""
+
+    index: int
+    label: str
+    matches: tuple[StorybookMatch, ...]
+
+
+@dataclass(frozen=True)
+class PlayerRun:
+    """One entrant's tournament, summarised — the "run summary" T2.5 renders.
+
+    Attributes:
+        position: 1-based bracket slot.
+        player, player_id, seed: Identity, copied from the
+            :class:`~sim.draw.DrawSlot` and the draw's seed list.
+        is_champion: True for the one entrant who won the title.
+        furthest_round: Label of the last round this entrant *contested* — so a
+            beaten finalist and the champion both read ``"F"``, and a
+            first-round loser reads the first round's label.
+        matches_won: How many matches they won (``0`` for a first-round exit).
+        beat: The opponents they beat, in round order.
+        eliminated_by: Who knocked them out; ``None`` **iff** ``is_champion``.
+        last_match: The match their run ended on — their defeat, or the final
+            for the champion.
+    """
+
+    position: int
+    player: str
+    player_id: str | None
+    seed: int | None
+    is_champion: bool
+    furthest_round: str
+    matches_won: int
+    beat: tuple[str, ...]
+    eliminated_by: str | None
+    last_match: StorybookMatch
+
+
+@dataclass(frozen=True)
+class StorybookResult:
+    """One fully played-out tournament, in presentation form.
+
+    Self-describing in the same way :class:`MonteCarloResult` is: the draw's
+    identity and format plus every knob that could change the story (``seed``,
+    ``mode``, ``w``), so a shared result records exactly how to reproduce it.
+
+    Attributes:
+        tournament_id, name, surface, best_of, final_set_tiebreak, draw_size:
+            Copied from the :class:`~sim.draw.Draw`.
+        seed, mode, w: The run's parameters.
+        rounds: Every round, first round first.
+        champion: The winning :class:`~sim.draw.DrawSlot`.
+        champion_seed: The champion's seed, ``None`` if unseeded.
+        runs: Every entrant's :class:`PlayerRun`, best finish first.
+        bracket: The underlying :class:`BracketResult`, unmodified — nothing
+            the simulation produced is discarded by this wrapper.
+    """
+
+    tournament_id: str
+    name: str
+    surface: str
+    best_of: int
+    final_set_tiebreak: str
+    draw_size: int
+    seed: int
+    mode: str
+    w: float
+    rounds: tuple[StorybookRound, ...]
+    champion: DrawSlot
+    champion_seed: int | None
+    runs: tuple[PlayerRun, ...]
+    bracket: BracketResult
+
+    @property
+    def matches(self) -> tuple[StorybookMatch, ...]:
+        """Every match, in round then draw order."""
+        return tuple(m for r in self.rounds for m in r.matches)
+
+    @property
+    def final(self) -> StorybookMatch:
+        """The title match."""
+        return self.rounds[-1].matches[0]
+
+    def run_of(self, position: int) -> PlayerRun:
+        """The :class:`PlayerRun` of the entrant from bracket ``position``."""
+        for run in self.runs:
+            if run.position == position:
+                return run
+        raise KeyError(f"no entrant at bracket position {position!r}")
+
+
+def _storybook_match(draw: Draw, bracket_match: BracketMatch) -> StorybookMatch:
+    """Wrap one :class:`BracketMatch` for display.
+
+    Raises:
+        ValueError: If the match has no scoreline — i.e. it came from an
+            ``outcome_only=True`` bracket, which has no story to tell.
+    """
+    if bracket_match.scoreline is None:
+        raise ValueError(
+            f"{bracket_match.round_label} match {bracket_match.match_index} has "
+            f"no scoreline: a storybook needs a bracket simulated with "
+            f"outcome_only=False"
+        )
+    winner, loser = bracket_match.winner, bracket_match.loser
+    return StorybookMatch(
+        round_index=bracket_match.round_index,
+        round_label=bracket_match.round_label,
+        match_index=bracket_match.match_index,
+        winner=winner.player,
+        loser=loser.player,
+        winner_seed=draw.seed_of(winner),
+        loser_seed=draw.seed_of(loser),
+        scoreline=bracket_match.scoreline,
+        line=format_match_line(winner.player, loser.player, bracket_match.scoreline),
+        match=bracket_match,
+    )
+
+
+def _player_run(
+    draw: Draw,
+    result: BracketResult,
+    slot: DrawSlot,
+    by_coords: Mapping[tuple[int, int], StorybookMatch],
+) -> PlayerRun:
+    """Summarise one entrant's tournament from the bracket they played in."""
+    path = result.path_of(slot.position)  # ends in a defeat, or the final
+    last = path[-1]
+    # A run ends the first time the entrant loses, so a run whose last match is
+    # a win can only be the champion's.
+    is_champion = last.winner.position == slot.position
+    beat = tuple(
+        m.loser.player for m in path if m.winner.position == slot.position
+    )
+    eliminated_by = None if is_champion else last.winner.player
+    return PlayerRun(
+        position=slot.position,
+        player=slot.player,
+        player_id=slot.player_id,
+        seed=draw.seed_of(slot),
+        is_champion=is_champion,
+        furthest_round=last.round_label,
+        matches_won=len(beat),
+        beat=beat,
+        eliminated_by=eliminated_by,
+        last_match=by_coords[(last.round_index, last.match_index)],
+    )
+
+
+def storybook_run(
+    draw: Draw,
+    skill_table: "SkillTable",
+    classifier: ClassifierProb,
+    seed: int,
+    mode: str = config.RECONCILE_MODE,
+    w: float = config.RECONCILE_BLEND_WEIGHT,
+) -> StorybookResult:
+    """Play one full tournament, every match point by point, and wrap it up.
+
+    Exactly **one** :func:`simulate_bracket` call with ``outcome_only=False``:
+    a ``draw_size = N`` draw is ``N − 1`` real matches (127 for a Slam), which
+    is cheap in absolute terms — the Monte Carlo budget only bites because it
+    multiplies that by thousands of runs.
+
+    Args:
+        draw: A validated, placeholder-free :class:`~sim.draw.Draw`.
+        skill_table: The id-keyed T1.1 skill table.
+        classifier: The injected ``(a, b, surface) -> P_clf`` adapter; this
+            module never builds one.
+        seed: Base seed. One ``numpy.random.default_rng(seed)`` is built here
+            and threaded through the whole bracket by :func:`simulate_bracket`,
+            so the same seed replays the same tournament — scoreline for
+            scoreline — which is what makes a shared storybook link meaningful.
+        mode: Reconciliation mode — a pass-through, see the note below.
+        w: Blend weight on ``P_clf`` in ``"blend"`` mode.
+
+    Returns:
+        A :class:`StorybookResult`. Render it with :func:`render_storybook`, or
+        consume the structure directly (API/frontend).
+
+    Raises:
+        ValueError: If the draw contains placeholder entrants (raised by
+            :func:`simulate_bracket`).
+
+    **Reconciliation mode is still the caller's decision (T2.4 decision).**
+    ``mode`` defaults to ``config.RECONCILE_MODE``, exactly as
+    :func:`simulate_bracket` and :func:`monte_carlo` do, and this function does
+    **not** substitute ``"blend"`` of its own accord — even though a storybook
+    is the first *shareable* output in the project and its readability depends
+    directly on the reconciled probabilities not collapsing toward a coin flip.
+    The reasoning is the same as T2.3's and it does not weaken here: the flat,
+    form-blind ``P_clf`` is a defect of one adapter
+    (``cli/simulate_match.make_classifier_prob``, ``ace-04-current-state.md``
+    §7 seam 7), not of the reconciliation default, and a caller that feeds real
+    engineered feature rows wants ``"classifier_anchor"`` — silently diluting
+    its classifier by half to protect a different caller's bad rows would be
+    the core making a modelling decision on evidence it does not have. What
+    changes for a *showcase* run is only the cost of getting it wrong, and that
+    is addressed where the knowledge lives: the layer that builds the adapter
+    picks the mode (T2.5 should pass ``config.SIM_CLI_RECONCILE_MODE`` while it
+    reuses the CLI adapter), and :class:`StorybookResult` records ``mode``/``w``
+    so any published story states which model produced it.
+    """
+    rng = np.random.default_rng(seed)
+    bracket = simulate_bracket(
+        draw,
+        skill_table,
+        classifier,
+        rng,
+        outcome_only=False,  # T2.4: the whole point — every match gets a scoreline.
+        mode=mode,
+        w=w,
+    )
+
+    rounds = tuple(
+        StorybookRound(
+            index=bracket_round.index,
+            label=bracket_round.label,
+            matches=tuple(
+                _storybook_match(draw, m) for m in bracket_round.matches
+            ),
+        )
+        for bracket_round in bracket.rounds
+    )
+    by_coords = {
+        (m.round_index, m.match_index): m for r in rounds for m in r.matches
+    }
+
+    runs = [_player_run(draw, bracket, slot, by_coords) for slot in draw.bracket]
+    # Best finish first: matches won orders the field by exit round exactly
+    # (the champion wins one more than the finalist, and so on down), with
+    # bracket position breaking ties so the order is deterministic.
+    runs.sort(key=lambda run: (-run.matches_won, run.position))
+
+    return StorybookResult(
+        tournament_id=draw.tournament_id,
+        name=draw.name,
+        surface=draw.surface,
+        best_of=draw.best_of,
+        final_set_tiebreak=draw.final_set_tiebreak,
+        draw_size=draw.draw_size,
+        seed=seed,
+        mode=mode,
+        w=w,
+        rounds=rounds,
+        champion=bracket.champion,
+        champion_seed=draw.seed_of(bracket.champion),
+        runs=tuple(runs),
+        bracket=bracket,
+    )
+
+
+def render_storybook(result: StorybookResult) -> str:
+    """Render a :class:`StorybookResult` as a round-by-round text summary.
+
+    A header naming the tournament and the run's parameters, then one block per
+    round with a line per match, ending with the champion. Presentation only —
+    every fact comes from :class:`StorybookResult`'s public fields, so the API
+    and frontend can consume that structure and lay it out differently without
+    reimplementing anything this function knows.
+
+    Args:
+        result: A completed storybook run.
+
+    Returns:
+        The rendered story, newline-separated and without a trailing newline.
+    """
+    reconciliation = result.mode
+    if result.mode == "blend":
+        reconciliation += f" (w={result.w:g})"
+    lines = [
+        f"{result.name} — {result.surface}, best of {result.best_of}, "
+        f"{result.draw_size} entrants",
+        f"seed {result.seed} · reconciliation {reconciliation}",
+    ]
+
+    for storybook_round in result.rounds:
+        lines.append("")
+        lines.append(storybook_round.label)
+        lines.extend(f"  {m.line}" for m in storybook_round.matches)
+
+    champion_seed = (
+        f" [{result.champion_seed}]" if result.champion_seed is not None else ""
+    )
+    lines.append("")
+    lines.append(f"Champion: {result.champion.player}{champion_seed}")
+    return "\n".join(lines)

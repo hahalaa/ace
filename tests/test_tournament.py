@@ -12,6 +12,7 @@ true by construction.
 """
 
 import dataclasses
+import re
 
 import numpy as np
 import pandas as pd
@@ -31,9 +32,11 @@ from sim.tournament import (
     format_scoreline,
     monte_carlo,
     reconciled_win_prob,
+    render_storybook,
     round_label,
     round_labels,
     simulate_bracket,
+    storybook_run,
 )
 
 # Eight toy entrants, strongest first — "Ace" has the best serve and return.
@@ -1098,6 +1101,312 @@ def test_monte_carlo_defaults_to_the_system_reconciliation_mode(
 
     assert mc.mode == config.RECONCILE_MODE
     assert mc.w == config.RECONCILE_BLEND_WEIGHT
+
+
+# ---------------------------------------------------------------------------
+# T2.4 — Storybook single run
+# ---------------------------------------------------------------------------
+# A rendered match line: "<winner> def. <loser> 6-4 3-6 7-6(5) 6-2".
+MATCH_LINE = re.compile(
+    r"^(?P<winner>.+) def\. (?P<loser>.+?) "
+    r"(?P<scoreline>\d+-\d+(?:\(\d+\))?(?: \d+-\d+(?:\(\d+\))?)*)$"
+)
+
+
+def test_storybook_calls_simulate_bracket_exactly_once(draw, skill_table, classifier):
+    """The acceptance criterion, asserted by counting — not by inspection.
+
+    One bracket per storybook run: not one per round, not one per match, and
+    emphatically not the Monte Carlo path. The call must also carry
+    ``outcome_only=False``, or there would be no scorelines to tell a story
+    with.
+    """
+    import sim.tournament as tournament
+
+    seen = []
+    real = tournament.simulate_bracket
+
+    def spy(*args, **kwargs):
+        seen.append(kwargs.get("outcome_only"))
+        return real(*args, **kwargs)
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(tournament, "simulate_bracket", spy)
+    try:
+        result = tournament.storybook_run(draw, skill_table, classifier, seed=11)
+    finally:
+        monkeypatch.undo()
+
+    assert seen == [False]  # exactly one call, in storybook mode
+    assert len(result.matches) == 7
+
+
+def test_storybook_8_draw_has_seven_matches_across_three_rounds(
+    draw, skill_table, classifier
+):
+    """The ticket's testing criterion: 7 matches, 3 rounds, valid scorelines."""
+    result = storybook_run(draw, skill_table, classifier, seed=12)
+
+    assert [r.label for r in result.rounds] == ["QF", "SF", "F"]
+    assert [len(r.matches) for r in result.rounds] == [4, 2, 1]
+    assert len(result.matches) == 7
+
+    for storybook_match in result.matches:
+        parsed = MATCH_LINE.match(storybook_match.line)
+        assert parsed is not None, storybook_match.line
+        assert parsed["winner"] == storybook_match.winner
+        assert parsed["loser"] == storybook_match.loser
+        assert parsed["scoreline"] == storybook_match.scoreline
+        # Best-of-5, so 3-5 sets, and the underlying MatchResult is preserved.
+        assert 3 <= len(storybook_match.scoreline.split(" ")) <= 5
+        assert storybook_match.match.result is not None
+        assert storybook_match.winner != storybook_match.loser
+
+    # Exactly one champion, and it is whoever won the final.
+    assert result.final is result.rounds[-1].matches[0]
+    assert result.champion.player == result.final.winner
+    assert result.champion == result.bracket.champion
+    assert result.champion_seed == draw.seed_of(result.champion)
+    assert sum(1 for run in result.runs if run.is_champion) == 1
+
+
+def test_storybook_scorelines_come_from_the_bracket_untouched(
+    draw, skill_table, classifier
+):
+    """No second scoreline formatter: the wrapper reuses what T2.2 produced."""
+    result = storybook_run(draw, skill_table, classifier, seed=13)
+
+    for storybook_match in result.matches:
+        assert storybook_match.scoreline == storybook_match.match.scoreline
+        assert storybook_match.scoreline == format_scoreline(
+            storybook_match.match.result
+        )
+
+
+def test_storybook_run_summaries_describe_every_entrants_tournament(
+    draw, skill_table, classifier
+):
+    """The documented ``PlayerRun`` shape, checked against the bracket itself."""
+    result = storybook_run(draw, skill_table, classifier, seed=14)
+
+    assert len(result.runs) == 8
+    assert {run.position for run in result.runs} == set(range(1, 9))
+    # Sorted best-finish-first, champion at the top — the documented key in
+    # full, so the position tiebreak is pinned and not merely inherited from
+    # Python's stable sort over a position-ordered draw.
+    assert result.runs[0].is_champion
+    keys = [(-run.matches_won, run.position) for run in result.runs]
+    assert keys == sorted(keys)
+
+    champion = result.runs[0]
+    assert champion.player == result.champion.player
+    assert champion.eliminated_by is None
+    assert champion.furthest_round == "F"
+    assert champion.matches_won == 3  # QF, SF, F
+    assert champion.beat == tuple(
+        m.loser for m in result.matches if m.winner == champion.player
+    )
+    assert champion.last_match is result.final
+
+    for run in result.runs[1:]:
+        assert not run.is_champion
+        assert run.eliminated_by is not None
+        # Their run ends on the match they lost, in the furthest round reached.
+        assert run.last_match.loser == run.player
+        assert run.last_match.winner == run.eliminated_by
+        assert run.last_match.round_label == run.furthest_round
+        assert run.matches_won == len(run.beat)
+        assert run.player not in run.beat
+
+    # Every match knocked exactly one entrant out; nobody plays after losing.
+    assert sorted(run.furthest_round for run in result.runs) == sorted(
+        ["QF"] * 4 + ["SF"] * 2 + ["F"] * 2
+    )
+    assert sum(run.matches_won for run in result.runs) == 7
+
+    # run_of() is the same object, keyed by bracket position.
+    assert result.run_of(champion.position) is champion
+    with pytest.raises(KeyError):
+        result.run_of(99)
+
+
+def test_storybook_identity_fields_come_from_the_draw(draw, skill_table, classifier):
+    """Seeds and ids are copied through, so a caller never re-resolves names."""
+    result = storybook_run(draw, skill_table, classifier, seed=15)
+
+    assert result.tournament_id == draw.tournament_id
+    assert result.draw_size == draw.draw_size == 8
+    assert result.surface == draw.surface
+    assert result.best_of == draw.best_of
+
+    by_position = {slot.position: slot for slot in draw.bracket}
+    for run in result.runs:
+        slot = by_position[run.position]
+        assert (run.player, run.player_id) == (slot.player, slot.player_id)
+        assert run.seed == draw.seed_of(slot)
+
+    alice = result.run_of(1)
+    assert (alice.player, alice.seed) == ("Alice Ace", 1)
+    assert result.run_of(2).seed == 2
+    assert result.run_of(3).seed is None  # unseeded
+
+
+def test_storybook_is_deterministic_given_the_seed(draw, skill_table):
+    """Same seed → identical result *and* identical text; a shared link replays."""
+    first = storybook_run(draw, skill_table, CountingClassifier(), seed=99)
+    second = storybook_run(draw, skill_table, CountingClassifier(), seed=99)
+
+    assert first == second
+    assert render_storybook(first) == render_storybook(second)
+
+
+def test_storybook_different_seeds_tell_different_stories(draw, skill_table):
+    """The seed reaches the *simulation*, not just the result's ``seed`` field.
+
+    Compares the matches actually played, deliberately **not** the rendered
+    text: the header prints the seed, so a ``storybook_run`` that ignored its
+    argument and used a fixed RNG would still produce a different string per
+    seed and a text-based assertion would pass vacuously. (It did — this test
+    only fails on that mutation once it compares the bracket.)
+    """
+    played = {
+        tuple(
+            m.line
+            for m in storybook_run(
+                draw, skill_table, CountingClassifier(), seed=s
+            ).matches
+        )
+        for s in range(6)
+    }
+
+    assert len(played) > 1
+
+
+def test_render_storybook_is_round_by_round_and_ends_with_the_champion(
+    draw, skill_table, classifier
+):
+    result = storybook_run(draw, skill_table, classifier, seed=16)
+    text = render_storybook(result)
+    lines = text.splitlines()
+
+    # Both header lines pinned to result fields, exactly — a loose ``in`` check
+    # would let the renderer swap in a fact it computed itself (the body check
+    # in the separation test below only guards the round blocks).
+    assert lines[0] == (
+        f"{result.name} — {result.surface}, best of {result.best_of}, "
+        f"{result.draw_size} entrants"
+    )
+    # (No ``(w=…)`` suffix: that branch is blend-only and is asserted in the
+    # reconciliation-mode test, so this line assumes the non-blend default.)
+    assert lines[1] == f"seed {result.seed} · reconciliation {result.mode}"
+
+    # Every round appears as its own block, in order, with its matches under it.
+    for storybook_round in result.rounds:
+        header = lines.index(storybook_round.label)
+        block = lines[header + 1 : header + 1 + len(storybook_round.matches)]
+        assert block == [f"  {m.line}" for m in storybook_round.matches]
+    assert lines.index("QF") < lines.index("SF") < lines.index("F")
+
+    # Ends with the champion, and only that.
+    assert lines[-1] == f"Champion: {result.champion.player}" + (
+        f" [{result.champion_seed}]" if result.champion_seed is not None else ""
+    )
+    assert not text.endswith("\n")
+    assert text.count("Champion:") == 1
+
+
+def test_render_storybook_reads_only_the_result_structure(
+    draw, skill_table, classifier
+):
+    """Data and renderer are separate: the text adds no fact the data lacks.
+
+    Every non-blank body line is either a round label or one of the result's own
+    match lines, so a frontend consuming :class:`StorybookResult` can reproduce
+    this layout — and anything else — without re-deriving anything.
+    """
+    result = storybook_run(draw, skill_table, classifier, seed=17)
+    lines = [line for line in render_storybook(result).splitlines() if line.strip()]
+
+    labels = {r.label for r in result.rounds}
+    match_lines = {f"  {m.line}" for m in result.matches}
+    body = lines[2:-1]  # drop the two header lines and the champion line
+    assert body
+    assert all(line in labels or line in match_lines for line in body)
+
+
+def test_storybook_defaults_to_the_system_reconciliation_mode(
+    draw, skill_table, classifier
+):
+    """T2.4 decision: a pass-through, exactly like ``monte_carlo``'s.
+
+    The core does not adopt ``config.SIM_CLI_RECONCILE_MODE`` even for the
+    shareable mode — that mitigation belongs to the layer that builds the
+    degraded adapter (seam 7). The result records what was used either way.
+    """
+    default = storybook_run(draw, skill_table, classifier, seed=18)
+    assert default.mode == config.RECONCILE_MODE
+    assert default.w == config.RECONCILE_BLEND_WEIGHT
+
+    blended = storybook_run(
+        draw, skill_table, classifier, seed=18, mode="blend", w=0.25
+    )
+    assert (blended.mode, blended.w) == ("blend", 0.25)
+    assert "blend (w=0.25)" in render_storybook(blended)
+
+
+def test_storybook_rejects_a_draw_with_placeholders(skill_table, classifier):
+    """Inherited from ``simulate_bracket`` — refused before anything is played."""
+    data = toy_draw_dict()
+    data["bracket"][5]["player"] = "Qualifier"
+    placeholder_draw = parse_draw(data, skill_table)
+
+    with pytest.raises(ValueError, match="placeholder entrant"):
+        storybook_run(placeholder_draw, skill_table, classifier, seed=19)
+    assert classifier.calls == []
+
+
+def test_full_example_draw_storybook_end_to_end():
+    """The real 128-draw: a complete, readable 127-match narrative.
+
+    The end-to-end smoke test for T2.4 — the placeholder-free
+    ``example_usopen_2024_full.json`` bracket, real vendored skills, every match
+    played out point by point. The classifier is the usual stub (the T2.2
+    boundary), so "plausible champion" here means *a real entrant who actually
+    won seven matches*, not a forecast — see seam 7 on why no stub-driven or
+    CLI-adapter-driven bracket is one.
+    """
+    df = loader.load_atp_data(config.START_YEAR, config.END_YEAR)
+    table = serve.build_skill_table(preprocess.preprocess_data(df))
+    draw = load_draw(config.DRAWS_DIR / "example_usopen_2024_full.json", table)
+
+    result = storybook_run(draw, table, CountingClassifier(), seed=2024)
+
+    assert result.draw_size == 128
+    assert [r.label for r in result.rounds] == [
+        "R128", "R64", "R32", "R16", "QF", "SF", "F",
+    ]
+    assert [len(r.matches) for r in result.rounds] == [64, 32, 16, 8, 4, 2, 1]
+    assert len(result.matches) == 127
+    assert all(MATCH_LINE.match(m.line) for m in result.matches)
+
+    # A plausible champion: a real entrant from the draw who won all seven.
+    champion = result.runs[0]
+    assert champion.is_champion
+    assert result.champion in draw.bracket
+    assert not result.champion.is_placeholder
+    assert champion.matches_won == 7
+    assert len(champion.beat) == 7 and len(set(champion.beat)) == 7
+    assert champion.eliminated_by is None
+    assert champion.last_match.round_label == "F"
+
+    # 128 entrants, 127 of them beaten exactly once.
+    assert len(result.runs) == 128
+    assert sum(run.matches_won for run in result.runs) == 127
+    assert sum(1 for run in result.runs if run.eliminated_by is None) == 1
+
+    text = render_storybook(result)
+    assert text.count(" def. ") == 127
+    assert text.splitlines()[-1].startswith(f"Champion: {result.champion.player}")
 
 
 # ---------------------------------------------------------------------------
