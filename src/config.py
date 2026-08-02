@@ -170,6 +170,21 @@ DRAW_PLACEHOLDER_ENTRANTS = frozenset(
     {"qualifier", "q", "lucky loser", "ll", "bye", "tbd", "alternate"}
 )
 
+# ==========================================
+# TOURNAMENT MONTE CARLO (T2.3)
+# ==========================================
+# Default number of bracket simulations behind a published set of title/round
+# probabilities (sim/tournament.monte_carlo). 5,000 runs put the standard error
+# on a 50% probability at ~0.7pp and on a 2% longshot at ~0.2pp — enough
+# resolution for a title board — while staying inside the performance budget in
+# ace-01-architecture.md ("tens of seconds" for a 128 draw), which the T2.2
+# prob_cache is what actually makes achievable.
+MC_RUNS = 5000
+# Default base seed for that run. Every entry point must accept a seed
+# (CLAUDE.md determinism rule); this is the value used when a caller does not
+# care which one, so an undirected run is still reproducible.
+MC_SEED = 0
+
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 

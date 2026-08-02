@@ -1,4 +1,4 @@
-"""Tests for src/sim/tournament.py — T2.2's single bracket simulation.
+"""Tests for src/sim/tournament.py — T2.2's bracket sim and T2.3's Monte Carlo.
 
 Everything runs against a hand-built :class:`SkillTable` and a toy 8-slot draw
 (the T2.1 loader is exercised for real in ``test_draw.py``), plus a stub
@@ -27,7 +27,9 @@ from features.serve import PlayerSkill, SkillTable
 from sim.draw import load_draw, parse_draw
 from sim.match import MatchResult, SetResult
 from sim.tournament import (
+    _run_chunk,
     format_scoreline,
+    monte_carlo,
     reconciled_win_prob,
     round_label,
     round_labels,
@@ -806,6 +808,296 @@ def test_full_example_draw_loads_and_simulates_end_to_end():
         assert [r.label for r in result.rounds] == [
             "R128", "R64", "R32", "R16", "QF", "SF", "F",
         ]
+
+
+# ---------------------------------------------------------------------------
+# T2.3 — Monte Carlo runner + aggregation
+# ---------------------------------------------------------------------------
+# The toy skill table gives "Alice Ace" the biggest serve/return edge and
+# "Hank Half" the smallest, so with the point model in charge (w=0.0, i.e. the
+# classifier is blended out) the field has a real, ordered strength gradient.
+POINT_MODEL_ONLY = {"mode": "blend", "w": 0.0}
+
+
+def test_monte_carlo_strongest_player_has_the_highest_title_probability(
+    draw, skill_table, classifier
+):
+    """Toy 8-draw: the strongest entrant tops the board and probabilities sum to 1."""
+    mc = monte_carlo(
+        draw, skill_table, classifier, n_runs=400, seed=1, **POINT_MODEL_ONLY
+    )
+
+    assert mc.players[0].player == "Alice Ace"  # sorted by title probability
+    assert mc.players[0].p_title > mc.by_position()[8].p_title  # vs the weakest
+    assert sum(p.p_title for p in mc.players) == pytest.approx(1.0)
+    assert sum(p.titles for p in mc.players) == 400  # exactly one champion a run
+
+    # Sorted descending, and every probability is a probability.
+    titles = [p.titles for p in mc.players]
+    assert titles == sorted(titles, reverse=True)
+    assert all(0.0 <= p.p_title <= 1.0 for p in mc.players)
+
+
+def test_monte_carlo_round_survival_is_internally_consistent(
+    draw, skill_table, classifier
+):
+    """Reach ⊇ reach-next-round ⊇ … ⊇ title, and each round's field is full."""
+    mc = monte_carlo(
+        draw, skill_table, classifier, n_runs=200, seed=2, **POINT_MODEL_ONLY
+    )
+
+    assert mc.round_labels == ("QF", "SF", "F")
+    for player in mc.players:
+        counts = [player.reached[label] for label in mc.round_labels]
+        assert counts == sorted(counts, reverse=True)  # monotonically narrowing
+        assert player.titles <= counts[-1]  # can't win a final you didn't play
+        # Rounds won = one per round survived beyond the first, plus the title.
+        assert player.matches_won == sum(counts[1:]) + player.titles
+        assert player.expected_rounds_won == player.matches_won / 200
+
+    # Every round is contested by exactly the right number of entrants.
+    for index, label in enumerate(mc.round_labels):
+        field_size = draw.draw_size // (2**index)
+        assert sum(p.reached[label] for p in mc.players) == 200 * field_size
+
+
+def test_monte_carlo_round_metrics_follow_the_draws_own_labels(
+    big_draw, big_skill_table, classifier
+):
+    """Round-survival keys come from the draw, not a hardcoded QF/SF/F triple.
+
+    An 8-draw's *first* round already is the QF; a 32-draw's is R32. The record
+    must carry a ``p_reach_<label>`` per round the draw actually has, with the
+    first-round probability trivially 1.0 (everyone plays it).
+    """
+    mc = monte_carlo(
+        big_draw, big_skill_table, classifier, n_runs=40, seed=3, **POINT_MODEL_ONLY
+    )
+
+    assert mc.round_labels == ("R32", "R16", "QF", "SF", "F")
+    record = mc.to_records()[0]
+    assert [key for key in record if key.startswith("p_reach_")] == [
+        "p_reach_R32", "p_reach_R16", "p_reach_QF", "p_reach_SF", "p_reach_F"
+    ]
+    assert all(p.p_reach("R32") == 1.0 for p in mc.players)
+    assert record["p_reach_R32"] == 1.0
+    # A label this draw does not have answers 0.0 rather than raising.
+    assert mc.players[0].p_reach("R64") == 0.0
+    # Expected rounds won averages to (draw_size - 1) matches shared out.
+    assert sum(p.expected_rounds_won for p in mc.players) == pytest.approx(
+        BIG_DRAW_SIZE - 1
+    )
+
+
+def test_monte_carlo_records_are_tidy_and_sorted(draw, skill_table, classifier):
+    mc = monte_carlo(
+        draw, skill_table, classifier, n_runs=50, seed=4, **POINT_MODEL_ONLY
+    )
+
+    records = mc.to_records()
+    assert len(records) == draw.draw_size
+    assert [r["p_title"] for r in records] == sorted(
+        (r["p_title"] for r in records), reverse=True
+    )
+    alice = next(r for r in records if r["player"] == "Alice Ace")
+    assert alice["seed"] == 1 and alice["player_id"] == "A1"
+    assert alice["position"] == 1 and alice["n_runs"] == 50
+
+
+def test_monte_carlo_is_reproducible_exactly(draw, skill_table):
+    """Same base seed → identical counts, not merely similar probabilities."""
+    def run(seed):
+        return monte_carlo(
+            draw, skill_table, CountingClassifier(), n_runs=120, seed=seed,
+            **POINT_MODEL_ONLY,
+        )
+
+    first, second = run(2026), run(2026)
+    assert first.players == second.players  # frozen dataclasses of ints
+    assert first == second
+
+    assert run(2027).players != first.players  # the seed really is driving it
+
+
+def test_monte_carlo_seeds_each_run_from_its_own_spawned_child(draw, skill_table):
+    """Run *i* is driven by ``SeedSequence(seed).spawn(n_runs)[i]`` specifically.
+
+    ``test_monte_carlo_is_reproducible_exactly`` cannot establish this on its
+    own: one base seed reused for *every* run also replays exactly, so it looks
+    identical under a same-seed comparison. Its ``run(2027) != run(2026)`` line
+    does catch a collapsed-seed job, but only by accident: it fires when the two
+    arbitrary base seeds happen to produce the *same* whole bracket, and an audit
+    that swept 20 alternative comparison seeds measured that at **2/20**. Swap
+    ``2027`` for ``2029`` and a shared-seed regression ships green.
+    Reconstructing the spawn by hand and demanding the counts match is
+    unconditional — the same sweep catches it 20/20.
+    """
+    n_runs, seed = 12, 4242
+    mc = monte_carlo(
+        draw, skill_table, CountingClassifier(), n_runs=n_runs, seed=seed,
+        **POINT_MODEL_ONLY,
+    )
+
+    titles = [0] * draw.draw_size
+    for child in np.random.SeedSequence(seed).spawn(n_runs):
+        result = simulate_bracket(
+            draw, skill_table, CountingClassifier(), np.random.default_rng(child),
+            outcome_only=True, **POINT_MODEL_ONLY,
+        )
+        titles[result.champion.position - 1] += 1
+
+    by_position = sorted(mc.players, key=lambda outcome: outcome.position)
+    assert [outcome.titles for outcome in by_position] == titles
+    # Backstop that holds for any base seed: runs sharing one seed would put
+    # every title on a single entrant, so a spread proves they were distinct.
+    assert sum(1 for count in titles if count) > 1
+
+
+def test_monte_carlo_always_passes_outcome_only_true(
+    draw, skill_table, classifier, monkeypatch
+):
+    """Structural half of the criterion: every call carries outcome_only=True."""
+    import sim.tournament as tournament
+
+    seen = []
+    real = tournament.simulate_bracket
+
+    def spy(*args, **kwargs):
+        seen.append(kwargs.get("outcome_only"))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(tournament, "simulate_bracket", spy)
+    monte_carlo(draw, skill_table, classifier, n_runs=25, seed=5, **POINT_MODEL_ONLY)
+
+    assert len(seen) == 25
+    assert set(seen) == {True}
+
+
+def test_monte_carlo_never_simulates_a_point(
+    draw, skill_table, classifier, monkeypatch
+):
+    """Behavioural half: the same raising traps T2.2 used, over a whole MC job.
+
+    ``POINT_SIM_TRAPS`` is already proved to be a live interception point by
+    ``test_each_trap_fires_in_storybook_mode``, so a clean run here means the
+    point-by-point engine really was never entered — across every one of the
+    runs, not just the first.
+    """
+    for module, name in POINT_SIM_TRAPS:
+        monkeypatch.setattr(module, name, _trap(name))
+    monkeypatch.setattr(
+        reconcile, "match_win_prob_point_mc", _trap("match_win_prob_point_mc")
+    )
+
+    mc = monte_carlo(
+        draw, skill_table, classifier, n_runs=30, seed=6, **POINT_MODEL_ONLY
+    )
+
+    assert mc.n_runs == 30
+    assert sum(p.titles for p in mc.players) == 30
+
+
+def test_monte_carlo_shares_one_prob_cache_across_every_run(draw, skill_table):
+    """One cache for the whole single-threaded job — not one per bracket.
+
+    The stub classifier is uncached, so its call log is a direct read-out of how
+    many distinct matchups the job had to solve. Uncached, 200 runs × 7 matches
+    would be 1,400 calls; with a job-wide cache each of the ≤28 matchups an
+    8-draw admits is asked exactly once.
+    """
+    classifier = CountingClassifier()
+
+    monte_carlo(
+        draw, skill_table, classifier, n_runs=200, seed=7, **POINT_MODEL_ONLY
+    )
+
+    assert len(classifier.calls) == len(set(classifier.calls))  # never re-asked
+    assert len(classifier.calls) <= 28
+    assert len(classifier.calls) < 200 * 7
+
+
+def test_each_worker_chunk_builds_its_own_prob_cache(draw, skill_table):
+    """Multi-worker mode must give each worker a *fresh* cache, not a shared one.
+
+    Run the worker body twice in-process over the same seeds with one shared
+    classifier stub. If the cache were hoisted out of ``_run_chunk`` (a
+    module-level dict, say), the second invocation would ask the classifier
+    nothing. It asks for exactly the same matchups again, which is what "each
+    worker starts cold" means — and is why the parallel speedup is sub-linear.
+    """
+    classifier = CountingClassifier()
+    seeds = np.random.SeedSequence(8).spawn(20)
+    payload = (draw, skill_table, classifier, seeds, "blend", 0.0)
+
+    first_counts = _run_chunk(payload)
+    after_first = len(classifier.calls)
+    second_counts = _run_chunk(payload)
+
+    assert after_first > 0
+    assert len(classifier.calls) == 2 * after_first
+    assert classifier.calls[:after_first] == classifier.calls[after_first:]
+    # Same seeds → same counts, so the cold cache changed nothing but timing.
+    assert first_counts == second_counts
+
+
+def test_monte_carlo_multiprocessing_matches_single_threaded_exactly(
+    draw, skill_table
+):
+    """workers>1 is a pure speed knob: identical counts, not approximate ones."""
+    single = monte_carlo(
+        draw, skill_table, CountingClassifier(), n_runs=64, seed=9, workers=1,
+        **POINT_MODEL_ONLY,
+    )
+    parallel = monte_carlo(
+        draw, skill_table, CountingClassifier(), n_runs=64, seed=9, workers=3,
+        **POINT_MODEL_ONLY,
+    )
+
+    assert parallel.players == single.players
+    assert parallel.workers == 3 and single.workers == 1  # provenance only
+
+
+def test_monte_carlo_rejects_an_unpicklable_classifier_for_workers(draw, skill_table):
+    """The realistic failure — the CLI's adapter is a closure — named up front."""
+    def closure_classifier(a, b, surface):  # not picklable
+        return 0.55
+
+    with pytest.raises(ValueError, match="picklable classifier"):
+        monte_carlo(draw, skill_table, closure_classifier, n_runs=4, seed=1, workers=2)
+
+
+def test_monte_carlo_rejects_placeholders_before_spawning_anything(
+    skill_table, classifier
+):
+    data = toy_draw_dict()
+    data["bracket"][3]["player"] = "Qualifier"
+    data["seeds"] = {"Alice Ace": 1}
+    placeholder_draw = parse_draw(data, skill_table)
+
+    with pytest.raises(ValueError, match="placeholder entrant"):
+        monte_carlo(placeholder_draw, skill_table, classifier, n_runs=5, seed=1)
+    assert classifier.calls == []
+
+
+@pytest.mark.parametrize(("n_runs", "workers"), [(0, 1), (-1, 1), (5, 0), (5, -2)])
+def test_monte_carlo_validates_its_counts(draw, skill_table, classifier, n_runs, workers):
+    with pytest.raises(ValueError):
+        monte_carlo(draw, skill_table, classifier, n_runs=n_runs, workers=workers)
+
+
+def test_monte_carlo_defaults_to_the_system_reconciliation_mode(
+    draw, skill_table, classifier
+):
+    """T2.3 decision: ``mode`` is a pass-through, with no opinion baked in here.
+
+    The core must not inherit ``config.SIM_CLI_RECONCILE_MODE``, which is a
+    CLI-scoped mitigation for one degraded adapter (seam 7), so the default has
+    to agree with ``simulate_bracket``'s.
+    """
+    mc = monte_carlo(draw, skill_table, classifier, n_runs=5, seed=1)
+
+    assert mc.mode == config.RECONCILE_MODE
+    assert mc.w == config.RECONCILE_BLEND_WEIGHT
 
 
 # ---------------------------------------------------------------------------

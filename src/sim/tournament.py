@@ -1,4 +1,4 @@
-"""Single bracket simulation (T2.2).
+"""Single bracket simulation (T2.2) and the Monte Carlo runner over it (T2.3).
 
 Plays one full tournament: pair the current round's entrants, simulate every
 match, advance the winners, repeat until one player is left. The entry point is
@@ -96,6 +96,18 @@ should pick its reconciliation ``mode`` with that in mind (T1.10 defaults to
 ``"blend"`` for exactly this reason) or build an adapter with real engineered
 rows. Nothing here fixes it; it is inherited, not resolved.
 
+**Monte Carlo (T2.3).** :func:`monte_carlo` runs :func:`simulate_bracket` many
+times — always with ``outcome_only=True``, never a scoreline — and aggregates
+per-entrant title and round-survival probabilities into a
+:class:`MonteCarloResult`. Three properties are load-bearing and are described
+in full on :func:`monte_carlo` itself: exactly one ``prob_cache`` spans a whole
+single-threaded job (and one *fresh* cache lives inside each worker process when
+``workers > 1``); every run's RNG is spawned from one
+``np.random.SeedSequence(seed)``, so the aggregate is bit-identical however the
+runs are split across workers; and the reconciliation ``mode`` is a pass-through
+parameter, because this module does not build the classifier and therefore does
+not own the choice (see the classifier caveat below).
+
 Like every other ``sim/`` module this one never imports from ``cli/``: its
 project imports are ``config``, ``features.serve`` (typing), ``sim.draw``,
 ``sim.match`` (result types only) and ``sim.reconcile``.
@@ -103,7 +115,9 @@ project imports are ``config``, ``features.serve`` (typing), ``sim.draw``,
 
 from __future__ import annotations
 
-from collections.abc import MutableMapping
+import pickle
+from collections.abc import Mapping, MutableMapping, Sequence
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -592,4 +606,410 @@ def simulate_bracket(
         rounds=tuple(rounds),
         champion=survivors[0],
         outcome_only=outcome_only,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Monte Carlo aggregation (T2.3).
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class PlayerOutcome:
+    """One entrant's aggregated Monte Carlo record.
+
+    Counts are stored, not probabilities: integers make two runs comparable for
+    *exact* equality (the T2.3 reproducibility and single-vs-multi-worker
+    criteria), and the probabilities are one division away.
+
+    Attributes:
+        position: The entrant's 1-based bracket slot.
+        player, player_id, seed: Copied from the :class:`~sim.draw.DrawSlot` and
+            the draw's seed list (``seed`` is ``None`` for an unseeded entrant).
+        n_runs: Simulations behind these counts.
+        titles: Runs this entrant won.
+        reached: Round label → number of runs in which the entrant *contested*
+            that round. Keys are the draw's own labels (see
+            :func:`round_labels`), so an 8-draw carries ``QF/SF/F`` and a
+            128-draw ``R128 … F`` — nothing assumes a particular draw size.
+        matches_won: Total matches won across every run; ``/ n_runs`` gives the
+            expected number of rounds won.
+    """
+
+    position: int
+    player: str
+    player_id: str | None
+    seed: int | None
+    n_runs: int
+    titles: int
+    reached: Mapping[str, int]
+    matches_won: int
+
+    @property
+    def p_title(self) -> float:
+        """P(this entrant wins the tournament)."""
+        return self.titles / self.n_runs
+
+    @property
+    def expected_rounds_won(self) -> float:
+        """Mean number of matches won — 0 for a first-round exit every time."""
+        return self.matches_won / self.n_runs
+
+    def p_reach(self, label: str) -> float:
+        """P(this entrant reaches — i.e. plays in — the round called ``label``).
+
+        Unknown labels give ``0.0`` rather than raising, so a caller can ask for
+        ``"QF"`` of a draw too small to have one.
+        """
+        return self.reached.get(label, 0) / self.n_runs
+
+    def to_record(self) -> dict:
+        """A flat, tidy dict — one row of the output table.
+
+        Carries a ``p_reach_<label>`` key per round the draw actually has, so
+        the record's shape follows the draw rather than a hardcoded QF/SF/F.
+        """
+        record = {
+            "position": self.position,
+            "player": self.player,
+            "player_id": self.player_id,
+            "seed": self.seed,
+            "n_runs": self.n_runs,
+            "titles": self.titles,
+            "p_title": self.p_title,
+            "expected_rounds_won": self.expected_rounds_won,
+        }
+        record.update(
+            {f"p_reach_{label}": count / self.n_runs
+             for label, count in self.reached.items()}
+        )
+        return record
+
+
+@dataclass(frozen=True)
+class MonteCarloResult:
+    """The aggregate of a whole Monte Carlo job.
+
+    Self-describing in the same way :class:`BracketResult` is — the draw's
+    identity and format, plus every knob that could change the numbers (runs,
+    seed, reconciliation mode/weight) — so a stored result can be reproduced
+    from what it carries. ``workers`` is recorded for provenance only: it
+    provably does not affect the counts (see :func:`monte_carlo`).
+
+    Attributes:
+        tournament_id, name, surface, best_of, final_set_tiebreak, draw_size:
+            Copied from the :class:`~sim.draw.Draw`.
+        n_runs, seed, workers, mode, w: The job's parameters.
+        round_labels: The draw's round labels, first round first.
+        players: Every entrant's :class:`PlayerOutcome`, **sorted by title
+            probability descending** (ties broken by bracket position, so the
+            order is deterministic).
+    """
+
+    tournament_id: str
+    name: str
+    surface: str
+    best_of: int
+    final_set_tiebreak: str
+    draw_size: int
+    n_runs: int
+    seed: int
+    workers: int
+    mode: str
+    w: float
+    round_labels: tuple[str, ...]
+    players: tuple[PlayerOutcome, ...]
+
+    def to_records(self) -> list[dict]:
+        """The tidy output: one dict per entrant, title probability descending.
+
+        Ready to hand to a CLI table or ``pandas.DataFrame(...)`` — this module
+        stays pandas-free on purpose (it is on the hot path).
+        """
+        return [player.to_record() for player in self.players]
+
+    def by_position(self) -> dict[int, PlayerOutcome]:
+        """The same outcomes keyed by bracket position."""
+        return {player.position: player for player in self.players}
+
+    @property
+    def champion_probabilities(self) -> dict[str, float]:
+        """Entrant name → P(title), in the same sorted order."""
+        return {player.player: player.p_title for player in self.players}
+
+
+# One chunk of a Monte Carlo job: the counts three parallel accumulators build.
+# Plain lists of ints rather than arrays — the inner loop does ~2·(N−1) scalar
+# increments per run, where a Python list beats numpy element assignment.
+_ChunkCounts = tuple[list[int], list[list[int]], list[int]]
+
+
+def _accumulate(
+    result: BracketResult,
+    titles: list[int],
+    reached: list[list[int]],
+    matches_won: list[int],
+) -> None:
+    """Fold one bracket's outcome into the running counts (in place).
+
+    ``reached[r][p]`` counts entrant at position ``p + 1`` contesting round
+    ``r``; every player in a match reached that round, and the winner banks a
+    match won.
+    """
+    for bracket_round in result.rounds:
+        row = reached[bracket_round.index]
+        for bracket_match in bracket_round.matches:
+            row[bracket_match.slot_a.position - 1] += 1
+            row[bracket_match.slot_b.position - 1] += 1
+            matches_won[bracket_match.winner.position - 1] += 1
+    titles[result.champion.position - 1] += 1
+
+
+def _run_chunk(payload: tuple) -> _ChunkCounts:
+    """Simulate one contiguous chunk of runs and return its counts.
+
+    Module-level (not a closure) and single-argument so it can be the target of
+    a :class:`~concurrent.futures.ProcessPoolExecutor` ``map``.
+
+    **This is where the cache lives, and the reason it is here.** ``prob_cache``
+    is created once per *chunk*:
+
+    * ``workers = 1`` → exactly one chunk → **one dict for the entire job**,
+      which is :func:`simulate_bracket`'s documented contract (a per-bracket
+      dict would cache nothing, since a bracket meets each matchup once).
+    * ``workers > 1`` → one chunk per worker process → each worker builds its
+      **own** cache, in its own address space. No attempt is made to share one
+      across processes: a plain dict cannot be, and the alternatives (a manager
+      proxy) cost more per lookup than the δ solve they would save.
+    """
+    draw, skill_table, classifier, seed_seqs, mode, w = payload
+
+    n_slots = draw.draw_size
+    n_rounds = len(round_labels(n_slots))
+    titles = [0] * n_slots
+    reached = [[0] * n_slots for _ in range(n_rounds)]
+    matches_won = [0] * n_slots
+
+    prob_cache: dict[tuple, float] = {}
+    for seed_seq in seed_seqs:
+        result = simulate_bracket(
+            draw,
+            skill_table,
+            classifier,
+            np.random.default_rng(seed_seq),
+            outcome_only=True,  # T2.3: never a scoreline, at any run count.
+            mode=mode,
+            w=w,
+            prob_cache=prob_cache,
+        )
+        _accumulate(result, titles, reached, matches_won)
+    return titles, reached, matches_won
+
+
+def _split_evenly(items: Sequence, parts: int) -> list[Sequence]:
+    """Split ``items`` into at most ``parts`` contiguous, near-equal chunks.
+
+    Contiguity is cosmetic — each run carries its own spawned seed, so the split
+    cannot change any result — but it keeps a worker's slice easy to reason
+    about. Empty chunks are dropped, so ``parts > len(items)`` simply yields
+    fewer chunks.
+    """
+    n = len(items)
+    parts = max(1, min(parts, n))
+    size, remainder = divmod(n, parts)
+    chunks: list[Sequence] = []
+    start = 0
+    for index in range(parts):
+        stop = start + size + (1 if index < remainder else 0)
+        if stop > start:
+            chunks.append(items[start:stop])
+        start = stop
+    return chunks
+
+
+def _require_picklable(classifier: ClassifierProb) -> None:
+    """Fail early and legibly if the classifier cannot cross a process boundary.
+
+    ``workers > 1`` sends the adapter to each worker by pickle. The obvious
+    adapter shape — a closure over the estimator and the pipeline's histories,
+    which is exactly what ``cli/simulate_match.make_classifier_prob`` returns —
+    is *not* picklable, and the raw ``PicklingError`` from deep inside the pool
+    says nothing useful about how to fix it.
+
+    **This is a scope boundary, not an inherent limitation.** Nothing about a
+    classifier adapter *requires* a closure: wrapping the same estimator and
+    histories in a module-level class with a ``__call__`` makes it picklable and
+    the multi-worker path works unchanged. T2.3's ticket scopes its diff to this
+    module and ``config.py``, so rewriting ``cli/simulate_match.py`` was out of
+    bounds; building that adapter belongs to **T2.5** (the tournament CLI, the
+    first caller likely to want ``--workers``). Until then this check turns the
+    gap into a fast, legible refusal rather than a crash inside a worker.
+    """
+    try:
+        pickle.dumps(classifier)
+    except Exception as exc:
+        raise ValueError(
+            "workers > 1 requires a picklable classifier adapter, and this one "
+            f"is not ({type(exc).__name__}: {exc}). A closure (e.g. the callable "
+            "returned by cli/simulate_match.make_classifier_prob) cannot cross a "
+            "process boundary — wrap the estimator in a module-level class with "
+            "a __call__, or run with workers=1."
+        ) from exc
+
+
+def monte_carlo(
+    draw: Draw,
+    skill_table: "SkillTable",
+    classifier: ClassifierProb,
+    n_runs: int = config.MC_RUNS,
+    seed: int = config.MC_SEED,
+    workers: int = 1,
+    mode: str = config.RECONCILE_MODE,
+    w: float = config.RECONCILE_BLEND_WEIGHT,
+) -> MonteCarloResult:
+    """Run the bracket ``n_runs`` times and aggregate per-entrant probabilities.
+
+    Every run goes through ``simulate_bracket(..., outcome_only=True)`` — one
+    Bernoulli draw per match against the reconciled analytic probability. No run
+    generates a scoreline: at 128 × 5,000 that would be 635,000 point-by-point
+    matches for information nothing downstream reads. Storybook scorelines are a
+    separate, single-run mode (T2.4).
+
+    Args:
+        draw: A validated, placeholder-free :class:`~sim.draw.Draw`.
+        skill_table: The id-keyed T1.1 skill table.
+        classifier: The injected ``(a, b, surface) -> P_clf`` adapter, built
+            **once** by the caller (this module never constructs one). With
+            ``workers > 1`` it must also be picklable — see below.
+        n_runs: Number of bracket simulations (default ``config.MC_RUNS``).
+        seed: Base seed; every run's RNG is spawned from it.
+        workers: ``1`` (default) runs in this process. ``> 1`` splits the runs
+            across that many processes.
+        mode: Reconciliation mode — **a pass-through, defaulting to
+            ``config.RECONCILE_MODE``**. See the note below before accepting it.
+        w: Blend weight on ``P_clf`` in ``"blend"`` mode.
+
+    Returns:
+        A :class:`MonteCarloResult` whose ``players`` are sorted by title
+        probability, descending.
+
+    Raises:
+        ValueError: If ``n_runs``/``workers`` is below 1, the draw contains
+            placeholder entrants (rejected up front, before any process is
+            spawned), or ``workers > 1`` with an unpicklable classifier.
+
+    **Seeding — reproducible, and independent of ``workers``.**
+    ``np.random.SeedSequence(seed).spawn(n_runs)`` gives run *i* its own child
+    sequence, so run *i* is the same simulation whichever worker executes it.
+    The aggregate is a sum of integer counts, which is associative and
+    commutative, so splitting the runs cannot perturb it: ``workers=4`` returns
+    counts *identical* to ``workers=1``, not merely close.
+
+    **The ``prob_cache``, and where it lives.** :func:`simulate_bracket`'s
+    contract is that one cache must span the whole job, because the δ bisection
+    (~3.2 ms) dominates and a 128-draw admits at most 8,128 distinct matchups
+    against ~635,000 evaluations. That dict is created inside
+    :func:`_run_chunk`, once per chunk: single-threaded there is exactly one
+    chunk and therefore exactly one dict for all ``n_runs``; with
+    ``workers > 1`` each worker process gets its own fresh dict and no attempt
+    is made to share one across processes. The trade is deliberate — W workers
+    each pay their own cache-fill, so the speedup is sub-linear, but wall-clock
+    still improves once ``n_runs`` per worker is well past the fill. Measured on
+    the 128 × 5,000 job: a quarter-size chunk still visits 2,397 of the 3,452
+    distinct matchups the whole job visits (69%, not 25%), which is why four
+    workers buy far less than 4×.
+
+    **``workers > 1`` needs a picklable classifier, and — on macOS — a
+    ``__main__`` guard.** The adapter is sent to each worker by pickle;
+    :func:`_require_picklable` refuses up front and explains the fix if it
+    cannot be. Separately, ``ProcessPoolExecutor``'s default start method is
+    *spawn* on macOS (and Windows), so each worker re-imports the parent's
+    ``__main__`` module: **any script or CLI that calls this with
+    ``workers > 1`` must guard its entry point with
+    ``if __name__ == "__main__":``**, or the re-import will re-run the job in
+    every child. Flagged here for T2.5, which is the first caller likely to
+    expose a ``--workers`` flag.
+
+    **Reconciliation mode is the caller's decision, not this function's (T2.3
+    decision).** ``mode`` defaults to ``config.RECONCILE_MODE``
+    (``"classifier_anchor"``), the same default :func:`simulate_bracket` uses,
+    and this function deliberately does **not** substitute a "safer" one of its
+    own. ``ace-04-current-state.md §7`` seam 7 records that the only adapter
+    built so far (``cli/simulate_match.make_classifier_prob``) emits a
+    form-blind ``P_clf`` flattened toward 0.5, and that
+    ``config.SIM_CLI_RECONCILE_MODE = "blend"`` is a **CLI-scoped mitigation for
+    that one adapter, explicitly not a project-wide recommendation**. The defect
+    belongs to the adapter, not to the reconciliation default: a caller feeding
+    real engineered feature rows should get ``"classifier_anchor"``, and a
+    caller reusing the flattened CLI adapter should pass ``mode="blend"`` (and
+    say so in whatever it publishes). Baking the workaround in here would push
+    a degraded adapter's problem into the core and silently change the model for
+    callers that do not have it.
+    """
+    if n_runs < 1:
+        raise ValueError(f"n_runs must be >= 1, got {n_runs!r}")
+    if workers < 1:
+        raise ValueError(f"workers must be >= 1, got {workers!r}")
+    # Refuse an unsimulatable draw here rather than inside every worker.
+    _reject_placeholders(draw)
+
+    labels = round_labels(draw.draw_size)
+    seed_seqs = np.random.SeedSequence(seed).spawn(n_runs)
+    chunks = _split_evenly(seed_seqs, workers)
+
+    if len(chunks) == 1:
+        counts = [_run_chunk((draw, skill_table, classifier, chunks[0], mode, w))]
+    else:
+        _require_picklable(classifier)
+        payloads = [
+            (draw, skill_table, classifier, chunk, mode, w) for chunk in chunks
+        ]
+        with ProcessPoolExecutor(max_workers=len(chunks)) as pool:
+            counts = list(pool.map(_run_chunk, payloads))
+
+    n_slots = draw.draw_size
+    titles = [0] * n_slots
+    reached = [[0] * n_slots for _ in labels]
+    matches_won = [0] * n_slots
+    for chunk_titles, chunk_reached, chunk_matches_won in counts:
+        for position in range(n_slots):
+            titles[position] += chunk_titles[position]
+            matches_won[position] += chunk_matches_won[position]
+        for round_index, row in enumerate(chunk_reached):
+            target = reached[round_index]
+            for position in range(n_slots):
+                target[position] += row[position]
+
+    players = [
+        PlayerOutcome(
+            position=slot.position,
+            player=slot.player,
+            player_id=slot.player_id,
+            seed=draw.seed_of(slot),
+            n_runs=n_runs,
+            titles=titles[slot.position - 1],
+            reached={
+                label: reached[round_index][slot.position - 1]
+                for round_index, label in enumerate(labels)
+            },
+            matches_won=matches_won[slot.position - 1],
+        )
+        for slot in draw.bracket
+    ]
+    players.sort(key=lambda outcome: (-outcome.titles, outcome.position))
+
+    return MonteCarloResult(
+        tournament_id=draw.tournament_id,
+        name=draw.name,
+        surface=draw.surface,
+        best_of=draw.best_of,
+        final_set_tiebreak=draw.final_set_tiebreak,
+        draw_size=draw.draw_size,
+        n_runs=n_runs,
+        seed=seed,
+        workers=workers,
+        mode=mode,
+        w=w,
+        round_labels=labels,
+        players=tuple(players),
     )
