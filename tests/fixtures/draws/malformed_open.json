@@ -1,0 +1,10 @@
+{
+  "note": "TEST FIXTURE (T3.2) — deliberately malformed JSON (trailing comma, unclosed object). load_draw folds the JSONDecodeError into a DrawValidationError; the registry keys this file by its filename stem because its tournament_id cannot be trusted.",
+  "tournament_id": "malformed_open_2026",
+  "name": "Malformed Open 2026",
+  "surface": "Grass",
+  "best_of": 3,
+  "final_set_tiebreak": "advantage",
+  "draw_size": 8,
+  "seeds": {,
+  "bracket": [

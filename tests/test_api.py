@@ -360,7 +360,12 @@ def test_every_route_declares_a_response_model():
 
     app = create_app(context_factory=lambda: None)
     routes = [r for r in app.routes if isinstance(r, APIRoute)]
-    assert {r.path for r in routes} == {"/health", "/players"}
+    assert {r.path for r in routes} == {
+        "/health",
+        "/players",
+        "/tournaments",
+        "/tournaments/{tournament_id}/bracket",
+    }
     for route in routes:
         assert route.response_model is not None, f"{route.path} has no response_model"
 
@@ -419,7 +424,9 @@ def test_cors_rejects_an_unconfigured_origin(client):
 # --------------------------------------------------------------------------- #
 # Layering
 # --------------------------------------------------------------------------- #
-@pytest.mark.parametrize("module", ["__init__", "deps", "schemas", "main"])
+@pytest.mark.parametrize(
+    "module", ["__init__", "deps", "schemas", "main", "registry"]
+)
 def test_api_modules_do_not_import_cli(module):
     """The api/ layering rule, asserted rather than assumed.
 

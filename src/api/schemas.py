@@ -1,4 +1,4 @@
-"""Pydantic response models for the API (T3.1).
+"""Pydantic response models for the API (T3.1, T3.2).
 
 Every endpoint returns one of these — no handler returns a raw dict. Three
 conventions established here for the rest of Phase 3 to follow:
@@ -92,4 +92,121 @@ class PlayerSearchResponse(BaseModel):
     players: list[PlayerSummary] = Field(
         default_factory=list,
         description="Matching players; empty when the query resolves to nothing.",
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Tournaments (T3.2)
+# --------------------------------------------------------------------------- #
+class TournamentSummary(BaseModel):
+    """One listable event: exactly the five fields the ticket specifies.
+
+    Every field is non-null, which is the point of keeping failed draw files in
+    a *separate* list (:class:`InvalidDraw`) rather than folding them in here
+    with nulled-out metadata: a client rendering the tournament picker never has
+    to null-check, and never has to filter out an event it cannot open.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    tournament_id: str = Field(
+        description="Lookup key for ``/tournaments/{id}/bracket``; the draw "
+        "file's own ``tournament_id``."
+    )
+    name: str = Field(description="Human-readable event name.")
+    surface: str = Field(description="``Hard``, ``Clay`` or ``Grass``.")
+    best_of: int = Field(description="Sets to win the match format over: 3 or 5.")
+    draw_size: int = Field(description="Number of slots in the bracket.")
+
+
+class InvalidDraw(BaseModel):
+    """A draw file in the directory that did not load.
+
+    Listed rather than silently skipped. Draw files are hand-entered, so a
+    typo is the expected failure; dropping the file from the listing would make
+    the event simply vanish, with the reason visible only in a server log. The
+    ``tournament_id`` here is the file's stem (a failed file has no trustworthy
+    id of its own) and it is addressable: fetching its bracket returns the same
+    ``problems`` with a 422.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    tournament_id: str = Field(
+        description="Id this file is addressable by — its filename stem, since "
+        "the draw's own ``tournament_id`` could not be trusted."
+    )
+    source: str = Field(description="Draw file basename, so the file can be fixed.")
+    problems: list[str] = Field(
+        description="Every problem the T2.1 validator found, in its own order — "
+        "the whole list, so a hand-entered draw is fixable in one pass."
+    )
+
+
+class TournamentListResponse(BaseModel):
+    """Everything in the draws directory, split by whether it loaded."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    count: int = Field(description="Number of **valid** tournaments returned.")
+    tournaments: list[TournamentSummary] = Field(
+        default_factory=list,
+        description="Valid, openable events, in draw-filename order.",
+    )
+    invalid: list[InvalidDraw] = Field(
+        default_factory=list,
+        description="Draw files that failed to load. Normally empty; a bad file "
+        "shows up here instead of breaking the listing.",
+    )
+
+
+class BracketSlot(BaseModel):
+    """One entrant position in a resolved bracket.
+
+    Mirrors :class:`sim.draw.DrawSlot` plus the slot's seed. Seeds are attached
+    **per slot** rather than repeated as a name → seed map: the validator
+    guarantees every seeded name is present in the bracket, so nothing is lost,
+    and a bracket renderer wants the seed next to the name it draws.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    position: int = Field(
+        description="1-based slot number. Slots ``2k-1`` and ``2k`` meet in round 1."
+    )
+    player: str = Field(
+        description="Entrant string exactly as written in the draw file."
+    )
+    is_placeholder: bool = Field(
+        description="True when the entrant names an unfilled slot (``Qualifier``, "
+        "``Bye``, …) rather than a person. Such a slot resolves to the "
+        "surface-baseline skill profile, but cannot be simulated (T2.2)."
+    )
+    player_id: str | None = Field(
+        description="Skill-table id — the canonical join key. ``None`` for "
+        "placeholders."
+    )
+    seed: int | None = Field(
+        default=None, description="Seed number, or ``None`` if unseeded."
+    )
+
+
+class BracketResponse(BaseModel):
+    """A resolved draw: its match format and every slot in position order."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tournament_id: str = Field(description="The draw's own id.")
+    name: str = Field(description="Human-readable event name.")
+    surface: str = Field(description="``Hard``, ``Clay`` or ``Grass``.")
+    best_of: int = Field(description="3 or 5.")
+    final_set_tiebreak: str = Field(
+        description="Deciding-set rule: ``7pt_at_6_6``, ``10pt_at_6_6`` or "
+        "``advantage``."
+    )
+    draw_size: int = Field(description="Number of slots; equals ``len(slots)``.")
+    slots: list[BracketSlot] = Field(
+        default_factory=list,
+        description="Every slot, ordered by ``position`` — placeholders "
+        "included and flagged, never dropped.",
     )

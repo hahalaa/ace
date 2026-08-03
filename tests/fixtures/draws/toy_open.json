@@ -1,0 +1,24 @@
+{
+  "note": "TEST FIXTURE (T3.2) — a valid 8-slot draw whose entrants are the toy skill table in tests/test_api_tournaments.py. Fully resolvable, no placeholders.",
+  "tournament_id": "toy_open_2026",
+  "name": "Toy Open 2026",
+  "surface": "Clay",
+  "best_of": 3,
+  "final_set_tiebreak": "7pt_at_6_6",
+  "draw_size": 8,
+  "seeds": {
+    "Alice Ace": 1,
+    "Bob Baseline": 2,
+    "Cara Chip": 3
+  },
+  "bracket": [
+    { "position": 1, "player": "Alice Ace" },
+    { "position": 2, "player": "Hank Half" },
+    { "position": 3, "player": "Cara Chip" },
+    { "position": 4, "player": "Dan Drop" },
+    { "position": 5, "player": "Eve Emphatic" },
+    { "position": 6, "player": "Frank Fault" },
+    { "position": 7, "player": "Gina Grip" },
+    { "position": 8, "player": "Bob Baseline" }
+  ]
+}
