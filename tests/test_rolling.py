@@ -97,5 +97,71 @@ class TestRollingFeatures(unittest.TestCase):
         # If it does, current-match data has leaked into the feature.
         self.assertNotEqual(match_1_row['p1_recent_games_won_avg_5'], 12)
 
+
+class TestRollingFormTable(unittest.TestCase):
+    """The as-of-now snapshot accessor (T3.5).
+
+    ``build_rolling_form_table`` exists so a caller outside the training pass —
+    the classifier adapter — can ask "what is player X's rolling form right
+    now". The property that makes it trustworthy is that it is not a second
+    implementation: it must equal what ``compute_rolling_features`` produces for
+    a match played immediately after the last row of the data.
+    """
+
+    def setUp(self):
+        TestRollingFeatures.setUp(self)
+
+    def _appended_match_row(self, player: str) -> pd.Series:
+        """Pipeline features for a hypothetical next match with ``player`` as p1."""
+        extra = self.df.iloc[[0]].copy()
+        extra['tourney_date'] = self.df['tourney_date'].max() + pd.Timedelta(days=1)
+        extra['p1_name'] = player
+        extra['p2_name'] = 'Newcomer'
+        extended = pd.concat([self.df, extra], ignore_index=True)
+        return rolling.compute_rolling_features(extended).iloc[-1]
+
+    def test_snapshot_equals_what_the_pipeline_would_compute_next(self):
+        """The accessor reproduces the training pass, one row past the end."""
+        table = rolling.build_rolling_form_table(self.df)
+        snapshot = table.latest('A')
+        expected = self._appended_match_row('A')
+
+        for column in rolling.rolling_feature_names():
+            self.assertAlmostEqual(snapshot[column], expected[f'p1_{column}'], msg=column)
+
+    def test_snapshot_covers_every_window_and_metric(self):
+        table = rolling.build_rolling_form_table(self.df)
+        self.assertEqual(
+            sorted(table.latest('A')), sorted(rolling.rolling_feature_names())
+        )
+        # 5 metrics x 2 windows — the 20 features (10 per player) MODEL_FEATURES needs.
+        self.assertEqual(len(rolling.rolling_feature_names()), 10)
+
+    def test_snapshot_uses_only_the_last_window_matches(self):
+        """Player A played 6 matches; the 5-window must drop the oldest."""
+        table = rolling.build_rolling_form_table(self.df)
+        # A's results in order: W L L W W L -> last 5 = L L W W L = 2/5.
+        self.assertAlmostEqual(table.latest('A')['recent_win_rate_5'], 0.4)
+        # All six fall inside the 10-window: 3/6.
+        self.assertAlmostEqual(table.latest('A')['recent_win_rate_10'], 0.5)
+
+    def test_unknown_player_raises_rather_than_defaulting(self):
+        """A silent neutral default here is the seam-7 defect in miniature."""
+        table = rolling.build_rolling_form_table(self.df)
+        self.assertNotIn('Nobody', table)
+        with self.assertRaises(KeyError):
+            table.latest('Nobody')
+
+    def test_both_entry_points_read_the_same_player_frame(self):
+        """No second stacking/sorting implementation to drift from."""
+        frame = rolling.build_player_match_frame(self.df)
+        self.assertEqual(len(frame), 2 * len(self.df))
+        self.assertEqual(
+            list(frame.columns[:2]), ['date', 'player']
+        )
+        a_rows = frame[frame['player'] == 'A']
+        self.assertTrue(a_rows['date'].is_monotonic_increasing)
+
+
 if __name__ == '__main__':
     unittest.main()

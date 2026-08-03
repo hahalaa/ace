@@ -19,6 +19,7 @@ and warned about, and config.RECONCILE_MODE is left alone.
 
 from __future__ import annotations
 
+import dataclasses
 import importlib
 import inspect
 import sys
@@ -30,6 +31,7 @@ import pytest
 import cli.interactive as interactive
 import cli.simulate_match as SM
 import config
+from common.classifier_adapter import MatchupFeatures
 from common.names import NameIndex
 from features.serve import PlayerSkill, SkillTable
 from sim.match import MatchResult, SetResult
@@ -53,7 +55,17 @@ def make_skill_table() -> SkillTable:
 
 
 def make_data() -> pd.DataFrame:
-    """A two-row engineered-frame stand-in: enough for get_latest to work."""
+    """A two-row engineered-frame stand-in.
+
+    Enough for ``get_latest`` (rank/age) *and*, since T3.5, for the adapter's
+    as-of-now rolling-form snapshot — hence the outcome/games/sets columns, which
+    are what ``features.rolling`` averages. A frame without them is not an
+    engineered frame, and the adapter now says so instead of quietly filling the
+    20 recent-form features with constants.
+
+    Player A won the later match 2-0 (12 games to 8) and lost the earlier one
+    1-2 (16 games to 20), so A's rolling form is decidedly not neutral.
+    """
     return pd.DataFrame(
         {
             "p1_name": ["Player A", "Player A"],
@@ -63,6 +75,15 @@ def make_data() -> pd.DataFrame:
             "p1_age": [22.0, 21.5],
             "p2_age": [24.0, 23.5],
             "tourney_date": pd.to_datetime(["2025-01-01", "2024-01-01"]),
+            "target": [1, 0],
+            "p1_games_won": [12, 16],
+            "p1_games_lost": [8, 20],
+            "p1_sets_won": [2, 1],
+            "p1_sets_lost": [0, 2],
+            "p2_games_won": [8, 20],
+            "p2_games_lost": [12, 16],
+            "p2_sets_won": [0, 2],
+            "p2_sets_lost": [2, 1],
         }
     )
 
@@ -146,8 +167,17 @@ def test_unresolvable_name_raises_from_the_sim_layer():
 # --------------------------------------------------------------------------- #
 # The ClassifierProb adapter.
 # --------------------------------------------------------------------------- #
-def test_adapter_builds_the_repl_feature_row_and_calls_predict_proba():
-    """The adapter's row matches interactive.build_feature_row exactly."""
+def test_adapter_builds_a_fully_real_feature_row_and_calls_predict_proba():
+    """All 27 features are real state — the T3.5 fix, from the CLI's side.
+
+    Before T3.5 this test asserted the row was byte-identical to
+    ``interactive.build_feature_row``'s, i.e. that 20 of the 27 features were
+    synthetic constants (``ace-04-current-state.md §7`` seam 7). The CLI now
+    shares ``common.classifier_adapter`` with the API, so it gets the real
+    rolling-form values too; what is pinned here is that the 7 history-derived
+    features are unchanged from T1.10 **and** that the other 20 are no longer
+    constants.
+    """
     data = make_data()
     surf_hist, h2h_hist = HISTORIES
     estimator = StubEstimator(0.64)
@@ -158,17 +188,32 @@ def test_adapter_builds_the_repl_feature_row_and_calls_predict_proba():
     assert len(estimator.rows) == 1
 
     row = estimator.rows[0]
-    expected = interactive.build_feature_row(
-        1.0,        # A's latest rank (2025 row)
-        3.0,        # B's latest rank
-        22.0,       # A's latest age
-        24.0,       # B's latest age
-        8 / 10,     # A's Hard record from surface_history
-        5 / 10,     # B's Hard record
-        2,          # h2h_diff: A leads 3-1
-    )
     assert list(row.columns) == config.MODEL_FEATURES
-    pd.testing.assert_frame_equal(row, expected)
+    assert not row.isna().any().any()
+
+    # The seven T1.10 already built correctly, unchanged.
+    assert row["p1_rank"].iloc[0] == 1.0          # A's latest rank (2025 row)
+    assert row["p2_rank"].iloc[0] == 3.0
+    assert row["p1_age"].iloc[0] == 22.0
+    assert row["p2_age"].iloc[0] == 24.0
+    assert row["p1_surface_win_pct"].iloc[0] == pytest.approx(0.8)
+    assert row["p2_surface_win_pct"].iloc[0] == pytest.approx(0.5)
+    assert row["h2h_diff"].iloc[0] == 2           # A leads 3-1
+
+    # The twenty that used to be synthetic: A won one of two, B the other, and
+    # the games/sets averages are the fixture's actual numbers.
+    assert row["p1_recent_win_rate_5"].iloc[0] == pytest.approx(0.5)
+    assert row["p1_recent_games_won_avg_5"].iloc[0] == pytest.approx(14.0)
+    assert row["p1_recent_games_lost_avg_5"].iloc[0] == pytest.approx(14.0)
+    assert row["p1_recent_sets_won_avg_5"].iloc[0] == pytest.approx(1.5)
+    assert row["p2_recent_games_won_avg_5"].iloc[0] == pytest.approx(14.0)
+    assert row["p2_recent_sets_won_avg_5"].iloc[0] == pytest.approx(1.0)
+
+    # And they are *not* the constants the old row carried (0 for every
+    # games/sets average) — the mutation this test exists to catch.
+    old_row = interactive.build_feature_row(1.0, 3.0, 22.0, 24.0, 0.8, 0.5, 2)
+    assert old_row["p1_recent_games_won_avg_5"].iloc[0] == 0
+    assert row["p1_recent_games_won_avg_5"].iloc[0] != 0
 
 
 def test_adapter_is_memoised_so_mc_runs_cost_one_predict_proba():
@@ -215,6 +260,25 @@ def test_adapter_raises_for_a_player_with_no_history():
     adapter = SM.make_classifier_prob(StubEstimator(), data, surf_hist, h2h_hist)
     with pytest.raises(ValueError, match="No match history"):
         adapter("Ghost Player", "Player B", "Hard")
+
+
+def test_matchup_stats_inherits_the_shared_feature_fields():
+    """``MatchupStats`` must *subclass* the adapter's ``MatchupFeatures``.
+
+    That is the stated reason the printed matchup table and the feature row the
+    classifier scores cannot drift apart: they are the same fields, declared
+    once. Re-declaring them here instead would compile, pass every other test,
+    and reintroduce exactly the duplication the subclassing removes — so the
+    relationship is asserted, not left implied.
+    """
+    assert issubclass(SM.MatchupStats, MatchupFeatures)
+
+    inherited = [f.name for f in dataclasses.fields(MatchupFeatures)]
+    declared = [f.name for f in dataclasses.fields(SM.MatchupStats)]
+    # Every shared field comes from the base, in order, and the CLI adds only
+    # its own rendered H2H line on the end.
+    assert declared == inherited + ["h2h_msg"]
+    assert set(SM.MatchupStats.__annotations__) == {"h2h_msg"}
 
 
 def test_matchup_stats_reuses_history_helpers():
@@ -398,7 +462,10 @@ def test_reconcile_mode_flag_opts_into_classifier_anchor(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "mode: classifier_anchor" in out
     assert SM.ANCHOR_MODE_CAVEAT in out
-    assert "synthetic-filled" in out
+    # Post-T3.5 the note explains what anchoring *does* (the classifier alone
+    # picks the winner) rather than warning that the row behind it is synthetic.
+    assert "classifier alone decides the winner" in out
+    assert "synthetic" not in out
 
 
 def test_mode_reaches_the_sim_layer(monkeypatch):

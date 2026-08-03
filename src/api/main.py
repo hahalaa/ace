@@ -120,28 +120,26 @@ class ClassifierAdapter:
 def resolve_classifier_factory(spec: str = config.API_CLASSIFIER_ADAPTER):
     """Import the ``ClassifierProb`` factory named by ``spec`` (``"module:attr"``).
 
-    **Why an import by name instead of an import statement.** The API needs an
-    adapter to simulate live (T3.4), and the only one that exists is
-    ``cli.simulate_match.make_classifier_prob`` — which ``api/`` may not import,
-    per the layering rule (``CLAUDE.md``; ``api/deps.py`` declines to build one
-    for exactly this reason). Late-binding it through
-    :data:`config.API_CLASSIFIER_ADAPTER` keeps ``api/`` free of any ``cli/``
-    symbol, which is the static dependency the rule is about, and turns "which
-    model does this server publish" into deployment configuration — the day
-    ``ace-04-current-state.md §7`` seams 6/7 are closed by a real-feature
-    adapter, swapping it is one config line.
+    **Why an import by name instead of an import statement.** T3.4 needed an
+    adapter to simulate live and the only one that existed was
+    ``cli.simulate_match.make_classifier_prob``, which ``api/`` may not import;
+    late-binding kept ``api/`` free of any ``cli/`` symbol while disclosing the
+    real runtime dependency in every response. **T3.5 removed that dependency**:
+    the default is now ``common.classifier_adapter:make_classifier_prob``, a
+    UI-free module ``api/`` could import outright, so no ``cli/`` module is
+    loaded by the running server at all (``tests/test_api_storybook.py`` proves
+    it in a clean interpreter).
 
-    It is not a loophole and is not treated as one: the runtime dependency is
-    real, so it is **disclosed** rather than hidden — every response naming
-    :attr:`ClassifierAdapter.name` reports the module and function that actually
-    ran, and the seam-7 limitation travels with the numbers regardless. The
-    honest fix (lifting the adapter into a UI-free module the way T0.6 lifted the
-    name resolver into ``common/names.py``) is a refactor of ``cli/interactive``'s
-    feature-row builder, not a Size-S endpoint ticket.
+    The indirection is kept because its *other* purpose stands on its own:
+    "which model does this server publish" is deployment configuration, and
+    swapping the adapter — for a differently-calibrated one, or back to an older
+    one for comparison — is one config line rather than a code change. Whatever
+    runs is reported: every response names :attr:`ClassifierAdapter.name`,
+    derived from the factory that actually ran.
 
     Args:
         spec: ``"<module>:<attribute>"``, e.g.
-            ``"cli.simulate_match:make_classifier_prob"``.
+            ``"common.classifier_adapter:make_classifier_prob"``.
 
     Returns:
         The factory callable.
@@ -172,8 +170,8 @@ def adapter_name(factory: ClassifierFactory) -> str:
     """Dotted name of ``factory``, for ``metadata.adapter``.
 
     Derived, never hardcoded — see :class:`ClassifierAdapter`. For the shipped
-    default this reads ``"cli.simulate_match.make_classifier_prob"``, the same
-    string ``scripts/precompute_sim.py`` writes into its cache files
+    default this reads ``"common.classifier_adapter.make_classifier_prob"``, the
+    same string ``scripts/precompute_sim.py`` writes into its cache files
     (``tests/test_api_storybook.py`` pins the two together).
     """
     module = getattr(factory, "__module__", None) or "?"
@@ -186,12 +184,13 @@ def build_classifier(
 ) -> ClassifierAdapter:
     """Build the adapter once, at startup, from the loaded context.
 
-    Cheap: ``make_classifier_prob`` returns a memoising closure and does no work
-    until first called (``ace-04-current-state.md §5``), so this adds ~0 to the
-    ~2 s startup. Building it *here* rather than per request is what keeps
-    ``/storybook`` to one bracket's worth of work — and, because the closure's
-    memo table is shared by every request, repeat matchups across seeds cost one
-    ``predict_proba`` in total rather than one per request.
+    Cheap: the T3.5 adapter defers both its as-of-now rolling-form table (0.08 s
+    over the full frame) and every ``predict_proba`` to first use, so this adds
+    nothing to the ~2 s startup and 0.08 s to the first simulated request. Building it
+    *here* rather than per request is what keeps ``/storybook`` to one bracket's
+    worth of work — and, because the adapter's memo table is shared by every
+    request, repeat matchups across seeds cost one ``predict_proba`` in total
+    rather than one per request.
     """
     return ClassifierAdapter(
         call=factory(
@@ -504,14 +503,11 @@ def create_app(
             context's estimator and histories. Defaults to ``None``, meaning
             "resolve :data:`config.API_CLASSIFIER_ADAPTER`" — see
             :func:`resolve_classifier_factory` for why the default is a name
-            rather than an import. Tests inject a deterministic stub, which
-            keeps ``cli/`` out of the request path under test — no ``cli/`` code
-            runs while a test serves ``/storybook``. It does **not** keep
-            ``cli/`` out of the test *import* graph: ``scripts/precompute_sim.py``
-            imports ``cli.simulate_match`` directly (it may — it is an outermost
-            entry point), and the test modules that import the script pull it in
-            with them. That is a separate, known fact about those modules, not
-            something this seam controls or claims to.
+            rather than an import. Tests inject a deterministic stub so the
+            suite never needs the vendored data or the pinned model to exercise
+            an endpoint; ``tests/test_classifier_adapter.py`` drives the *real*
+            resolved factory end-to-end over a small engineered frame, so the
+            stub does not stand in for the shipped adapter anywhere it matters.
 
     Returns:
         The configured app. Nothing is loaded, scanned or resolved until it
@@ -767,11 +763,12 @@ def create_app(
 
         **Read ``metadata`` before rendering the numbers.** Every response
         carries the reconciliation ``mode``/``w``, an ``is_forecast`` flag and a
-        plain-language ``classifier_limitation``, because the model behind these
-        probabilities has a known defect (``ace-04-current-state.md §7`` seam 7:
-        20 of the classifier's 27 features are synthetic constants, flattening it
-        toward 0.5). They are required schema fields, so a cache file cannot
-        publish bare probabilities.
+        plain-language ``classifier_limitation``. Since T3.5 the classifier's
+        feature row is fully real (``ace-04-current-state.md §7`` seam 7,
+        closed), so what the disclosure now states is narrower: the model is an
+        as-of-now snapshot, which makes a simulation of an already-played draw
+        retrospective rather than a forecast. They remain required schema fields,
+        so a cache file cannot publish bare probabilities.
 
         Four failure modes, each distinguishable without parsing prose:
 
@@ -911,13 +908,15 @@ def create_app(
         brackets) in a request handler; a storybook is *one* bracket — 127
         matches for a Slam — which the ticket budgets at "well under a couple
         seconds". Measured on the shipped 128 draw ``usopen_2024_atp_full``
-        (2026-08-03, dev machine): **1.42 s for the first request** on a cold
-        server, **~0.65 s for a subsequent request with a fresh seed**, and
-        **0.43 s to replay a seed already served**. The spread is entirely the
-        adapter's ``predict_proba``: 127 matches need 127 distinct matchups
-        priced, and the memo table lives on the startup-built closure, so it is
-        shared across requests and warms as the server runs. 0.43 s is therefore
-        the floor — the point-by-point simulation of 127 matches itself.
+        (2026-08-03, dev machine, re-measured on T3.5's real-feature adapter):
+        **1.54 s for the first request** on a cold server (was 1.42 s), **0.80 s
+        for a subsequent request with a fresh seed**, and **0.45 s to replay a
+        seed already served**. The spread is almost entirely the adapter's
+        ``predict_proba``: 127 matches need 127 distinct matchups priced, and the
+        memo table lives on the startup-built adapter, so it is shared across
+        requests and warms as the server runs; the cold request additionally pays
+        the one-off 0.08 s rolling-form table build. 0.45 s is the floor — the
+        point-by-point simulation of 127 matches itself.
         ``storybook_run`` is called **exactly once** per request; the rounds,
         scorelines and champion in the response are read off the single
         :class:`~sim.tournament.StorybookResult` it returns.
@@ -933,15 +932,15 @@ def create_app(
         shareable URL.
 
         **Reconciliation mode is ``config.SIM_CLI_RECONCILE_MODE`` (``blend``),
-        not ``config.RECONCILE_MODE``** — the same choice T3.3 made, for the same
-        reason, and not re-litigated here: this endpoint feeds ``P_clf`` from the
-        same adapter, whose feature rows are form-blind, and under
-        ``classifier_anchor`` that flattened probability *is* the target every
-        match is solved to reproduce. Blending dilutes it; it does not fix it,
-        which is why ``metadata`` carries the seam-7 disclosure —
-        ``mode``/``w``, ``is_forecast`` and ``classifier_limitation``, the
-        identical :class:`~api.schemas.ModelDisclosure` block ``/simulate``
-        serves, inherited rather than restated.
+        not ``config.RECONCILE_MODE``** — the same value T3.3 chose and the same
+        one the cached ``/simulate`` board was produced under, so the two
+        endpoints publish one model. It began as the seam-7 mitigation and is
+        kept, post-T3.5, because blending lets the point model contribute half
+        the match-win probability (see :data:`config.SIM_CLI_RECONCILE_MODE`).
+        ``metadata`` carries ``mode``/``w``, ``is_forecast`` and
+        ``classifier_limitation`` — the identical
+        :class:`~api.schemas.ModelDisclosure` block ``/simulate`` serves,
+        inherited rather than restated.
 
         Failures are ``/simulate``'s, from the same
         :func:`_simulatable_entry` gate: unknown id → 404, unloadable draw file →

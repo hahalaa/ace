@@ -377,14 +377,20 @@ def test_the_classifier_adapter_is_built_once_at_startup(context):
 # --------------------------------------------------------------------------- #
 # Seam-7 disclosure — the same block /simulate serves
 # --------------------------------------------------------------------------- #
-def test_storybook_discloses_the_classifier_limitation(client):
-    """The seam-7 requirement, live rather than cached — same fields, same words."""
+def test_storybook_discloses_the_model_limitation(client):
+    """The disclosure requirement, live rather than cached — same fields, same words.
+
+    T3.5 rewrote the text (seam 7 fixed; the as-of-now snapshot caveat remains)
+    but not the requirement, so this still checks the wording is the canonical
+    one and that its claims are the current ones.
+    """
     metadata = client.get("/tournaments/toy_open_2026/storybook").json()["metadata"]
 
     assert metadata["is_forecast"] is False
     assert metadata["classifier_limitation"] == CLASSIFIER_LIMITATION
-    assert "not a forecast" in metadata["classifier_limitation"].lower()
-    assert "20 of its 27" in metadata["classifier_limitation"]
+    assert "all 27 features" in metadata["classifier_limitation"]
+    assert "as-of-now snapshot" in metadata["classifier_limitation"]
+    assert "20 of its 27" not in metadata["classifier_limitation"]
     assert metadata["adapter"].endswith("stub_classifier_factory")
     assert metadata["data_through_year"] == 2026
     assert metadata["estimator_class"] == "StubClassifier"

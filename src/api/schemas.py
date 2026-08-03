@@ -215,38 +215,53 @@ class BracketResponse(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
-# The seam-7 disclosure (T3.3), shared by every endpoint that publishes a
-# simulated probability (T3.4).
+# The model disclosure (T3.3), shared by every endpoint that publishes a
+# simulated probability (T3.4). Rewritten by T3.5, which fixed what the original
+# text described.
 # --------------------------------------------------------------------------- #
 # The canonical disclosure text. It lives here, next to the schema that requires
 # it, because two producers need the identical wording: ``scripts/precompute_sim.py``
 # writes it into every cache file, and ``api/main.py`` attaches it to every live
 # storybook. A second copy of this paragraph is exactly the "second disclosure
 # format" the requirement exists to prevent.
+#
+# **What changed in T3.5.** Until then this text disclosed seam 7: the
+# classifier was fed a row whose 20 recent-form features were synthetic
+# constants, flattening its probability toward 0.5. That is fixed —
+# ``common.classifier_adapter`` builds all 27 features from the pipeline's real
+# leakage-safe state, and the adapter's held-out Brier score now equals the
+# training pipeline's own (0.2188). The field is kept, and still required,
+# because a real limitation remains: every input is an **as-of-now snapshot** of
+# the loaded data, so simulating a draw that has already been played uses form
+# and skills its participants did not have at the time.
 CLASSIFIER_LIMITATION = (
-    "Demonstration, not a forecast. The classifier behind these probabilities is "
-    "fed a feature row in which 20 of its 27 features — every recent-form "
-    "feature — are synthetic constants rather than real form, which pushes its "
-    "match-win probability toward 0.5 (ace-04-current-state.md §7 seam 7). The "
-    "reconciliation mode in this metadata dilutes that effect but does not "
-    "remove it. Treat these numbers as a demonstration of the simulation "
-    "machinery, not as a prediction of the event."
+    "The classifier is fed a fully populated feature row — all 27 features, "
+    "including recent form, from the pipeline's own leakage-safe history "
+    "(ace-04-current-state.md §7 seam 7, closed in T3.5). The remaining caveat "
+    "is timing: rankings, surface records, head-to-heads and recent form are an "
+    "as-of-now snapshot of the loaded data, so simulating a draw that has "
+    "already been played gives every entrant knowledge from after the event. "
+    "Read a past event's numbers as a retrospective, not as a forecast; a draw "
+    "that has not yet been played carries no such caveat."
 )
 
 # Whether output produced under the adapter above may be presented as a
-# prediction. False while seam 7 stands; one flag, so the two producers cannot
-# disagree about it.
+# prediction. ``False``: the draws shipped today are historical, and the
+# as-of-now snapshot above makes their numbers retrospective. One flag, so the
+# two producers cannot disagree about it. (Before T3.5 this flag stood for the
+# seam-7 defect; it now stands for the snapshot caveat, which is why it did not
+# flip when the defect was fixed.)
 IS_FORECAST = False
 
 
 class ModelDisclosure(BaseModel):
-    """What produced a published probability, and what is wrong with it.
+    """What produced a published probability, and what its limits are.
 
-    The base of both metadata blocks, so the seam-7 disclosure is **inherited
-    rather than retyped**: ``/simulate`` (cached Monte Carlo) and ``/storybook``
-    (live single run) run the same reconciliation over the same defective
-    adapter, so a consumer that learned to read one has learned to read both,
-    and neither can drift into publishing a subset of the fields.
+    The base of both metadata blocks, so the disclosure is **inherited rather
+    than retyped**: ``/simulate`` (cached Monte Carlo) and ``/storybook`` (live
+    single run) run the same reconciliation over the same adapter, so a consumer
+    that learned to read one has learned to read both, and neither can drift
+    into publishing a subset of the fields.
 
     Every field is **required** — that is what makes disclosure structural. A
     cache file or a handler that omits any of it fails validation instead of
@@ -368,14 +383,17 @@ class SimulationPlayer(BaseModel):
 class SimulationResponse(BaseModel):
     """A precomputed Monte Carlo result, as cached and as served.
 
-    **Read ``metadata`` before rendering the numbers.** ``ace-04-current-state.md
-    §7`` seam 7 records that the only ``ClassifierProb`` adapter built so far
-    fills 20 of the classifier's 27 features with synthetic constants, which
-    collapses its probability toward 0.5. T3.3 publishes these probabilities over
-    HTTP, and the ticket requires the limitation to travel *with* them, so
+    **Read ``metadata`` before rendering the numbers.** T3.3 published these
+    probabilities under a classifier whose feature row was 20/27 synthetic
+    constants (``ace-04-current-state.md §7`` seam 7); T3.5 closed that seam, so
+    the row is now built entirely from the pipeline's own leakage-safe state. The
+    limitation that remains is narrower and still travels *with* the numbers:
+    every input is an **as-of-now snapshot** of the loaded data, which makes a
+    simulation of an already-played draw retrospective rather than a forecast.
     ``metadata.classifier_limitation`` (prose), ``metadata.is_forecast``
-    (machine-readable) and ``metadata.mode``/``w`` (what dilutes it) are required
-    fields of every response, not a footnote in the docs.
+    (machine-readable) and ``metadata.mode``/``w`` (how ``P_clf`` and the point
+    model are fused) are required fields of every response, not a footnote in the
+    docs.
     """
 
     model_config = ConfigDict(extra="forbid")

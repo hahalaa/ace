@@ -2,6 +2,7 @@ import config
 import sys
 import pandas as pd
 
+import common.classifier_adapter as classifier_adapter
 from common.names import MatchStrategy, NameIndex, resolve_name
 
 # ==========================================
@@ -138,6 +139,11 @@ def _print_ambiguity(input_name: str, match) -> None:
     """Print the ambiguity message (the REPL's rendering of it)."""
     print(ambiguity_message(input_name, match))
 
+# The three history lookups below moved to common/classifier_adapter.py in T3.5,
+# for the same reason resolve_player_name's matching moved to common/names.py in
+# T0.6: the API's ClassifierProb adapter needs them and may not import cli/.
+# What stays here is what is genuinely CLI — the H2H *message*. The lookups
+# themselves are one implementation, called from two layers.
 def get_latest(name: str, data: pd.DataFrame):
     """
     Get the most recent match for a player and return their rank and age.
@@ -145,27 +151,14 @@ def get_latest(name: str, data: pd.DataFrame):
     Returns:
         (rank, age) if found, else (None, None)
     """
-    player_mask = (data['p1_name'] == name) | (data['p2_name'] == name)
-    player_matches = data.loc[player_mask]
-
-    if player_matches.empty:
-        return None, None
-
-    latest_match = player_matches.sort_values('tourney_date', ascending=False).iloc[0]
-
-    if latest_match['p1_name'] == name:
-        return latest_match['p1_rank'], latest_match['p1_age']
-    else:
-        return latest_match['p2_rank'], latest_match['p2_age']
+    return classifier_adapter.latest_rank_age(name, data)
 
 def get_surf_record(player: str, surf: str, surf_hist: dict) -> tuple[int,int]:
     """
     Get a player's historical surface record (wins, total matches).
     Returns (wins, total) or (0,0) if no history.
     """
-    if player in surf_hist and surf in surf_hist[player]:
-        return surf_hist[player][surf]
-    return 0, 0
+    return classifier_adapter.surface_record(player, surf, surf_hist)
 
 def compute_h2h(p1: str, p2: str, h2h_hist: dict) -> tuple[int,str]:
     """
@@ -174,10 +167,8 @@ def compute_h2h(p1: str, p2: str, h2h_hist: dict) -> tuple[int,str]:
     key = tuple(sorted([p1, p2]))
     if key not in h2h_hist:
         return 0, "No prior matches"
-    
-    w1, w2 = h2h_hist[key]
-    p1_wins = w1 if p1 == key[0] else w2
-    p2_wins = w2 if p1 == key[0] else w1
+
+    p1_wins, p2_wins = classifier_adapter.h2h_record(p1, p2, h2h_hist)
     diff = p1_wins - p2_wins
 
     if p1_wins == p2_wins:
@@ -218,6 +209,13 @@ def build_feature_row(
     """
     Build a single-row DataFrame matching MODEL_FEATURES order.
     Fills missing rolling features with defaults (neutral form).
+
+    ⚠️ Display only, and the *only* remaining caller is the REPL above. The
+    rolling-form defaults below flatten the prediction toward 50/50
+    (ace-04-current-state.md §7 seam 7). Anything that simulates from P_clf now
+    builds its row with common.classifier_adapter.build_feature_row, which
+    populates all 27 features from real state; this one is left as-is so
+    predictor.py's REPL behaves exactly as it always has.
     """
     # Base features that we can calculate interactively
     features = {

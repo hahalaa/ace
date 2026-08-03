@@ -1,6 +1,6 @@
 """Offline Monte Carlo precompute (T3.3) — fills the cache the API serves.
 
-A full 128 × 5,000 job takes ~40 s, and Phase 3's global rules forbid running
+A full 128 × 5,000 job takes ~29 s, and Phase 3's global rules forbid running
 one inside a request handler. So the expensive half happens here, offline, and
 ``GET /tournaments/{id}/simulate`` only ever reads the file this script writes::
 
@@ -20,47 +20,37 @@ registry is built from the skill table that produced. Nothing inside the run loo
 reloads anything; ``sim.tournament.monte_carlo`` owns the per-job ``prob_cache``.
 
 --------------------------------------------------------------------------------
-The classifier adapter, and why this script discloses rather than fixes (seam 7)
+The classifier adapter (T3.3 disclosed a defective one; T3.5 replaced it)
 --------------------------------------------------------------------------------
-``api/deps.py`` deliberately builds **no** ``ClassifierProb`` adapter: the only
-one that exists lives in ``cli/``, which ``api/`` may not import, and
-``ace-04-current-state.md §7`` seam 6 requires each new caller to assess seam 7
-for itself. This script is that caller, and it is not in ``api/`` — it is an
-outermost-layer entry point like ``cli/`` and ``scripts/`` generally, so it may
-import ``cli.simulate_match.make_classifier_prob`` and does. The API package
-still imports nothing from ``cli/``; the adapter is constructed *here* and its
-output reaches the API only as numbers in a JSON file.
+``api/deps.py`` deliberately builds **no** ``ClassifierProb`` adapter — it loads
+the estimator and both histories and stops — so whoever runs a simulation builds
+one from those materials. This script is such a caller.
 
-That adapter carries a known defect. ``cli/interactive.build_feature_row``
-populates 7 of the 27 ``config.MODEL_FEATURES`` from real state and fills the
-other 20 — every recent-form column — with synthetic constants, so ``P_clf`` is
-form-blind and collapses toward 0.5 (measured: 0.5091 where a real engineered row
-gives 0.3800). **The ticket's requirement is to either build an adapter with
-populated rolling features or state the limitation alongside the numbers. This
-script does the latter, deliberately:**
+Until T3.5 the only adapter available was ``cli.simulate_match``'s, built on
+``cli/interactive.build_feature_row``, which populated 7 of the 27
+``config.MODEL_FEATURES`` from real state and filled the other 20 — every
+recent-form column — with synthetic constants. T3.3 ran it knowingly and
+disclosed the consequence rather than fixing it (out of scope for a Size-M
+endpoint ticket). **T3.5 built the real-feature adapter in
+``common/classifier_adapter.py`` and this script now uses it**: all 27 features
+come from the pipeline's own leakage-safe state, the rolling ones from
+``features.rolling.build_rolling_form_table``. ``ace-04-current-state.md §7``
+seam 7 is closed.
 
-* Building a real-feature adapter means computing each matchup's latest rolling
-  state (the 20 columns ``features/rolling.py`` derives per player per match)
-  and re-validating the resulting probabilities against T1.8's calibration — a
-  substantial piece of modelling work in its own right, comparable to T1.10's
-  whole adapter build, and beyond a "Size: M" endpoint ticket. Attempting it
-  half-way would be worse than disclosing: a partially-populated row is
-  *silently* out-of-distribution, whereas a documented one is not.
-* The defect belongs to the adapter, not to this ticket, and it is tracked as an
-  open seam with an owner decision pending. Publishing under disclosure keeps the
-  numbers honest without pre-empting that decision.
+Disclosure stays structural, because a narrower caveat remains and because the
+shape has proved useful: ``mode``/``w``, an ``is_forecast`` flag and a
+plain-language ``classifier_limitation`` are **required** fields of
+``api.schemas.SimulationMetadata``, written into every cache file and served in
+every API response, so a file lacking them fails validation rather than
+publishing bare probabilities. What the text now says is that the model state is
+an *as-of-now* snapshot: simulating an already-played draw (such as the shipped
+2024 US Open bracket) uses skills and form the event's participants did not have
+at the time, which makes the output retrospective rather than a forecast.
 
-Disclosure is therefore structural, not a comment: ``mode``/``w``, an
-``is_forecast`` flag and a plain-language ``classifier_limitation`` are
-**required** fields of ``api.schemas.SimulationMetadata``, so they are written
-into every cache file and served in every API response, and a cache file lacking
-them fails validation instead of publishing bare probabilities.
-
-The mode is ``config.SIM_CLI_RECONCILE_MODE`` (``"blend"``) for the same reason
-both CLIs use it: under ``"classifier_anchor"`` the flattened ``P_clf`` *is* the
-target δ is solved to reproduce, so it would drive every match of every bracket.
-Blending dilutes that; it does not fix it — hence the disclosure above.
-``--reconcile-mode`` overrides it, and whatever is used is recorded in the file.
+The mode is ``config.SIM_CLI_RECONCILE_MODE`` (``"blend"``), the same value both
+CLIs use — kept after T3.5 as a modelling choice (the point model keeps half the
+say) rather than as the seam-7 mitigation it started as. ``--reconcile-mode``
+overrides it, and whatever is used is recorded in the file.
 
 **Placeholder draws are refused, by T2.2's own check.** ``monte_carlo`` rejects a
 draw containing ``Qualifier``/``Bye`` slots and names every offending slot; this
@@ -91,18 +81,22 @@ from api.schemas import (  # noqa: E402
     SimulationPlayer,
     SimulationResponse,
 )
-from cli.simulate_match import make_classifier_prob  # noqa: E402
+from common.classifier_adapter import make_classifier_prob  # noqa: E402
 from sim.tournament import MonteCarloResult, monte_carlo  # noqa: E402
 
 # The adapter this script builds, named in every cache file's metadata so a
 # consumer can tell which model produced the numbers (see the module docstring).
-ADAPTER = "cli.simulate_match.make_classifier_prob"
+# It must stay equal to what api/main.adapter_name() derives from
+# config.API_CLASSIFIER_ADAPTER, so /simulate and /storybook cannot publish
+# different models while claiming the same one — pinned by
+# tests/test_api_storybook.py.
+ADAPTER = "common.classifier_adapter.make_classifier_prob"
 
-# The seam-7 disclosure text and honesty flag are imported from ``api.schemas``,
-# not written here: T3.4's live ``/storybook`` publishes probabilities from the
-# same adapter and must say the same thing about them, and ``api/schemas.py`` is
-# the one module both this script and the API can reach. Deliberately
-# plain-language and self-contained — an API consumer will not have read
+# The disclosure text and honesty flag are imported from ``api.schemas``, not
+# written here: the live ``/storybook`` publishes probabilities from the same
+# adapter and must say the same thing about them, and ``api/schemas.py`` is the
+# one module both this script and the API can reach. Deliberately plain-language
+# and self-contained — an API consumer will not have read
 # ace-04-current-state.md.
 
 
@@ -137,9 +131,11 @@ def build_payload(
         source: Draw file basename the run was against.
         generated_at: Write timestamp; defaults to now (UTC).
         adapter: Which ``ClassifierProb`` adapter produced ``P_clf``.
-        classifier_limitation: The seam-7 disclosure text.
+        classifier_limitation: The model-disclosure text (see the module
+            docstring: the seam-7 defect is fixed; the as-of-now snapshot
+            caveat remains).
         is_forecast: Whether these numbers may be presented as a prediction.
-            ``False`` while the adapter carries the seam-7 defect.
+            ``False`` while the shipped draws are historical.
 
     Returns:
         A validated :class:`~api.schemas.SimulationResponse`.
@@ -243,9 +239,9 @@ def _build_classifier(context: ApiContext):
     """The ``ClassifierProb`` adapter, built once from the startup context.
 
     ``api/deps.py`` loads the estimator and both name-keyed histories but stops
-    short of building an adapter (the API may not import ``cli/``); this script
-    may, so the last step happens here. Cheap — ``make_classifier_prob`` returns
-    a memoising closure and does no work until first called.
+    short of building an adapter, so the last step happens here. Still free: the as-of-now rolling-form table (0.08 s over the full frame,
+    ``features.rolling.build_rolling_form_table``) and every ``predict_proba``
+    are both deferred to first use, the latter memoised per matchup.
     """
     return make_classifier_prob(
         context.estimator,
@@ -339,9 +335,10 @@ def main(argv: list[str] | None = None) -> int:
             classifier,
             n_runs=args.runs,
             seed=args.seed,
-            # Single-process: the adapter is a closure and cannot be pickled
-            # (ace-04-current-state.md §7 seam 8), and the measured 128 × 5,000
-            # job is ~40 s single-threaded anyway.
+            # Single-process. T3.5's adapter *is* picklable (a module-level
+            # class, not a closure), so seam 8's stated barrier is gone — but
+            # exposing workers>1 still owns its own re-verification, and the
+            # measured 128 × 5,000 job is 29 s single-threaded anyway.
             workers=1,
             mode=args.reconcile_mode,
         )

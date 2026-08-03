@@ -133,17 +133,23 @@ SIM_CLI_BEST_OF = 5
 SIM_CLI_FINAL_SET_RULE = "10pt_at_6_6"
 # Default surface when the CLI isn't told one.
 SIM_CLI_SURFACE = "Hard"
-# Reconciliation mode for *this CLI only* — deliberately NOT RECONCILE_MODE.
-# The CLI's ClassifierProb adapter builds its feature row with
-# cli/interactive.build_feature_row, which synthesises 20 of the 27
-# MODEL_FEATURES (every recent-form rolling column), so the P_clf it emits is
-# form-blind and collapses toward 0.5 (ace-04-current-state.md §7 seam 7).
-# Under "classifier_anchor" that flattened P_clf *is* the target δ is solved to
-# reproduce, which would anchor every CLI scoreline near a coin flip regardless
-# of real skill gap; "blend" dilutes it with the point model instead. This is a
-# mitigation for the CLI's default, not a fix for the underlying feature gap —
-# override per run with --reconcile-mode. config.RECONCILE_MODE stays the
-# system-wide default for callers with real engineered rows.
+# Reconciliation mode for the simulation entry points that build their own
+# adapter (both CLIs, scripts/precompute_sim.py, GET /storybook) — deliberately
+# NOT RECONCILE_MODE.
+#
+# T1.10 introduced it as a mitigation: the adapter's feature row synthesised 20
+# of the 27 MODEL_FEATURES, so P_clf was form-blind and collapsed toward 0.5,
+# and "classifier_anchor" would have made that flattened value the target every
+# scoreline was solved to reproduce. T3.5 fixed the row
+# (common/classifier_adapter.py — all 27 features real), so that reason is gone.
+#
+# The value is KEPT at "blend", now as a modelling choice rather than a
+# workaround: blending gives the point model half the say in the match-win
+# probability, which is the configuration T1.9/T1.9b's scoreline-realism
+# validation was run under. Moving these callers to "classifier_anchor" would
+# hand every winner to the classifier alone and needs its own validation pass —
+# a deliberate open question, not an oversight. config.RECONCILE_MODE remains
+# the system-wide default, untouched since T1.8.
 SIM_CLI_RECONCILE_MODE = "blend"
 
 # ==========================================
@@ -211,19 +217,22 @@ API_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
-# ---- Live storybook endpoint (T3.4) ----
+# ---- Live storybook endpoint (T3.4; adapter replaced in T3.5) ----
 # Which ClassifierProb adapter the running API builds at startup, as
 # "<module>:<attribute>", resolved by importlib in api/main.create_app.
 #
-# It is a *string* rather than an import for one reason: the only adapter that
-# exists is cli/simulate_match.make_classifier_prob, and the layering rule
-# forbids api/ from importing cli/. Late-binding it here keeps api/ free of any
-# cli/ symbol (the static dependency graph the rule is about) and makes the
-# adapter a deployment choice — the day a real-feature adapter exists
-# (ace-04-current-state.md §7 seams 6/7), swapping it is this line, not a code
-# change in the app. The dependency is still real at runtime, so every response
-# names the adapter that actually ran in `metadata.adapter`.
-API_CLASSIFIER_ADAPTER = "cli.simulate_match:make_classifier_prob"
+# T3.4 pointed this at cli/simulate_match.make_classifier_prob — the only adapter
+# that existed — which made the API depend on cli/ at runtime even though the
+# static graph stayed clean. T3.5 built the real-feature adapter in
+# common/classifier_adapter.py (ace-04-current-state.md §7 seam 7, now closed),
+# and this line is the flip that ticket predicted: the API's live simulation now
+# runs on a module api/ could legally import outright, and no cli/ module is
+# imported by the server at all.
+#
+# It stays a *string* because that is still the right shape: which model a
+# deployment publishes is configuration, and every response reports the adapter
+# that actually ran in `metadata.adapter`, derived from the resolved factory.
+API_CLASSIFIER_ADAPTER = "common.classifier_adapter:make_classifier_prob"
 # Seed GET /tournaments/{id}/storybook uses when the caller gives none. A fixed
 # value, NOT a time- or random-derived one: a bare /storybook must return the
 # same story on a retry (that is the endpoint's determinism criterion, and a GET

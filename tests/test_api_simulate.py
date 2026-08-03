@@ -37,7 +37,12 @@ import sim.tournament as tournament
 from api.deps import ApiContext
 from api.main import create_app
 from api.registry import build_registry, cache_path_for
-from api.schemas import SimulationMetadata, SimulationPlayer, SimulationResponse
+from api.schemas import (
+    CLASSIFIER_LIMITATION,
+    SimulationMetadata,
+    SimulationPlayer,
+    SimulationResponse,
+)
 from features.serve import PlayerSkill, SkillTable
 from sim.draw import load_draw
 
@@ -216,21 +221,26 @@ def test_simulate_metadata_makes_the_result_traceable(client, cached_payload):
     assert set(metadata) == set(SimulationMetadata.model_fields)
 
 
-def test_simulate_response_discloses_the_classifier_limitation(client):
-    """The seam-7 requirement, checked on the wire and not only in the file.
+def test_simulate_response_discloses_the_model_limitation(client):
+    """The disclosure requirement, checked on the wire and not only in the file.
 
-    A consumer must be able to tell a demonstration from a forecast **without**
+    A consumer must be able to tell a retrospective from a forecast **without**
     reading the repository's docs, and without parsing prose: hence a boolean
-    flag alongside the sentence, and the reconciliation mode that dilutes the
-    defect next to both.
+    flag alongside the sentence, and the reconciliation mode next to both.
+
+    T3.5 changed what the sentence says, not whether it is required: the
+    seam-7 defect it used to describe (20 synthetic features) is fixed, and the
+    text now discloses the as-of-now snapshot caveat that remains.
     """
     metadata = client.get("/tournaments/toy_open_2026/simulate").json()["metadata"]
 
     assert metadata["is_forecast"] is False
-    assert metadata["adapter"] == "cli.simulate_match.make_classifier_prob"
+    assert metadata["adapter"] == "common.classifier_adapter.make_classifier_prob"
     limitation = metadata["classifier_limitation"]
-    assert "not a forecast" in limitation.lower()
-    assert "20 of its 27" in limitation  # the actual, checkable defect
+    assert limitation == CLASSIFIER_LIMITATION
+    assert "all 27 features" in limitation  # the fix, stated
+    assert "as-of-now snapshot" in limitation  # the caveat that remains
+    assert "20 of its 27" not in limitation  # the defect that no longer exists
     assert metadata["mode"] in {"blend", "classifier_anchor"}
 
 
@@ -696,12 +706,12 @@ def test_precompute_records_the_reconciliation_mode_and_the_limitation(
     )
     raw = json.loads((tmp_path / "toy_open_2026.json").read_text())["metadata"]
 
-    # The mode defaults to the CLI-scoped mitigation, as the module documents.
+    # The mode defaults to the shared SIM_CLI_RECONCILE_MODE, as the module documents.
     assert raw["mode"] == config.SIM_CLI_RECONCILE_MODE == "blend"
     assert raw["w"] == pytest.approx(config.RECONCILE_BLEND_WEIGHT)
     assert raw["is_forecast"] is False
-    assert raw["adapter"] == "cli.simulate_match.make_classifier_prob"
-    assert "not a forecast" in raw["classifier_limitation"].lower()
+    assert raw["adapter"] == "common.classifier_adapter.make_classifier_prob"
+    assert raw["classifier_limitation"] == CLASSIFIER_LIMITATION
 
 
 def test_precompute_reconcile_mode_override_is_recorded(stub_precompute, tmp_path):

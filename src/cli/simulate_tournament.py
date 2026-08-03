@@ -20,31 +20,37 @@ failure modes a user actually hits (a missing or malformed draw file, and a draw
 that validates but contains placeholder entrants) into readable messages.
 
 **Reconciliation mode — ``config.SIM_CLI_RECONCILE_MODE`` (``"blend"``), not
-``config.RECONCILE_MODE``.** This is not a fresh decision; it applies T1.10's
-established mitigation to a second entry point that reuses the *same* degraded
-adapter. ``cli/simulate_match.make_classifier_prob`` builds its feature row with
-``cli/interactive.build_feature_row``, which synthesises 20 of the 27
-``config.MODEL_FEATURES`` (every recent-form column), so the ``P_clf`` it emits
-is form-blind and collapses toward 0.5 (``ace-04-current-state.md §7`` seam 7).
-Under ``"classifier_anchor"`` that flattened value *is* the target δ is solved to
-reproduce, so it would drive every match of every bracket. ``sim/tournament.py``
-deliberately keeps ``mode`` a pass-through defaulting to the system-wide
-constant — the defect belongs to the adapter, not to the core — and says the
-layer that builds the adapter owns the choice. This module is that layer.
-Blending dilutes the problem; it does not fix it, which is why the Monte Carlo
-output carries an explicit caveat line rather than presenting its numbers as a
-forecast.
+``config.RECONCILE_MODE``.** This is not a fresh decision; it applies the same
+value the other entry points use to a second CLI sharing the *same* adapter.
+T2.5 inherited it as T1.10's seam-7 mitigation: back then
+``cli/simulate_match.make_classifier_prob`` built its row with
+``cli/interactive.build_feature_row``, which synthesised 20 of the 27
+``config.MODEL_FEATURES``, so ``P_clf`` was form-blind and collapsed toward 0.5.
+**T3.5 fixed that** — the shared ``common/classifier_adapter.py`` builds all 27
+from the pipeline's own leakage-safe state (``ace-04-current-state.md §7`` seam 7,
+closed) — and ``"blend"`` is **kept** as a modelling choice rather than a
+workaround: it lets the point model contribute half the match-win probability,
+which is the configuration T1.9/T1.9b's scoreline-realism validation ran under.
+``sim/tournament.py`` still keeps ``mode`` a pass-through defaulting to the
+system-wide constant and says the layer that builds the adapter owns the choice;
+this module is that layer. The Monte Carlo output still carries a caveat line,
+now for the narrower reason: the model state is an as-of-now snapshot, so a
+simulation of an already-played draw is retrospective rather than a forecast.
 
 **No ``--workers`` flag (deliberate, deferred).** ``sim.tournament.monte_carlo``
-supports ``workers > 1``, and this CLI is the caller its docstring anticipates,
-but two things must land first (``ace-04-current-state.md §7`` seam 8): the
-classifier adapter has to become picklable (it is a closure today, and
-``_require_picklable`` refuses up front), and a spawn-safe entry point is needed
-on macOS/Windows. Both are out of scope for T2.5's "thin CLI" brief, so this
-module always calls ``monte_carlo(..., workers=1)`` and does not offer the knob.
-That costs little: the measured 128 × 5,000 job is 38.5 s single-threaded,
-inside the ``ace-01-architecture.md`` budget, and four workers only bought
-~1.3× because each re-pays its own cache fill.
+supports ``workers > 1``, and this CLI is the caller its docstring anticipates.
+T2.5 named two blockers (``ace-04-current-state.md §7`` seam 8): an unpicklable
+adapter, and a spawn-safe entry point on macOS/Windows. **The first is gone** —
+T3.5's ``common.classifier_adapter.ClassifierProbAdapter`` is a module-level
+class with a ``__call__`` and pickles (asserted in
+``tests/test_classifier_adapter.py``), so ``_require_picklable`` would no longer
+refuse. What is still owed is the rest: the spawn-safe entry point, and
+re-measuring the speedup with an adapter that calls ``predict_proba`` *inside* a
+worker. Both are out of scope here, so this module always calls
+``monte_carlo(..., workers=1)`` and does not offer the knob. That costs little:
+the measured 128 × 5,000 job is 38.5 s single-threaded, inside the
+``ace-01-architecture.md`` budget, and four workers only bought ~1.3× because
+each re-pays its own cache fill.
 """
 
 from __future__ import annotations
@@ -77,17 +83,20 @@ from sim.tournament import (  # noqa: E402
 
 MODES = ("montecarlo", "storybook")
 
-# Printed under the Monte Carlo table. ace-04-current-state.md §7 seam 7 is
-# explicit that any caller publishing Monte Carlo probabilities must either fix
-# the adapter's feature row or state the limitation alongside the numbers; this
-# CLI reuses the flattened adapter, so it states it. The storybook output is not
-# annotated: render_storybook already prints the reconciliation mode, and a
-# single narrative bracket does not read as a published probability.
+# Printed under the Monte Carlo table. Any caller publishing Monte Carlo
+# probabilities must state the model's limitation alongside the numbers. Until
+# T3.5 that limitation was the seam-7 defect (20 of 27 features synthetic); the
+# adapter is fixed, and what this now discloses is the caveat that remains — the
+# model state is an as-of-now snapshot, so an already-played draw is simulated
+# with knowledge from after the event. Deliberately the same claim
+# api.schemas.CLASSIFIER_LIMITATION makes to API consumers. The storybook output
+# is not annotated: render_storybook already prints the reconciliation mode, and
+# a single narrative bracket does not read as a published probability.
 ADAPTER_CAVEAT = (
-    "ℹ️  These probabilities come from a classifier whose recent-form features "
-    "are synthetic-filled (ace-04-current-state.md §7), diluted here by "
-    f"'{config.SIM_CLI_RECONCILE_MODE}' reconciliation. Treat them as a "
-    "demonstration of the machinery, not a forecast."
+    "ℹ️  These probabilities use an as-of-now snapshot of the loaded data "
+    "(ace-04-current-state.md §7), fused with the point model by "
+    f"'{config.SIM_CLI_RECONCILE_MODE}' reconciliation. For a draw that has "
+    "already been played, read them as a retrospective, not a forecast."
 )
 
 
@@ -192,8 +201,9 @@ def run_monte_carlo(
         n_runs=n_runs,
         seed=seed,
         # Single-process only, on purpose — see the module docstring and
-        # ace-04-current-state.md §7 seam 8. The CLI adapter is a closure and
-        # cannot be pickled, so workers > 1 would be refused anyway.
+        # ace-04-current-state.md §7 seam 8. T3.5's shared adapter *is* picklable,
+        # so this is no longer a refusal we would hit anyway; exposing workers > 1
+        # still owns the spawn-safe entry point and its own re-measurement.
         workers=1,
         mode=reconcile_mode,
     )
