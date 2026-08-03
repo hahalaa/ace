@@ -211,6 +211,19 @@ API_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
+# ==========================================
+# PRECOMPUTED SIMULATION CACHE (T3.3)
+# ==========================================
+# Where scripts/precompute_sim.py writes a finished Monte Carlo run and where
+# GET /tournaments/{id}/simulate reads it back: one JSON file per tournament,
+# named <tournament_id>.json. A full 128 x 5,000 job takes ~40 s, which the
+# Phase 3 rules forbid doing inside a request handler — so the result is
+# produced offline and the endpoint only ever reads this directory.
+CACHE_DIR = Path("data/cache")
+# Suffix of those files. Kept next to CACHE_DIR because the writer (the script)
+# and the reader (the API) must agree on it, and they share nothing else.
+CACHE_SUFFIX = ".json"
+
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 

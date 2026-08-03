@@ -1,4 +1,4 @@
-"""FastAPI application: ``/health``, ``/players`` (T3.1), ``/tournaments`` (T3.2).
+"""FastAPI application: ``/health``, ``/players`` (T3.1), ``/tournaments`` (T3.2/T3.3).
 
 Run it with::
 
@@ -19,14 +19,20 @@ Conventions this ticket sets for T3.2–T3.4:
   * Anything configurable (CORS origins, titles, the draws directory) is a
     ``config`` constant, overridable per app instance for tests.
 
-**T3.2 note for T3.3.** ``/tournaments/{id}/bracket`` calls ``load_draw`` and
-nothing else, so T2.2's placeholder-entrant refusal — which lives in
-``simulate_bracket`` — never fires here. A draw containing ``Qualifier`` slots
-loads fine (placeholders take the default skill profile, as everywhere else),
-so ``data/draws/example_usopen_2026.json`` is legitimately listed and its
-bracket legitimately served. The registry deliberately does **not** try to
-guess simulability; deciding what ``/simulate`` does with such a draw is T3.3's
-open question (see its ticket text).
+**T3.2 note, answered by T3.3.** ``/tournaments/{id}/bracket`` calls
+``load_draw`` and nothing else, so T2.2's placeholder-entrant refusal — which
+lives in ``simulate_bracket`` — never fires there. A draw containing
+``Qualifier`` slots loads fine (placeholders take the default skill profile, as
+everywhere else), so ``data/draws/example_usopen_2026.json`` is legitimately
+listed and its bracket legitimately served. T3.3 keeps that unchanged and answers
+the simulability question at ``/simulate`` instead — see
+:func:`tournament_simulation` for the decision and its reasoning.
+
+**T3.3: nothing in this module simulates anything.** ``/simulate`` reads a file
+that ``scripts/precompute_sim.py`` wrote offline. That is a Phase 3 global rule
+("never run a full 5,000-run MC synchronously inside a request handler"), not a
+performance preference, and it is why this module imports neither
+``sim.tournament`` nor any simulation entry point at all.
 """
 
 from __future__ import annotations
@@ -37,11 +43,11 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Path as PathParam, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import StringConstraints
+from pydantic import StringConstraints, ValidationError
 
 import config
 from api.deps import ApiContext, ContextFactory, build_api_context, log_context
-from api.registry import TournamentRegistry, build_registry
+from api.registry import TournamentEntry, TournamentRegistry, build_registry, cache_path_for
 from api.schemas import (
     BracketResponse,
     BracketSlot,
@@ -49,6 +55,7 @@ from api.schemas import (
     InvalidDraw,
     PlayerSearchResponse,
     PlayerSummary,
+    SimulationResponse,
     SurfaceSkill,
     TournamentListResponse,
     TournamentSummary,
@@ -88,6 +95,15 @@ def get_registry(request: Request) -> TournamentRegistry:
     ``app.state``, never rebuilt per request.
     """
     return request.app.state.registry
+
+
+def get_cache_dir(request: Request) -> Path:
+    """FastAPI dependency: where this app reads precomputed simulations (T3.3).
+
+    Stored on ``app.state`` like the context and the registry, so a test app can
+    point at a fixture cache directory without touching ``data/cache/``.
+    """
+    return request.app.state.cache_dir
 
 
 def _player_summary(
@@ -138,9 +154,58 @@ def _bracket_response(draw: Draw) -> BracketResponse:
     )
 
 
+def _unknown_tournament(tournament_id: str, registry: TournamentRegistry) -> HTTPException:
+    """404 for ``/simulate``, grouping ids by what can actually be simulated.
+
+    ``/bracket``'s 404 lists every registered id in one breath, correctly: a draw
+    file that failed validation *is* fetchable there, as a 422 carrying its
+    problem list. Simulation is different, and in two ways — an unloadable file
+    can never be simulated, and neither can a perfectly loadable draw that still
+    has ``Qualifier`` slots. One flat "Known ids" list would imply a capability
+    two of those groups do not have, so the same courtesy is extended split by
+    what the caller can do with each id.
+    """
+    groups = [
+        ("Simulatable ids", [e.tournament_id for e in registry.valid if e.is_simulatable]),
+        (
+            "Draws awaiting entrants (listed, but not simulatable until their "
+            "placeholder slots are filled)",
+            [e.tournament_id for e in registry.valid if not e.is_simulatable],
+        ),
+        (
+            "Draw files that failed validation (listed, but not simulatable)",
+            [e.tournament_id for e in registry.invalid],
+        ),
+    ]
+    parts = [f"No tournament with id {tournament_id!r}."]
+    for label, ids in groups:
+        if ids:
+            parts.append(f"{label}: " + ", ".join(repr(i) for i in ids) + ".")
+    if len(parts) == 1:
+        parts.append("No draws are registered.")
+    return HTTPException(status_code=404, detail=" ".join(parts))
+
+
+def _invalid_draw_file(entry: TournamentEntry) -> HTTPException:
+    """422 for a draw file that failed validation — T3.2's shape, reused."""
+    return HTTPException(
+        status_code=422,
+        detail={
+            "message": (
+                f"Draw file {entry.source!r} failed validation with "
+                f"{len(entry.problems)} problem(s)."
+            ),
+            "tournament_id": entry.tournament_id,
+            "source": entry.source,
+            "problems": list(entry.problems),
+        },
+    )
+
+
 def create_app(
     context_factory: ContextFactory = build_api_context,
     draws_dir: Path | str = config.DRAWS_DIR,
+    cache_dir: Path | str = config.CACHE_DIR,
 ) -> FastAPI:
     """Build the FastAPI app.
 
@@ -151,6 +216,12 @@ def create_app(
         draws_dir: Directory scanned once at startup for draw files. Defaults to
             ``config.DRAWS_DIR``; tests point it at a fixture directory so the
             suite never depends on the shipped draws.
+        cache_dir: Directory of precomputed simulation results read by
+            ``/simulate`` (T3.3). Defaults to ``config.CACHE_DIR``; the same
+            injection seam, for the same reason. It is **not** scanned at
+            startup — a cache file appearing while the server runs is picked up
+            on the next request, which is what makes the precompute script
+            usable against a live server.
 
     Returns:
         The configured app. Nothing is loaded or scanned until it starts.
@@ -173,9 +244,12 @@ def create_app(
         # while the server is running is not picked up until it restarts
         # (`--reload` covers the dev loop).
         app.state.registry = build_registry(context.skill_table, draws_dir)
+        # A path, not a scan: see the `cache_dir` argument note.
+        app.state.cache_dir = Path(cache_dir)
         yield
         app.state.context = None
         app.state.registry = None
+        app.state.cache_dir = None
 
     app = FastAPI(
         title=config.API_TITLE,
@@ -354,19 +428,179 @@ def create_app(
                 ),
             )
         if entry.draw is None:
+            raise _invalid_draw_file(entry)
+        return _bracket_response(entry.draw)
+
+    @app.get(
+        "/tournaments/{tournament_id}/simulate",
+        response_model=SimulationResponse,
+        tags=["tournaments"],
+    )
+    def tournament_simulation(
+        tournament_id: Annotated[
+            str,
+            PathParam(description="Id from ``GET /tournaments``."),
+        ],
+        top: Annotated[
+            int | None,
+            Query(
+                ge=1,
+                description="Return only the ``top`` most likely champions. "
+                "Omit for the whole field.",
+            ),
+        ] = None,
+        registry: TournamentRegistry = Depends(get_registry),
+        cache_dir: Path = Depends(get_cache_dir),
+    ) -> SimulationResponse:
+        """Precomputed Monte Carlo title and round-survival probabilities.
+
+        **This handler never simulates anything.** It reads the JSON file
+        ``scripts/precompute_sim.py`` wrote offline, validates it and returns it.
+        Phase 3's global rules forbid running a 5,000-run Monte Carlo inside a
+        request handler — a 128-draw job is ~40 s — so the endpoint is a cache
+        reader by design, not as an optimisation. The proof is structural: this
+        module imports no simulation entry point at all
+        (``tests/test_api_simulate.py`` pins it with raising traps on
+        ``monte_carlo`` and ``simulate_bracket``).
+
+        **Read ``metadata`` before rendering the numbers.** Every response
+        carries the reconciliation ``mode``/``w``, an ``is_forecast`` flag and a
+        plain-language ``classifier_limitation``, because the model behind these
+        probabilities has a known defect (``ace-04-current-state.md §7`` seam 7:
+        20 of the classifier's 27 features are synthetic constants, flattening it
+        toward 0.5). They are required schema fields, so a cache file cannot
+        publish bare probabilities.
+
+        Four failure modes, each distinguishable without parsing prose:
+
+          * **Unknown id → 404**, listing simulatable ids separately from draw
+            files that failed validation (see :func:`_unknown_tournament`).
+          * **A draw file that failed validation → 422** with the validator's
+            problem list — the same body ``/bracket`` returns for the same file.
+          * **A draw containing placeholder entrants → 409**
+            (``reason: "draw_not_simulatable"``). This is T3.3's answer to the
+            open question T3.2 left: the registry keeps listing such draws and
+            ``/bracket`` keeps serving them, and simulability is answered *here*,
+            at the endpoint that needs it, rather than by a ``simulatable`` flag
+            on ``/tournaments`` or by filtering the catalogue. Reasons: a flag
+            would be a second mechanism for a distinction the error already
+            makes, and would have to be kept in sync with cache presence to mean
+            anything useful to a client; filtering would hide a real event
+            (T3.2's explicit rejection of silent skipping, and its pinned
+            behaviour). A 409 also matches the standard T3.2 set — an informative
+            structured error, not a crash — and mirrors, over HTTP, the refusal
+            ``simulate_bracket`` already makes offline, naming every offending
+            slot rather than inventing a probability for it.
+          * **No cache file → 425** (``reason: "cache_missing"``) with the exact
+            command that produces one. Deliberately *not* the same code as the
+            placeholder case: 409 means "this draw can never be simulated as
+            written, edit the file", 425 means "not computed yet, run the
+            script". Both return immediately; neither blocks on a Monte Carlo
+            run, and no background job is kicked off, because a request that
+            silently triggers a 40 s job is the thing the Phase 3 rule exists to
+            prevent.
+
+        The placeholder check runs **before** the cache lookup, so the answer for
+        a given draw is a property of the draw rather than of whatever happens to
+        be on disk.
+
+        A cache file that fails to parse, or that describes a different draw than
+        the registry holds (a stale file left after the draw was edited), is also
+        a 422 — same reasoning as an invalid draw file: it is the server's
+        artefact, a 500 would imply a transient fault, and the fix is named in
+        the message.
+        """
+        entry = registry.get(tournament_id)
+        if entry is None:
+            raise _unknown_tournament(tournament_id, registry)
+        if entry.draw is None:
+            raise _invalid_draw_file(entry)
+
+        placeholders = entry.placeholder_slots
+        if placeholders:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "reason": "draw_not_simulatable",
+                    "message": (
+                        f"Draw {entry.draw.tournament_id!r} has "
+                        f"{len(placeholders)} placeholder entrant(s) and cannot "
+                        f"be simulated: a placeholder has no player id and no "
+                        f"classifier history, so no match-win probability can be "
+                        f"computed for it. Fill these slots with real entrants in "
+                        f"{entry.source!r}, then precompute."
+                    ),
+                    "tournament_id": entry.draw.tournament_id,
+                    "source": entry.source,
+                    "placeholder_slots": [
+                        {"position": slot.position, "player": slot.player}
+                        for slot in placeholders
+                    ],
+                },
+            )
+
+        path = cache_path_for(tournament_id, cache_dir)
+        if path is None or not path.is_file():
+            raise HTTPException(
+                status_code=425,
+                detail={
+                    "reason": "cache_missing",
+                    "message": (
+                        f"No precomputed simulation for {tournament_id!r}. Monte "
+                        f"Carlo is never run inside a request — generate the "
+                        f"cache offline and retry."
+                    ),
+                    "tournament_id": tournament_id,
+                    "command": (
+                        f"python scripts/precompute_sim.py --draw {tournament_id} "
+                        f"--runs {config.MC_RUNS} --seed {config.MC_SEED}"
+                    ),
+                },
+            )
+
+        try:
+            cached = SimulationResponse.model_validate_json(
+                path.read_text(encoding="utf-8")
+            )
+        except (ValidationError, ValueError, OSError) as exc:
             raise HTTPException(
                 status_code=422,
                 detail={
+                    "reason": "cache_unreadable",
                     "message": (
-                        f"Draw file {entry.source!r} failed validation with "
-                        f"{len(entry.problems)} problem(s)."
+                        f"The cached simulation for {tournament_id!r} could not "
+                        f"be read as a {SimulationResponse.__name__}: {exc}. "
+                        f"Re-run the precompute script to regenerate it."
                     ),
-                    "tournament_id": entry.tournament_id,
-                    "source": entry.source,
-                    "problems": list(entry.problems),
+                    "tournament_id": tournament_id,
+                },
+            ) from exc
+
+        if (
+            cached.tournament_id != entry.draw.tournament_id
+            or cached.draw_size != entry.draw.draw_size
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "reason": "cache_stale",
+                    "message": (
+                        f"The cached simulation for {tournament_id!r} describes "
+                        f"{cached.tournament_id!r} with a {cached.draw_size}-slot "
+                        f"draw, but the registered draw is "
+                        f"{entry.draw.tournament_id!r} with {entry.draw.draw_size} "
+                        f"slots. Re-run the precompute script."
+                    ),
+                    "tournament_id": tournament_id,
                 },
             )
-        return _bracket_response(entry.draw)
+
+        if top is not None and top < cached.count:
+            # players are already sorted by title probability, descending.
+            return cached.model_copy(
+                update={"players": cached.players[:top], "count": top}
+            )
+        return cached
 
     return app
 

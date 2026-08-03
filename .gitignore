@@ -10,6 +10,11 @@ __pycache__/
 outputs/
 !outputs/.gitkeep
 
+# Precomputed Monte Carlo caches (T3.3) are generated artefacts — regenerate
+# them with scripts/precompute_sim.py. The directory itself is tracked.
+data/cache/*.json
+!data/cache/.gitkeep
+
 # Ignore stray raw data blobs, but keep the vendored per-year files under data/raw/
 *.csv
 !data/raw/*.csv

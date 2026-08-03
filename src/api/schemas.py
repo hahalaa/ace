@@ -1,4 +1,4 @@
-"""Pydantic response models for the API (T3.1, T3.2).
+"""Pydantic response models for the API (T3.1, T3.2, T3.3).
 
 Every endpoint returns one of these — no handler returns a raw dict. Three
 conventions established here for the rest of Phase 3 to follow:
@@ -17,6 +17,8 @@ conventions established here for the rest of Phase 3 to follow:
 """
 
 from __future__ import annotations
+
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -209,4 +211,153 @@ class BracketResponse(BaseModel):
         default_factory=list,
         description="Every slot, ordered by ``position`` — placeholders "
         "included and flagged, never dropped.",
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Cached Monte Carlo simulation (T3.3)
+# --------------------------------------------------------------------------- #
+# These three models are **also the cache file format**. ``scripts/precompute_sim.py``
+# assembles a SimulationResponse, validates it and writes its JSON; the endpoint
+# reads that file straight back through the same model. So there is one
+# definition of the format rather than a writer and a reader that must be kept in
+# step, and ``extra="forbid"`` plus the absence of defaults on the metadata
+# fields means a cache file written by an older schema fails loudly on read
+# instead of being served with fields silently missing.
+class SimulationMetadata(BaseModel):
+    """Provenance of a cached Monte Carlo run — what produced these numbers.
+
+    Every field is **required**: this block is what makes a published
+    probability traceable, and a cache file that omits any of it is rejected on
+    read rather than served bare. In particular ``mode``/``w`` and
+    ``classifier_limitation`` are not decoration — see
+    :class:`SimulationResponse`.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    runs: int = Field(description="Number of bracket simulations behind the counts.")
+    seed: int = Field(
+        description="Base RNG seed. Re-running the precompute script with this "
+        "seed, runs and mode reproduces the file exactly. (Not to be confused "
+        "with a player's tournament seed in ``SimulationPlayer.seed``.)"
+    )
+    workers: int = Field(
+        description="Processes used. Provenance only — the aggregate is "
+        "worker-count-independent by construction (T2.3)."
+    )
+    mode: str = Field(
+        description="Reconciliation mode the probabilities were produced under: "
+        "``blend`` (classifier diluted by the point model) or "
+        "``classifier_anchor`` (the classifier *is* the target). Read together "
+        "with ``classifier_limitation``."
+    )
+    w: float = Field(
+        description="Weight on the classifier's probability in ``blend`` mode; "
+        "unused by ``classifier_anchor``."
+    )
+    generated_at: datetime = Field(
+        description="When the cache file was written (UTC, ISO-8601)."
+    )
+    data_through_year: int = Field(
+        description="Latest season present in the data the skill table and "
+        "classifier were built from."
+    )
+    estimator_class: str = Field(
+        description="Class name of the pinned classifier used (the persisted "
+        "model is a best-of-four; see ``ace-04-current-state.md §4``)."
+    )
+    adapter: str = Field(
+        description="Which ``ClassifierProb`` adapter produced ``P_clf`` — the "
+        "subject of ``classifier_limitation``."
+    )
+    is_forecast: bool = Field(
+        description="**Machine-readable honesty flag.** ``false`` means these "
+        "numbers demonstrate the simulation machinery and must not be presented "
+        "as a prediction of the event; see ``classifier_limitation``."
+    )
+    classifier_limitation: str = Field(
+        description="Plain-language statement of the known limitation of the "
+        "model behind these probabilities. Required, so numbers cannot be "
+        "published without it."
+    )
+    source: str = Field(
+        description="Draw file basename the simulation was run against."
+    )
+
+
+class SimulationPlayer(BaseModel):
+    """One entrant's simulated outcome — mirrors ``sim.tournament.PlayerOutcome``.
+
+    Both the raw **counts** and the derived **probabilities** are carried: counts
+    are what T2.3 actually stores (integers make two runs comparable for exact
+    equality), and probabilities are what a client renders. Nothing here is
+    computed that ``PlayerOutcome`` does not already expose.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    position: int = Field(description="1-based bracket slot.")
+    player: str = Field(description="Entrant display name.")
+    player_id: str | None = Field(description="Skill-table id; the join key.")
+    seed: int | None = Field(
+        description="The player's **tournament seed**, or ``None`` if unseeded. "
+        "Unrelated to ``SimulationMetadata.seed``, which is the RNG seed."
+    )
+    titles: int = Field(description="Runs this entrant won.")
+    matches_won: int = Field(description="Matches won across every run.")
+    p_title: float = Field(description="``titles / runs`` — P(wins the event).")
+    expected_rounds_won: float = Field(
+        description="``matches_won / runs`` — mean matches won per run."
+    )
+    reached: dict[str, int] = Field(
+        description="Round label → runs in which the entrant contested it."
+    )
+    p_reach: dict[str, float] = Field(
+        description="Round label → P(contests that round). Keys are the draw's "
+        "own labels (``QF``/``SF``/``F`` for an 8-draw, ``R128 … F`` for 128), "
+        "never a hardcoded set."
+    )
+
+
+class SimulationResponse(BaseModel):
+    """A precomputed Monte Carlo result, as cached and as served.
+
+    **Read ``metadata`` before rendering the numbers.** ``ace-04-current-state.md
+    §7`` seam 7 records that the only ``ClassifierProb`` adapter built so far
+    fills 20 of the classifier's 27 features with synthetic constants, which
+    collapses its probability toward 0.5. T3.3 publishes these probabilities over
+    HTTP, and the ticket requires the limitation to travel *with* them, so
+    ``metadata.classifier_limitation`` (prose), ``metadata.is_forecast``
+    (machine-readable) and ``metadata.mode``/``w`` (what dilutes it) are required
+    fields of every response, not a footnote in the docs.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    tournament_id: str = Field(description="The draw's own id.")
+    name: str = Field(description="Human-readable event name.")
+    surface: str = Field(description="``Hard``, ``Clay`` or ``Grass``.")
+    best_of: int = Field(description="3 or 5.")
+    final_set_tiebreak: str = Field(description="Deciding-set rule.")
+    draw_size: int = Field(
+        description="Entrants in the draw — the **full** field size, which "
+        "exceeds ``count`` when ``?top=`` truncated the rows."
+    )
+    round_labels: list[str] = Field(
+        default_factory=list,
+        description="The draw's round labels, first round first.",
+    )
+    count: int = Field(
+        description="Players in ``players`` — the whole field unless ``?top=`` "
+        "was given."
+    )
+    players: list[SimulationPlayer] = Field(
+        default_factory=list,
+        description="Entrants sorted by title probability, descending (ties "
+        "broken by bracket position, so the order is deterministic).",
+    )
+    metadata: SimulationMetadata = Field(
+        description="Provenance: runs, seed, mode/weight, data year, and the "
+        "model's known limitation. Required."
     )

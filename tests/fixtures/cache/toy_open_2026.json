@@ -1,0 +1,122 @@
+{
+  "tournament_id": "toy_open_2026",
+  "name": "Toy Open 2026",
+  "surface": "Clay",
+  "best_of": 3,
+  "final_set_tiebreak": "7pt_at_6_6",
+  "draw_size": 8,
+  "round_labels": ["QF", "SF", "F"],
+  "count": 8,
+  "players": [
+    {
+      "position": 8,
+      "player": "Bob Baseline",
+      "player_id": "B2",
+      "seed": 2,
+      "titles": 27,
+      "matches_won": 142,
+      "p_title": 0.27,
+      "expected_rounds_won": 1.42,
+      "reached": {"QF": 100, "SF": 70, "F": 45},
+      "p_reach": {"QF": 1.0, "SF": 0.7, "F": 0.45}
+    },
+    {
+      "position": 1,
+      "player": "Alice Ace",
+      "player_id": "A1",
+      "seed": 1,
+      "titles": 25,
+      "matches_won": 125,
+      "p_title": 0.25,
+      "expected_rounds_won": 1.25,
+      "reached": {"QF": 100, "SF": 60, "F": 40},
+      "p_reach": {"QF": 1.0, "SF": 0.6, "F": 0.4}
+    },
+    {
+      "position": 3,
+      "player": "Cara Chip",
+      "player_id": "C3",
+      "seed": 3,
+      "titles": 12,
+      "matches_won": 92,
+      "p_title": 0.12,
+      "expected_rounds_won": 0.92,
+      "reached": {"QF": 100, "SF": 55, "F": 25},
+      "p_reach": {"QF": 1.0, "SF": 0.55, "F": 0.25}
+    },
+    {
+      "position": 2,
+      "player": "Hank Half",
+      "player_id": "H8",
+      "seed": null,
+      "titles": 10,
+      "matches_won": 70,
+      "p_title": 0.1,
+      "expected_rounds_won": 0.7,
+      "reached": {"QF": 100, "SF": 40, "F": 20},
+      "p_reach": {"QF": 1.0, "SF": 0.4, "F": 0.2}
+    },
+    {
+      "position": 5,
+      "player": "Eve Emphatic",
+      "player_id": "E5",
+      "seed": null,
+      "titles": 10,
+      "matches_won": 87,
+      "p_title": 0.1,
+      "expected_rounds_won": 0.87,
+      "reached": {"QF": 100, "SF": 52, "F": 25},
+      "p_reach": {"QF": 1.0, "SF": 0.52, "F": 0.25}
+    },
+    {
+      "position": 6,
+      "player": "Frank Fault",
+      "player_id": "F6",
+      "seed": null,
+      "titles": 8,
+      "matches_won": 76,
+      "p_title": 0.08,
+      "expected_rounds_won": 0.76,
+      "reached": {"QF": 100, "SF": 48, "F": 20},
+      "p_reach": {"QF": 1.0, "SF": 0.48, "F": 0.2}
+    },
+    {
+      "position": 4,
+      "player": "Dan Drop",
+      "player_id": "D4",
+      "seed": null,
+      "titles": 5,
+      "matches_won": 65,
+      "p_title": 0.05,
+      "expected_rounds_won": 0.65,
+      "reached": {"QF": 100, "SF": 45, "F": 15},
+      "p_reach": {"QF": 1.0, "SF": 0.45, "F": 0.15}
+    },
+    {
+      "position": 7,
+      "player": "Gina Grip",
+      "player_id": "G7",
+      "seed": null,
+      "titles": 3,
+      "matches_won": 43,
+      "p_title": 0.03,
+      "expected_rounds_won": 0.43,
+      "reached": {"QF": 100, "SF": 30, "F": 10},
+      "p_reach": {"QF": 1.0, "SF": 0.3, "F": 0.1}
+    }
+  ],
+  "metadata": {
+    "runs": 100,
+    "seed": 7,
+    "workers": 1,
+    "mode": "blend",
+    "w": 0.5,
+    "generated_at": "2026-08-03T09:15:00Z",
+    "data_through_year": 2026,
+    "estimator_class": "StubClassifier",
+    "adapter": "cli.simulate_match.make_classifier_prob",
+    "is_forecast": false,
+    "classifier_limitation": "Demonstration, not a forecast. The classifier behind these probabilities is fed a feature row in which 20 of its 27 features — every recent-form feature — are synthetic constants rather than real form, which pushes its match-win probability toward 0.5 (ace-04-current-state.md §7 seam 7). The reconciliation mode in this metadata dilutes that effect but does not remove it. Treat these numbers as a demonstration of the simulation machinery, not as a prediction of the event.",
+    "source": "toy_open.json"
+  }
+}
