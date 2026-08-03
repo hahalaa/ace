@@ -554,34 +554,43 @@ def test_each_simulation_trap_is_live(module, name, monkeypatch, skill_table):
             )
 
 
-def test_api_main_imports_no_simulation_entry_point():
-    """The structural half: ``api/main.py`` cannot simulate, live or otherwise.
+def test_api_main_imports_no_monte_carlo_entry_point():
+    """The structural half: ``api/main.py`` cannot run a Monte Carlo.
 
     Traps prove the code path is not taken today; this proves there is no path —
-    the module holds no reference to the simulator at all, which is why the
-    "cached results only" rule cannot be broken by an accidental edit that
+    the module holds no reference to the aggregate simulator at all, which is why
+    the "cached results only" rule cannot be broken by an accidental edit that
     resolves a name at import time.
+
+    **Narrowed by T3.4, deliberately.** Until then the assertion was that
+    ``api/main.py`` referenced *no* simulation entry point whatsoever;
+    ``/storybook`` now runs one bracket live, so ``storybook_run`` is imported
+    and called here on purpose (the Phase 3 rule bounds the *size* of a live run,
+    not its existence — see the endpoint docstring). What must stay untrue is the
+    thing the rule actually forbids: a 5,000-run aggregate, or the raw bracket
+    loop it is built from, reachable from a request. The positive assertion below
+    keeps this test honest — if ``storybook_run`` ever stops being called from
+    here, this file should be tightened back, not left permissive.
     """
     source = Path("src/api/main.py").read_text(encoding="utf-8")
     code = "\n".join(
         line for line in source.splitlines() if not line.strip().startswith("#")
     )
     for forbidden in (
-        "from sim.tournament",
-        "import sim.tournament",
-        "from sim.reconcile",
-        "import sim.reconcile",
         "from sim.match",
         "import sim.match",
         # ...and no call to one, however it might have been imported. (The
-        # endpoint docstring names these functions in prose; a call carries the
+        # endpoint docstrings name these functions in prose; a call carries the
         # opening parenthesis.)
         "monte_carlo(",
         "simulate_bracket(",
-        "storybook_run(",
         "simulate_reconciled_match(",
     ):
         assert forbidden not in code, forbidden
+
+    # The one live entry point T3.4 admits, and nothing broader from its module.
+    assert "storybook_run(" in code
+    assert "from sim.tournament import StorybookResult, storybook_run" in code
 
 
 # --------------------------------------------------------------------------- #

@@ -85,6 +85,8 @@ import config  # noqa: E402
 from api.deps import ApiContext, build_api_context  # noqa: E402
 from api.registry import TournamentRegistry, build_registry, cache_path_for  # noqa: E402
 from api.schemas import (  # noqa: E402
+    CLASSIFIER_LIMITATION,
+    IS_FORECAST,
     SimulationMetadata,
     SimulationPlayer,
     SimulationResponse,
@@ -96,18 +98,12 @@ from sim.tournament import MonteCarloResult, monte_carlo  # noqa: E402
 # consumer can tell which model produced the numbers (see the module docstring).
 ADAPTER = "cli.simulate_match.make_classifier_prob"
 
-# The seam-7 disclosure, written verbatim into every cache file and served with
-# every /simulate response. Deliberately plain-language and self-contained: an
-# API consumer will not have read ace-04-current-state.md.
-CLASSIFIER_LIMITATION = (
-    "Demonstration, not a forecast. The classifier behind these probabilities is "
-    "fed a feature row in which 20 of its 27 features — every recent-form "
-    "feature — are synthetic constants rather than real form, which pushes its "
-    "match-win probability toward 0.5 (ace-04-current-state.md §7 seam 7). The "
-    "reconciliation mode in this metadata dilutes that effect but does not "
-    "remove it. Treat these numbers as a demonstration of the simulation "
-    "machinery, not as a prediction of the event."
-)
+# The seam-7 disclosure text and honesty flag are imported from ``api.schemas``,
+# not written here: T3.4's live ``/storybook`` publishes probabilities from the
+# same adapter and must say the same thing about them, and ``api/schemas.py`` is
+# the one module both this script and the API can reach. Deliberately
+# plain-language and self-contained — an API consumer will not have read
+# ace-04-current-state.md.
 
 
 # --------------------------------------------------------------------------- #
@@ -122,7 +118,7 @@ def build_payload(
     generated_at: datetime | None = None,
     adapter: str = ADAPTER,
     classifier_limitation: str = CLASSIFIER_LIMITATION,
-    is_forecast: bool = False,
+    is_forecast: bool = IS_FORECAST,
 ) -> SimulationResponse:
     """Turn a finished Monte Carlo run into the cache/wire payload.
 

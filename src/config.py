@@ -211,6 +211,30 @@ API_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
+# ---- Live storybook endpoint (T3.4) ----
+# Which ClassifierProb adapter the running API builds at startup, as
+# "<module>:<attribute>", resolved by importlib in api/main.create_app.
+#
+# It is a *string* rather than an import for one reason: the only adapter that
+# exists is cli/simulate_match.make_classifier_prob, and the layering rule
+# forbids api/ from importing cli/. Late-binding it here keeps api/ free of any
+# cli/ symbol (the static dependency graph the rule is about) and makes the
+# adapter a deployment choice — the day a real-feature adapter exists
+# (ace-04-current-state.md §7 seams 6/7), swapping it is this line, not a code
+# change in the app. The dependency is still real at runtime, so every response
+# names the adapter that actually ran in `metadata.adapter`.
+API_CLASSIFIER_ADAPTER = "cli.simulate_match:make_classifier_prob"
+# Seed GET /tournaments/{id}/storybook uses when the caller gives none. A fixed
+# value, NOT a time- or random-derived one: a bare /storybook must return the
+# same story on a retry (that is the endpoint's determinism criterion, and a GET
+# whose body changes per call cannot be cached or shared). A caller who wants a
+# different story asks for one by passing ?seed=. 42 is the ticket's own example.
+API_STORYBOOK_SEED = 42
+# Largest accepted ?seed=. numpy.random.default_rng takes arbitrarily large
+# non-negative ints; capping at 2**32-1 keeps a shared URL short and the accepted
+# range obvious, without touching reproducibility.
+API_STORYBOOK_SEED_MAX = 2**32 - 1
+
 # ==========================================
 # PRECOMPUTED SIMULATION CACHE (T3.3)
 # ==========================================

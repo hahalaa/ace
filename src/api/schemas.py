@@ -1,4 +1,4 @@
-"""Pydantic response models for the API (T3.1, T3.2, T3.3).
+"""Pydantic response models for the API (T3.1, T3.2, T3.3, T3.4).
 
 Every endpoint returns one of these — no handler returns a raw dict. Three
 conventions established here for the rest of Phase 3 to follow:
@@ -215,37 +215,52 @@ class BracketResponse(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
-# Cached Monte Carlo simulation (T3.3)
+# The seam-7 disclosure (T3.3), shared by every endpoint that publishes a
+# simulated probability (T3.4).
 # --------------------------------------------------------------------------- #
-# These three models are **also the cache file format**. ``scripts/precompute_sim.py``
-# assembles a SimulationResponse, validates it and writes its JSON; the endpoint
-# reads that file straight back through the same model. So there is one
-# definition of the format rather than a writer and a reader that must be kept in
-# step, and ``extra="forbid"`` plus the absence of defaults on the metadata
-# fields means a cache file written by an older schema fails loudly on read
-# instead of being served with fields silently missing.
-class SimulationMetadata(BaseModel):
-    """Provenance of a cached Monte Carlo run — what produced these numbers.
+# The canonical disclosure text. It lives here, next to the schema that requires
+# it, because two producers need the identical wording: ``scripts/precompute_sim.py``
+# writes it into every cache file, and ``api/main.py`` attaches it to every live
+# storybook. A second copy of this paragraph is exactly the "second disclosure
+# format" the requirement exists to prevent.
+CLASSIFIER_LIMITATION = (
+    "Demonstration, not a forecast. The classifier behind these probabilities is "
+    "fed a feature row in which 20 of its 27 features — every recent-form "
+    "feature — are synthetic constants rather than real form, which pushes its "
+    "match-win probability toward 0.5 (ace-04-current-state.md §7 seam 7). The "
+    "reconciliation mode in this metadata dilutes that effect but does not "
+    "remove it. Treat these numbers as a demonstration of the simulation "
+    "machinery, not as a prediction of the event."
+)
 
-    Every field is **required**: this block is what makes a published
-    probability traceable, and a cache file that omits any of it is rejected on
-    read rather than served bare. In particular ``mode``/``w`` and
-    ``classifier_limitation`` are not decoration — see
-    :class:`SimulationResponse`.
+# Whether output produced under the adapter above may be presented as a
+# prediction. False while seam 7 stands; one flag, so the two producers cannot
+# disagree about it.
+IS_FORECAST = False
+
+
+class ModelDisclosure(BaseModel):
+    """What produced a published probability, and what is wrong with it.
+
+    The base of both metadata blocks, so the seam-7 disclosure is **inherited
+    rather than retyped**: ``/simulate`` (cached Monte Carlo) and ``/storybook``
+    (live single run) run the same reconciliation over the same defective
+    adapter, so a consumer that learned to read one has learned to read both,
+    and neither can drift into publishing a subset of the fields.
+
+    Every field is **required** — that is what makes disclosure structural. A
+    cache file or a handler that omits any of it fails validation instead of
+    serving bare probabilities.
+
+    What is *not* here is as deliberate as what is. Run-shape provenance
+    (``runs``/``workers``) belongs to a Monte Carlo aggregate and is filler for a
+    single live run; ``generated_at`` describes a cache *file* and would make an
+    otherwise byte-identical storybook differ between two calls with the same
+    seed. Subclasses add what actually applies to them.
     """
 
     model_config = ConfigDict(extra="forbid")
 
-    runs: int = Field(description="Number of bracket simulations behind the counts.")
-    seed: int = Field(
-        description="Base RNG seed. Re-running the precompute script with this "
-        "seed, runs and mode reproduces the file exactly. (Not to be confused "
-        "with a player's tournament seed in ``SimulationPlayer.seed``.)"
-    )
-    workers: int = Field(
-        description="Processes used. Provenance only — the aggregate is "
-        "worker-count-independent by construction (T2.3)."
-    )
     mode: str = Field(
         description="Reconciliation mode the probabilities were produced under: "
         "``blend`` (classifier diluted by the point model) or "
@@ -255,9 +270,6 @@ class SimulationMetadata(BaseModel):
     w: float = Field(
         description="Weight on the classifier's probability in ``blend`` mode; "
         "unused by ``classifier_anchor``."
-    )
-    generated_at: datetime = Field(
-        description="When the cache file was written (UTC, ISO-8601)."
     )
     data_through_year: int = Field(
         description="Latest season present in the data the skill table and "
@@ -283,6 +295,39 @@ class SimulationMetadata(BaseModel):
     )
     source: str = Field(
         description="Draw file basename the simulation was run against."
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Cached Monte Carlo simulation (T3.3)
+# --------------------------------------------------------------------------- #
+# These three models are **also the cache file format**. ``scripts/precompute_sim.py``
+# assembles a SimulationResponse, validates it and writes its JSON; the endpoint
+# reads that file straight back through the same model. So there is one
+# definition of the format rather than a writer and a reader that must be kept in
+# step, and ``extra="forbid"`` plus the absence of defaults on the metadata
+# fields means a cache file written by an older schema fails loudly on read
+# instead of being served with fields silently missing.
+class SimulationMetadata(ModelDisclosure):
+    """Provenance of a cached Monte Carlo run — what produced these numbers.
+
+    :class:`ModelDisclosure` plus the three facts that only a cached aggregate
+    has: how many runs are behind the counts, the base seed that reproduces
+    them, and when the file was written.
+    """
+
+    runs: int = Field(description="Number of bracket simulations behind the counts.")
+    seed: int = Field(
+        description="Base RNG seed. Re-running the precompute script with this "
+        "seed, runs and mode reproduces the file exactly. (Not to be confused "
+        "with a player's tournament seed in ``SimulationPlayer.seed``.)"
+    )
+    workers: int = Field(
+        description="Processes used. Provenance only — the aggregate is "
+        "worker-count-independent by construction (T2.3)."
+    )
+    generated_at: datetime = Field(
+        description="When the cache file was written (UTC, ISO-8601)."
     )
 
 
@@ -360,4 +405,155 @@ class SimulationResponse(BaseModel):
     metadata: SimulationMetadata = Field(
         description="Provenance: runs, seed, mode/weight, data year, and the "
         "model's known limitation. Required."
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Live storybook run (T3.4)
+# --------------------------------------------------------------------------- #
+# Wire models over ``sim.tournament``'s T2.4 storybook types. Presentation only,
+# in the same sense ``scripts/precompute_sim.build_payload`` is: every field is
+# read off ``StorybookResult``/``StorybookRound``/``StorybookMatch``/``PlayerRun``,
+# and nothing is re-derived from the underlying ``BracketResult`` a second time.
+class StorybookMetadata(ModelDisclosure):
+    """Provenance of one live storybook run.
+
+    :class:`ModelDisclosure` — the same seam-7 disclosure ``/simulate`` carries,
+    inherited rather than restated — plus the one fact that reproduces this
+    particular story: its ``seed``.
+
+    Note what is deliberately absent: no ``runs``/``workers`` (this *is* one run,
+    in-process) and no ``generated_at``. Everything here is a function of the
+    draw, the seed and the startup state, so two calls with the same seed return
+    byte-identical bodies — which is what makes the URL shareable.
+    """
+
+    seed: int = Field(
+        description="RNG seed this story was played out under — the one the "
+        "caller passed, or the server default when they passed none. Echoed so "
+        "``?seed=`` on the same URL replays this exact tournament. (Not to be "
+        "confused with a player's tournament seed in ``StorybookPlayerRun.seed``.)"
+    )
+
+
+class StorybookMatch(BaseModel):
+    """One played-out match — mirrors ``sim.tournament.StorybookMatch``.
+
+    Both ``scoreline`` and the rendered ``line`` are carried: a bracket renderer
+    wants the score next to two names it positions itself, and a feed wants the
+    one-liner. ``line`` is the T2.4 dataclass's own field, not a second
+    formatting rule invented here.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    round_index: int = Field(description="0-based round, first round first.")
+    round_label: str = Field(description="``R128`` … ``QF``/``SF``/``F``.")
+    match_index: int = Field(
+        description="0-based position of the match within its round, top of the "
+        "draw first."
+    )
+    winner: str = Field(description="Winner's display name.")
+    loser: str = Field(description="Loser's display name.")
+    winner_seed: int | None = Field(
+        description="Winner's tournament seed, ``None`` if unseeded."
+    )
+    loser_seed: int | None = Field(
+        description="Loser's tournament seed, ``None`` if unseeded."
+    )
+    scoreline: str = Field(
+        description="Winner-first set-by-set score, e.g. ``6-4 3-6 7-6(5) 6-2``."
+    )
+    line: str = Field(description="``\"<winner> def. <loser> <scoreline>\"``.")
+
+
+class StorybookRound(BaseModel):
+    """One round of the story, its matches in draw order."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    index: int = Field(description="0-based round number.")
+    label: str = Field(description="The draw's own label for this round.")
+    matches: list[StorybookMatch] = Field(
+        default_factory=list, description="Every match in the round."
+    )
+
+
+class StorybookPlayerRun(BaseModel):
+    """One entrant's tournament, summarised — mirrors ``sim.tournament.PlayerRun``.
+
+    Included so a client never has to walk ``rounds`` to answer "how far did this
+    player get, and who beat them" — T2.4 already computed it from the bracket,
+    and re-deriving it here would be a second answer to the same question.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    position: int = Field(description="1-based bracket slot.")
+    player: str = Field(description="Entrant display name.")
+    player_id: str | None = Field(description="Skill-table id; the join key.")
+    seed: int | None = Field(
+        description="The player's **tournament seed**, or ``None`` if unseeded."
+    )
+    is_champion: bool = Field(description="True for the one entrant who won.")
+    furthest_round: str = Field(
+        description="Label of the last round contested — so a beaten finalist "
+        "and the champion both read ``F``."
+    )
+    matches_won: int = Field(description="Matches won (``0`` for a first-round exit).")
+    beat: list[str] = Field(
+        default_factory=list, description="Opponents beaten, in round order."
+    )
+    eliminated_by: str | None = Field(
+        description="Who knocked them out; ``None`` **iff** ``is_champion``."
+    )
+
+
+class StorybookChampion(BaseModel):
+    """The title winner — identity only; their matches are in ``rounds``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    position: int = Field(description="1-based bracket slot they entered from.")
+    player: str = Field(description="Display name.")
+    player_id: str | None = Field(description="Skill-table id; the join key.")
+    seed: int | None = Field(description="Tournament seed, ``None`` if unseeded.")
+
+
+class StorybookResponse(BaseModel):
+    """One tournament played out point by point, for one seed.
+
+    **Read ``metadata`` before rendering the scorelines**, for the same reason
+    :class:`SimulationResponse` says so: the same reconciliation over the same
+    adapter produced them, and ``ace-04-current-state.md §7`` seam 7 applies
+    identically to a live run. The disclosure is the inherited
+    :class:`ModelDisclosure` block, not a second format.
+
+    Deterministic in full: every field is a function of the draw, ``metadata.seed``
+    and the server's startup state, so the same URL returns the same body.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    tournament_id: str = Field(description="The draw's own id.")
+    name: str = Field(description="Human-readable event name.")
+    surface: str = Field(description="``Hard``, ``Clay`` or ``Grass``.")
+    best_of: int = Field(description="3 or 5.")
+    final_set_tiebreak: str = Field(description="Deciding-set rule.")
+    draw_size: int = Field(description="Entrants in the draw.")
+    match_count: int = Field(
+        description="Matches played — ``draw_size - 1`` for a full bracket."
+    )
+    rounds: list[StorybookRound] = Field(
+        default_factory=list, description="Every round, first round first."
+    )
+    champion: StorybookChampion = Field(description="Who won the title.")
+    runs: list[StorybookPlayerRun] = Field(
+        default_factory=list,
+        description="Every entrant's run, best finish first (ties broken by "
+        "bracket position, so the order is deterministic).",
+    )
+    metadata: StorybookMetadata = Field(
+        description="Provenance: the seed that replays this story, the "
+        "reconciliation mode/weight, and the model's known limitation. Required."
     )

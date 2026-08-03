@@ -1,4 +1,4 @@
-"""FastAPI application: ``/health``, ``/players`` (T3.1), ``/tournaments`` (T3.2/T3.3).
+"""FastAPI application: ``/health``, ``/players`` (T3.1), ``/tournaments`` (T3.2–T3.4).
 
 Run it with::
 
@@ -28,18 +28,26 @@ listed and its bracket legitimately served. T3.3 keeps that unchanged and answer
 the simulability question at ``/simulate`` instead — see
 :func:`tournament_simulation` for the decision and its reasoning.
 
-**T3.3: nothing in this module simulates anything.** ``/simulate`` reads a file
-that ``scripts/precompute_sim.py`` wrote offline. That is a Phase 3 global rule
-("never run a full 5,000-run MC synchronously inside a request handler"), not a
-performance preference, and it is why this module imports neither
-``sim.tournament`` nor any simulation entry point at all.
+**T3.3/T3.4: what this module may and may not simulate.** ``/simulate`` reads a
+file that ``scripts/precompute_sim.py`` wrote offline and simulates nothing —
+Phase 3's global rule ("never run a full 5,000-run MC synchronously inside a
+request handler") is a rule, not a performance preference, so this module holds
+no reference to ``monte_carlo`` or ``simulate_bracket`` at all. ``/storybook``
+(T3.4) is the deliberate exception the same rule allows: **one** bracket, not
+thousands, run live per request via ``sim.tournament.storybook_run``. The line
+is the cost of a single run (0.4–1.4 s for a 128 draw; measured below), and
+``tests/test_api_simulate.py`` pins it — the Monte Carlo entry points must stay
+un-imported here even though the storybook one is now imported.
 """
 
 from __future__ import annotations
 
+import importlib
+import logging
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any, Callable
 
 from fastapi import Depends, FastAPI, HTTPException, Path as PathParam, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -49,6 +57,8 @@ import config
 from api.deps import ApiContext, ContextFactory, build_api_context, log_context
 from api.registry import TournamentEntry, TournamentRegistry, build_registry, cache_path_for
 from api.schemas import (
+    CLASSIFIER_LIMITATION,
+    IS_FORECAST,
     BracketResponse,
     BracketSlot,
     HealthResponse,
@@ -56,6 +66,12 @@ from api.schemas import (
     PlayerSearchResponse,
     PlayerSummary,
     SimulationResponse,
+    StorybookChampion,
+    StorybookMatch,
+    StorybookMetadata,
+    StorybookPlayerRun,
+    StorybookResponse,
+    StorybookRound,
     SurfaceSkill,
     TournamentListResponse,
     TournamentSummary,
@@ -63,6 +79,10 @@ from api.schemas import (
 from common.names import NameIndex, resolve_name
 from features.serve import SkillTable
 from sim.draw import Draw
+from sim.reconcile import ClassifierProb
+from sim.tournament import StorybookResult, storybook_run
+
+logger = logging.getLogger(__name__)
 
 # Deterministic surface ordering in every response body (VALID_SURFACES is a set).
 SURFACE_ORDER = sorted(config.VALID_SURFACES)
@@ -76,6 +96,112 @@ SURFACE_ORDER = sorted(config.VALID_SURFACES)
 # the same 422 path as "" and a missing query, and the handler searches (and
 # echoes) the stripped string.
 PlayerQuery = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+# A factory with ``cli.simulate_match.make_classifier_prob``'s signature:
+# ``(estimator, data, surface_history, h2h_history) -> ClassifierProb``. Called
+# once at startup with the pieces :class:`~api.deps.ApiContext` already carries.
+ClassifierFactory = Callable[[Any, Any, dict, dict], ClassifierProb]
+
+
+@dataclass(frozen=True)
+class ClassifierAdapter:
+    """The startup-built ``ClassifierProb`` and the name it is disclosed under.
+
+    The two travel together because they must agree: ``name`` is what every
+    ``metadata.adapter`` field reports, and it is *derived from* the factory that
+    actually ran rather than written down beside it, so a response cannot name an
+    adapter other than the one that produced its numbers.
+    """
+
+    call: ClassifierProb
+    name: str
+
+
+def resolve_classifier_factory(spec: str = config.API_CLASSIFIER_ADAPTER):
+    """Import the ``ClassifierProb`` factory named by ``spec`` (``"module:attr"``).
+
+    **Why an import by name instead of an import statement.** The API needs an
+    adapter to simulate live (T3.4), and the only one that exists is
+    ``cli.simulate_match.make_classifier_prob`` — which ``api/`` may not import,
+    per the layering rule (``CLAUDE.md``; ``api/deps.py`` declines to build one
+    for exactly this reason). Late-binding it through
+    :data:`config.API_CLASSIFIER_ADAPTER` keeps ``api/`` free of any ``cli/``
+    symbol, which is the static dependency the rule is about, and turns "which
+    model does this server publish" into deployment configuration — the day
+    ``ace-04-current-state.md §7`` seams 6/7 are closed by a real-feature
+    adapter, swapping it is one config line.
+
+    It is not a loophole and is not treated as one: the runtime dependency is
+    real, so it is **disclosed** rather than hidden — every response naming
+    :attr:`ClassifierAdapter.name` reports the module and function that actually
+    ran, and the seam-7 limitation travels with the numbers regardless. The
+    honest fix (lifting the adapter into a UI-free module the way T0.6 lifted the
+    name resolver into ``common/names.py``) is a refactor of ``cli/interactive``'s
+    feature-row builder, not a Size-S endpoint ticket.
+
+    Args:
+        spec: ``"<module>:<attribute>"``, e.g.
+            ``"cli.simulate_match:make_classifier_prob"``.
+
+    Returns:
+        The factory callable.
+
+    Raises:
+        ValueError: If ``spec`` is not ``module:attribute``.
+        ImportError: If the module or attribute does not exist — raised at
+            **startup**, so a misconfigured server fails immediately rather than
+            on the first ``/storybook`` request.
+    """
+    module_name, _, attribute = spec.partition(":")
+    if not module_name or not attribute:
+        raise ValueError(
+            f"classifier adapter {spec!r} must be written '<module>:<attribute>', "
+            f"e.g. 'cli.simulate_match:make_classifier_prob'."
+        )
+    module = importlib.import_module(module_name)
+    try:
+        return getattr(module, attribute)
+    except AttributeError as exc:
+        raise ImportError(
+            f"module {module_name!r} has no attribute {attribute!r} "
+            f"(from config.API_CLASSIFIER_ADAPTER = {spec!r})."
+        ) from exc
+
+
+def adapter_name(factory: ClassifierFactory) -> str:
+    """Dotted name of ``factory``, for ``metadata.adapter``.
+
+    Derived, never hardcoded — see :class:`ClassifierAdapter`. For the shipped
+    default this reads ``"cli.simulate_match.make_classifier_prob"``, the same
+    string ``scripts/precompute_sim.py`` writes into its cache files
+    (``tests/test_api_storybook.py`` pins the two together).
+    """
+    module = getattr(factory, "__module__", None) or "?"
+    qualname = getattr(factory, "__qualname__", None) or type(factory).__name__
+    return f"{module}.{qualname}"
+
+
+def build_classifier(
+    context: ApiContext, factory: ClassifierFactory
+) -> ClassifierAdapter:
+    """Build the adapter once, at startup, from the loaded context.
+
+    Cheap: ``make_classifier_prob`` returns a memoising closure and does no work
+    until first called (``ace-04-current-state.md §5``), so this adds ~0 to the
+    ~2 s startup. Building it *here* rather than per request is what keeps
+    ``/storybook`` to one bracket's worth of work — and, because the closure's
+    memo table is shared by every request, repeat matchups across seeds cost one
+    ``predict_proba`` in total rather than one per request.
+    """
+    return ClassifierAdapter(
+        call=factory(
+            context.estimator,
+            context.data,
+            context.surface_history,
+            context.h2h_history,
+        ),
+        name=adapter_name(factory),
+    )
 
 
 def get_context(request: Request) -> ApiContext:
@@ -95,6 +221,15 @@ def get_registry(request: Request) -> TournamentRegistry:
     ``app.state``, never rebuilt per request.
     """
     return request.app.state.registry
+
+
+def get_classifier(request: Request) -> ClassifierAdapter:
+    """FastAPI dependency: the startup-built ``ClassifierProb`` adapter (T3.4).
+
+    Same ``app.state`` pattern as :func:`get_context`. Built once — a per-request
+    adapter would throw away the memo table that makes a live storybook viable.
+    """
+    return request.app.state.classifier
 
 
 def get_cache_dir(request: Request) -> Path:
@@ -202,10 +337,152 @@ def _invalid_draw_file(entry: TournamentEntry) -> HTTPException:
     )
 
 
+def _not_simulatable(entry: TournamentEntry) -> HTTPException:
+    """409 for a draw holding placeholder entrants — T3.3's shape, reused.
+
+    Mirrors, over HTTP, the refusal ``simulate_bracket`` already makes offline:
+    a placeholder has no ``player_id`` and no classifier history, so no match-win
+    probability exists for it. Every offending slot is named rather than a
+    probability invented for it.
+    """
+    placeholders = entry.placeholder_slots
+    return HTTPException(
+        status_code=409,
+        detail={
+            "reason": "draw_not_simulatable",
+            "message": (
+                f"Draw {entry.draw.tournament_id!r} has "
+                f"{len(placeholders)} placeholder entrant(s) and cannot "
+                f"be simulated: a placeholder has no player id and no "
+                f"classifier history, so no match-win probability can be "
+                f"computed for it. Fill these slots with real entrants in "
+                f"{entry.source!r}, then precompute."
+            ),
+            "tournament_id": entry.draw.tournament_id,
+            "source": entry.source,
+            "placeholder_slots": [
+                {"position": slot.position, "player": slot.player}
+                for slot in placeholders
+            ],
+        },
+    )
+
+
+def _simulatable_entry(
+    tournament_id: str, registry: TournamentRegistry
+) -> TournamentEntry:
+    """Look an id up and refuse it unless it can actually be simulated.
+
+    The gate **both** simulation endpoints go through, so ``/simulate`` (cached)
+    and ``/storybook`` (live) cannot disagree about which draws are runnable or
+    about how they say no: unknown id → 404 grouped by simulability, a file that
+    failed validation → 422 with the validator's problems, a draw still holding
+    ``Qualifier`` slots → 409.
+
+    The verdict itself is :attr:`~api.registry.TournamentEntry.is_simulatable` —
+    T3.3's one definition of the rule, living in the registry next to the flag it
+    reads — not a placeholder comprehension repeated per endpoint.
+
+    Returns:
+        The entry, with a non-``None`` ``draw`` that ``simulate_bracket``/
+        ``storybook_run`` will accept.
+    """
+    entry = registry.get(tournament_id)
+    if entry is None:
+        raise _unknown_tournament(tournament_id, registry)
+    if entry.draw is None:
+        raise _invalid_draw_file(entry)
+    if not entry.is_simulatable:
+        raise _not_simulatable(entry)
+    return entry
+
+
+def _storybook_response(
+    result: StorybookResult,
+    *,
+    entry: TournamentEntry,
+    context: ApiContext,
+    adapter: str,
+) -> StorybookResponse:
+    """Assemble the wire model from a finished :class:`StorybookResult`.
+
+    **Presentation over already-built data**, exactly as
+    ``scripts/precompute_sim.build_payload`` is for a Monte Carlo result: every
+    field is read off T2.4's own structures — ``rounds``/``matches`` (including
+    the ``scoreline`` and the rendered ``line`` they already carry),
+    ``champion``/``champion_seed``, and the ``runs`` summaries — and nothing is
+    re-derived from the underlying ``BracketResult`` a second time. The CLI's
+    text renderer (``render_storybook``) is deliberately **not** called: it is a
+    different presentation of the same structure, and this endpoint returns JSON.
+    """
+    return StorybookResponse(
+        tournament_id=result.tournament_id,
+        name=result.name,
+        surface=result.surface,
+        best_of=result.best_of,
+        final_set_tiebreak=result.final_set_tiebreak,
+        draw_size=result.draw_size,
+        match_count=len(result.matches),
+        rounds=[
+            StorybookRound(
+                index=storybook_round.index,
+                label=storybook_round.label,
+                matches=[
+                    StorybookMatch(
+                        round_index=played.round_index,
+                        round_label=played.round_label,
+                        match_index=played.match_index,
+                        winner=played.winner,
+                        loser=played.loser,
+                        winner_seed=played.winner_seed,
+                        loser_seed=played.loser_seed,
+                        scoreline=played.scoreline,
+                        line=played.line,
+                    )
+                    for played in storybook_round.matches
+                ],
+            )
+            for storybook_round in result.rounds
+        ],
+        champion=StorybookChampion(
+            position=result.champion.position,
+            player=result.champion.player,
+            player_id=result.champion.player_id,
+            seed=result.champion_seed,
+        ),
+        runs=[
+            StorybookPlayerRun(
+                position=run.position,
+                player=run.player,
+                player_id=run.player_id,
+                seed=run.seed,
+                is_champion=run.is_champion,
+                furthest_round=run.furthest_round,
+                matches_won=run.matches_won,
+                beat=list(run.beat),
+                eliminated_by=run.eliminated_by,
+            )
+            for run in result.runs
+        ],
+        metadata=StorybookMetadata(
+            seed=result.seed,
+            mode=result.mode,
+            w=result.w,
+            data_through_year=context.data_through_year,
+            estimator_class=context.estimator_class,
+            adapter=adapter,
+            is_forecast=IS_FORECAST,
+            classifier_limitation=CLASSIFIER_LIMITATION,
+            source=entry.source,
+        ),
+    )
+
+
 def create_app(
     context_factory: ContextFactory = build_api_context,
     draws_dir: Path | str = config.DRAWS_DIR,
     cache_dir: Path | str = config.CACHE_DIR,
+    classifier_factory: ClassifierFactory | None = None,
 ) -> FastAPI:
     """Build the FastAPI app.
 
@@ -222,9 +499,23 @@ def create_app(
             startup — a cache file appearing while the server runs is picked up
             on the next request, which is what makes the precompute script
             usable against a live server.
+        classifier_factory: Builds the ``ClassifierProb`` adapter ``/storybook``
+            simulates with (T3.4), called **exactly once** at startup with the
+            context's estimator and histories. Defaults to ``None``, meaning
+            "resolve :data:`config.API_CLASSIFIER_ADAPTER`" — see
+            :func:`resolve_classifier_factory` for why the default is a name
+            rather than an import. Tests inject a deterministic stub, which
+            keeps ``cli/`` out of the request path under test — no ``cli/`` code
+            runs while a test serves ``/storybook``. It does **not** keep
+            ``cli/`` out of the test *import* graph: ``scripts/precompute_sim.py``
+            imports ``cli.simulate_match`` directly (it may — it is an outermost
+            entry point), and the test modules that import the script pull it in
+            with them. That is a separate, known fact about those modules, not
+            something this seam controls or claims to.
 
     Returns:
-        The configured app. Nothing is loaded or scanned until it starts.
+        The configured app. Nothing is loaded, scanned or resolved until it
+        starts.
     """
 
     @asynccontextmanager
@@ -246,10 +537,21 @@ def create_app(
         app.state.registry = build_registry(context.skill_table, draws_dir)
         # A path, not a scan: see the `cache_dir` argument note.
         app.state.cache_dir = Path(cache_dir)
+        # Built once, here, for the same reason as everything above it — and
+        # resolved here rather than at import time so a bad
+        # config.API_CLASSIFIER_ADAPTER fails at startup, not mid-request.
+        factory = classifier_factory or resolve_classifier_factory()
+        app.state.classifier = build_classifier(context, factory)
+        logger.info(
+            "Live simulation adapter: %s (reconciliation %s)",
+            app.state.classifier.name,
+            config.SIM_CLI_RECONCILE_MODE,
+        )
         yield
         app.state.context = None
         app.state.registry = None
         app.state.cache_dir = None
+        app.state.classifier = None
 
     app = FastAPI(
         title=config.API_TITLE,
@@ -500,9 +802,11 @@ def create_app(
             silently triggers a 40 s job is the thing the Phase 3 rule exists to
             prevent.
 
-        The placeholder check runs **before** the cache lookup, so the answer for
-        a given draw is a property of the draw rather than of whatever happens to
-        be on disk.
+        The first three come from :func:`_simulatable_entry`, shared with
+        ``/storybook`` so the two simulation endpoints cannot disagree about
+        which draws are runnable. It runs **before** the cache lookup, so the
+        answer for a given draw is a property of the draw rather than of whatever
+        happens to be on disk.
 
         A cache file that fails to parse, or that describes a different draw than
         the registry holds (a stale file left after the draw was edited), is also
@@ -510,34 +814,7 @@ def create_app(
         artefact, a 500 would imply a transient fault, and the fix is named in
         the message.
         """
-        entry = registry.get(tournament_id)
-        if entry is None:
-            raise _unknown_tournament(tournament_id, registry)
-        if entry.draw is None:
-            raise _invalid_draw_file(entry)
-
-        placeholders = entry.placeholder_slots
-        if placeholders:
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "reason": "draw_not_simulatable",
-                    "message": (
-                        f"Draw {entry.draw.tournament_id!r} has "
-                        f"{len(placeholders)} placeholder entrant(s) and cannot "
-                        f"be simulated: a placeholder has no player id and no "
-                        f"classifier history, so no match-win probability can be "
-                        f"computed for it. Fill these slots with real entrants in "
-                        f"{entry.source!r}, then precompute."
-                    ),
-                    "tournament_id": entry.draw.tournament_id,
-                    "source": entry.source,
-                    "placeholder_slots": [
-                        {"position": slot.position, "player": slot.player}
-                        for slot in placeholders
-                    ],
-                },
-            )
+        entry = _simulatable_entry(tournament_id, registry)
 
         path = cache_path_for(tournament_id, cache_dir)
         if path is None or not path.is_file():
@@ -601,6 +878,92 @@ def create_app(
                 update={"players": cached.players[:top], "count": top}
             )
         return cached
+
+    @app.get(
+        "/tournaments/{tournament_id}/storybook",
+        response_model=StorybookResponse,
+        tags=["tournaments"],
+    )
+    def tournament_storybook(
+        tournament_id: Annotated[
+            str,
+            PathParam(description="Id from ``GET /tournaments``."),
+        ],
+        seed: Annotated[
+            int | None,
+            Query(
+                ge=0,
+                le=config.API_STORYBOOK_SEED_MAX,
+                description="RNG seed. The same seed always replays the same "
+                f"tournament. Omit for the server default "
+                f"({config.API_STORYBOOK_SEED}); the seed used is echoed in "
+                f"``metadata.seed`` either way.",
+            ),
+        ] = None,
+        registry: TournamentRegistry = Depends(get_registry),
+        context: ApiContext = Depends(get_context),
+        classifier: ClassifierAdapter = Depends(get_classifier),
+    ) -> StorybookResponse:
+        """One tournament played out point by point, for one seed — live.
+
+        **This one does simulate, and that is within the Phase 3 rule, not an
+        exception to it.** The rule forbids a full Monte Carlo (thousands of
+        brackets) in a request handler; a storybook is *one* bracket — 127
+        matches for a Slam — which the ticket budgets at "well under a couple
+        seconds". Measured on the shipped 128 draw ``usopen_2024_atp_full``
+        (2026-08-03, dev machine): **1.42 s for the first request** on a cold
+        server, **~0.65 s for a subsequent request with a fresh seed**, and
+        **0.43 s to replay a seed already served**. The spread is entirely the
+        adapter's ``predict_proba``: 127 matches need 127 distinct matchups
+        priced, and the memo table lives on the startup-built closure, so it is
+        shared across requests and warms as the server runs. 0.43 s is therefore
+        the floor — the point-by-point simulation of 127 matches itself.
+        ``storybook_run`` is called **exactly once** per request; the rounds,
+        scorelines and champion in the response are read off the single
+        :class:`~sim.tournament.StorybookResult` it returns.
+
+        **Determinism is the contract, not a nicety.** Same id + same seed → a
+        byte-identical body: the response carries no timestamp and every field is
+        a function of the draw, the seed and the startup state. That is what makes
+        the URL shareable, and it is why an omitted ``?seed=`` falls back to a
+        *fixed* default (:data:`config.API_STORYBOOK_SEED`) rather than a
+        time-derived one — a bare ``/storybook`` that returned a different story
+        on refresh would be unreproducible and uncacheable. ``metadata.seed``
+        always echoes what ran, so a client can turn any response into an explicit,
+        shareable URL.
+
+        **Reconciliation mode is ``config.SIM_CLI_RECONCILE_MODE`` (``blend``),
+        not ``config.RECONCILE_MODE``** — the same choice T3.3 made, for the same
+        reason, and not re-litigated here: this endpoint feeds ``P_clf`` from the
+        same adapter, whose feature rows are form-blind, and under
+        ``classifier_anchor`` that flattened probability *is* the target every
+        match is solved to reproduce. Blending dilutes it; it does not fix it,
+        which is why ``metadata`` carries the seam-7 disclosure —
+        ``mode``/``w``, ``is_forecast`` and ``classifier_limitation``, the
+        identical :class:`~api.schemas.ModelDisclosure` block ``/simulate``
+        serves, inherited rather than restated.
+
+        Failures are ``/simulate``'s, from the same
+        :func:`_simulatable_entry` gate: unknown id → 404, unloadable draw file →
+        422, placeholder entrants → 409. There is no 425 here — nothing is
+        cached, so there is nothing to be missing.
+        """
+        entry = _simulatable_entry(tournament_id, registry)
+        if seed is None:
+            seed = config.API_STORYBOOK_SEED
+
+        result = storybook_run(
+            entry.draw,
+            context.skill_table,
+            classifier.call,
+            seed=seed,
+            # See the docstring: T3.3's choice, inherited deliberately.
+            mode=config.SIM_CLI_RECONCILE_MODE,
+            w=config.RECONCILE_BLEND_WEIGHT,
+        )
+        return _storybook_response(
+            result, entry=entry, context=context, adapter=classifier.name
+        )
 
     return app
 

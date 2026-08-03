@@ -366,6 +366,7 @@ def test_every_route_declares_a_response_model():
         "/tournaments",
         "/tournaments/{tournament_id}/bracket",
         "/tournaments/{tournament_id}/simulate",
+        "/tournaments/{tournament_id}/storybook",
     }
     for route in routes:
         assert route.response_model is not None, f"{route.path} has no response_model"
