@@ -1,0 +1,247 @@
+/*
+ * Bracket + MatchCard styles.
+ *
+ * Two layout facts carry the whole thing:
+ *
+ *   * `.board` is the **horizontal** scroll container. Columns keep their
+ *     natural width (`min-width` on `.round`) rather than shrinking to fit, so
+ *     a 128 draw's seven columns scroll instead of compressing into
+ *     illegibility.
+ *   * `.matches` uses `justify-content: space-around` inside a stretched
+ *     column. The tallest round (always the first) sets the board's height, and
+ *     every later round distributes its cards evenly through that same height —
+ *     which, for a bracket halving each round, puts each card at the midpoint
+ *     of the pair that feeds it. No per-card offsets, no draw-size arithmetic.
+ *
+ * Colours come from the tokens already defined in `src/index.css`, so the
+ * bracket follows the app's light/dark scheme without declaring its own.
+ */
+
+.bracket {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+  min-width: 0;
+}
+
+/* -------------------------------------------------------------------------
+ * Toolbar: title + round selector. Sticky, because at 128 the board is
+ * thousands of pixels tall and the selector is how you get out of round one.
+ * ------------------------------------------------------------------------- */
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.meta {
+  min-width: 0;
+}
+
+.title {
+  font-size: 20px;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  margin: 2px 0 0;
+}
+
+.rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.railButton {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.railButton:hover {
+  border-color: var(--accent-border);
+}
+
+.railButton[aria-pressed='true'] {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.railButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------------------
+ * The board.
+ * ------------------------------------------------------------------------- */
+
+.board {
+  display: flex;
+  align-items: stretch;
+  gap: 24px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  /* Room for the scrollbar without it overlapping the last column. */
+  scrollbar-gutter: stable;
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-width: 230px;
+}
+
+.roundHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-h);
+  margin: 0 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.roundCount {
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+}
+
+.matches {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* -------------------------------------------------------------------------
+ * MatchCard.
+ * ------------------------------------------------------------------------- */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.entrant {
+  display: grid;
+  /* seed · name · the reserved probability column. Fixed outer tracks mean a
+     T4.3/T4.4 number appears without moving a single name. */
+  grid-template-columns: 26px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.entrant + .entrant {
+  border-top: 1px solid var(--border);
+}
+
+.seed {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: center;
+  color: var(--text);
+  background: var(--code-bg);
+  border-radius: 3px;
+  padding: 2px 0;
+}
+
+.seed:empty {
+  background: transparent;
+}
+
+.name {
+  color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* An entrant the draw file has not filled (Qualifier / Lucky Loser): a real
+   slot with no player behind it. */
+.entrant[data-state='placeholder'] .name {
+  color: var(--text);
+  font-style: italic;
+}
+
+/* A side this round has not produced yet — every round after the first. */
+.entrant[data-state='unknown'] .name {
+  color: var(--text);
+  opacity: 0.55;
+}
+
+/* Reserved for the win-probability overlay (T4.3/T4.4). Sized and aligned
+   now, deliberately empty until a ticket has a number to put in it. */
+.prob {
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* -------------------------------------------------------------------------
+ * Loading / error panels.
+ * ------------------------------------------------------------------------- */
+
+.panel {
+  text-align: left;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.panelHeading {
+  font-size: 18px;
+  margin: 0 0 6px;
+}
+
+.panelBody {
+  margin: 0;
+}
+
+.problems {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  font-family: var(--mono);
+  font-size: 13px;
+}

@@ -50,12 +50,15 @@
   }
 }
 
+/* The Vite template pinned this to a centred 1126px column. A bracket is the
+   widest thing this app renders — seven columns at 128 — so it gets the
+   viewport, less a gutter, and lays out left-to-right. */
 #root {
-  width: 1126px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 1600px;
   margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
+  padding: 0 16px;
+  text-align: left;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
