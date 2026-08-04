@@ -218,30 +218,5 @@
   color: var(--text);
 }
 
-/* -------------------------------------------------------------------------
- * Loading / error panels.
- * ------------------------------------------------------------------------- */
-
-.panel {
-  text-align: left;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 15px;
-}
-
-.panelHeading {
-  font-size: 18px;
-  margin: 0 0 6px;
-}
-
-.panelBody {
-  margin: 0;
-}
-
-.problems {
-  margin: 10px 0 0;
-  padding-left: 20px;
-  font-family: var(--mono);
-  font-size: 13px;
-}
+/* Loading and error panels live in `panel.module.css` — shared with T4.3's
+   screen so a message looks the same wherever the app shows one. */

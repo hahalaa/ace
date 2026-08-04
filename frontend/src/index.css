@@ -69,6 +69,34 @@ body {
   margin: 0;
 }
 
+/* The shell's two-screen switch. Links, not buttons — each view is a real URL
+   (see App.tsx), so these navigate rather than toggle state. */
+.viewNav {
+  display: flex;
+  gap: 6px;
+  padding: 12px 0 0;
+}
+
+.viewNav a {
+  font-size: 13px;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.viewNav a:hover {
+  border-color: var(--accent-border);
+}
+
+.viewNav a[aria-current='page'] {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
 h1,
 h2 {
   font-family: var(--heading);

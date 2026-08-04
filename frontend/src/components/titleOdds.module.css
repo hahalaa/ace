@@ -1,0 +1,283 @@
+/*
+ * TitleOdds + PlayerCard styles.
+ *
+ * The table is the widest thing on this screen at 128 (seven survival columns
+ * plus Title and E[W]), so `.tableWrap` is the horizontal scroll container and
+ * the header row sticks — the same two moves the bracket makes, for the same
+ * reason. Colours come from `src/index.css`'s tokens.
+ */
+
+.odds {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+  min-width: 0;
+  padding-bottom: 24px;
+}
+
+.head {
+  padding-top: 12px;
+}
+
+.title {
+  font-size: 20px;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  margin: 2px 0 0;
+}
+
+/* -------------------------------------------------------------------------
+ * Disclosure — deliberately above the numbers, not below them.
+ * ------------------------------------------------------------------------- */
+
+.disclosure {
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  background: var(--accent-bg);
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.disclosureHead {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.limitation {
+  margin: 8px 0 0;
+}
+
+.limitation > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.limitationBody {
+  margin: 6px 0 0;
+  line-height: 1.55;
+  font-size: 13px;
+}
+
+/* -------------------------------------------------------------------------
+ * The table.
+ * ------------------------------------------------------------------------- */
+
+.tableWrap {
+  overflow-x: auto;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+
+.caption {
+  caption-side: top;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.table th,
+.table td {
+  padding: 7px 12px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg);
+  text-align: left;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.numeric {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.table thead th.numeric {
+  text-align: right;
+}
+
+/* The player name doubles as the expand control. Styled as text, not a button,
+   so the table still reads as a table. */
+.rowButton {
+  font: inherit;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-h);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.rowButton:hover {
+  color: var(--accent);
+}
+
+.rowButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.detailRow > td {
+  padding: 0;
+  background: var(--code-bg);
+}
+
+.footnote {
+  margin: 0;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text);
+  line-height: 1.7;
+}
+
+/* -------------------------------------------------------------------------
+ * PlayerCard, inline under its row.
+ * ------------------------------------------------------------------------- */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.cardHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cardName {
+  font-size: 16px;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cardSeed {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.cardMeta {
+  margin: 0;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.cardSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cardSectionHeading {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+.cardNote {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.skillTable {
+  border-collapse: collapse;
+  font-size: 13px;
+  max-width: 420px;
+}
+
+.skillTable th,
+.skillTable td {
+  padding: 5px 14px 5px 0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.skillTable td {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.skillTable thead th {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+/* A baseline stand-in rather than a measurement of this player. */
+.skillTable tbody tr[data-measured='false'] td {
+  opacity: 0.55;
+  font-style: italic;
+}
+
+.thisSurface {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: normal;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 0;
+}
+
+.stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.stats dt {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.stats dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--text-h);
+}

@@ -1,0 +1,48 @@
+/*
+ * Panel styles — shared by every full-width message the app renders: the
+ * loading status, the typed error panels, and the "cannot lay this out" refusal.
+ *
+ * Lifted out of `bracket.module.css` when T4.3 added a second screen that needs
+ * the identical treatment. One stylesheet, so a panel looks the same wherever it
+ * appears and a change lands once.
+ */
+
+.panel {
+  text-align: left;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.panelHeading {
+  font-size: 18px;
+  margin: 0 0 6px;
+}
+
+.panelBody {
+  margin: 0;
+}
+
+.problems {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+/* A runnable command the API handed us (425 `cache_missing`). Selectable, and
+   wide enough to read: an operator is meant to copy this verbatim. */
+.command {
+  display: block;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: all;
+}

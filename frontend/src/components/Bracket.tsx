@@ -17,19 +17,22 @@
  * hardcoded draw-size assumption in another costume.
  *
  * **Every failure the client can throw renders as itself.** T4.1's typed errors
- * are branched on directly — `ApiConfigError`, `ApiNetworkError`, and
- * `ApiError` split by `status` with the draw validator's `problems` listed for
- * a 422 — so an unknown id, a broken draw file and an unreachable server are
- * three visibly different panels rather than one "something went wrong".
+ * are branched on directly — an unknown id, a broken draw file and an
+ * unreachable server are visibly different panels rather than one "something
+ * went wrong". That branching lives in {@link ErrorPanel}, shared with T4.3's
+ * screen; only the one failure unique to laying out a bracket (a draw size that
+ * cannot halve) is rendered here.
  */
 
 import { useEffect, useMemo, useState } from 'react';
 
-import { ApiConfigError, ApiNetworkError, getBracket, isApiError } from '../api/client';
+import { getBracket } from '../api/client';
 import type { BracketResponse } from '../api/types';
+import ErrorPanel from './ErrorPanel';
 import MatchCard from './MatchCard';
 import { buildRounds } from './rounds';
 import styles from './bracket.module.css';
+import panelStyles from './panel.module.css';
 
 export interface BracketProps {
   /** Registry id, as listed by `/tournaments`. */
@@ -43,57 +46,6 @@ type LoadState =
 
 /** `null` = show every round; otherwise the index of the only round shown. */
 type RoundFilter = number | null;
-
-// --------------------------------------------------------------------------
-// Failure rendering — one panel per distinguishable cause.
-// --------------------------------------------------------------------------
-
-function ErrorPanel({ error, tournamentId }: { error: unknown; tournamentId: string }) {
-  let kind = 'unknown';
-  let heading = 'Could not load the bracket';
-  let message = error instanceof Error ? error.message : String(error);
-  let problems: string[] | null = null;
-
-  if (error instanceof ApiConfigError) {
-    kind = 'config';
-    heading = 'The API base URL is not configured';
-  } else if (error instanceof ApiNetworkError) {
-    kind = 'network';
-    heading = 'Could not reach the ace API';
-  } else if (isApiError(error)) {
-    if (error.status === 404) {
-      kind = 'not-found';
-      heading = `No tournament called “${tournamentId}”`;
-      // A 404's detail is a bare string naming the registered ids.
-      message = typeof error.detail === 'string' ? error.detail : error.message;
-    } else if (error.status === 422) {
-      kind = 'invalid-draw';
-      heading = 'This draw file failed validation';
-      problems = error.problems;
-      message =
-        problems === null
-          ? error.message
-          : 'The server could not load the draw. Fix the file and restart the API.';
-    } else {
-      kind = 'api';
-      heading = `The API returned ${error.status} ${error.statusText}`;
-    }
-  }
-
-  return (
-    <div className={styles.panel} role="alert" data-error-kind={kind}>
-      <h2 className={styles.panelHeading}>{heading}</h2>
-      <p className={styles.panelBody}>{message}</p>
-      {problems !== null && (
-        <ul className={styles.problems}>
-          {problems.map((problem) => (
-            <li key={problem}>{problem}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 // --------------------------------------------------------------------------
 // The bracket.
@@ -130,7 +82,7 @@ export default function Bracket({ tournamentId }: BracketProps) {
 
   if (state.status === 'loading') {
     return (
-      <p className={styles.panel} role="status">
+      <p className={panelStyles.panel} role="status">
         Loading the {tournamentId} bracket…
       </p>
     );
@@ -142,9 +94,9 @@ export default function Bracket({ tournamentId }: BracketProps) {
 
   if (rounds.length === 0) {
     return (
-      <div className={styles.panel} role="alert" data-error-kind="draw-size">
-        <h2 className={styles.panelHeading}>This draw cannot be laid out</h2>
-        <p className={styles.panelBody}>
+      <div className={panelStyles.panel} role="alert" data-error-kind="draw-size">
+        <h2 className={panelStyles.panelHeading}>This draw cannot be laid out</h2>
+        <p className={panelStyles.panelBody}>
           A bracket halves each round, so its draw size must be a power of two — the
           server reported {state.bracket.draw_size}.
         </p>
