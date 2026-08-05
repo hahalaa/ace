@@ -9,29 +9,36 @@
  * invisibly. Each case rewrites the URL with `history.replaceState` and mounts
  * the component from scratch, exactly as a page load would.
  *
- * Which screen mounted is asserted from the **screen itself** (its loading
- * status names either "bracket" or "simulation"), not only from the nav's
- * `aria-current` — a mutation that hardcoded the view while still styling the
- * nav correctly has to fail on something the user actually sees.
+ * Which screen mounted is asserted from the **screen itself** — its own controls
+ * or its loading status — not only from the nav's `aria-current`: a mutation
+ * that hardcoded the view while still styling the nav correctly has to fail on
+ * something the user actually sees.
  *
- * `getBracket`/`getSimulate` are stubbed with promises that never settle: the
- * loading state is enough to identify the mounted screen, and neither
- * component's data path is under test here.
+ * `getBracket`/`getSimulate`/`getStorybook` are stubbed with promises that never
+ * settle: the mounted screen is identifiable without any of them resolving, and
+ * no component's data path is under test here.
  */
 
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
-import { getBracket, getSimulate } from './api/client';
+import { getBracket, getSimulate, getStorybook } from './api/client';
 
 vi.mock('./api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./api/client')>();
-  return { ...actual, getBracket: vi.fn(), getSimulate: vi.fn(), searchPlayers: vi.fn() };
+  return {
+    ...actual,
+    getBracket: vi.fn(),
+    getSimulate: vi.fn(),
+    getStorybook: vi.fn(),
+    searchPlayers: vi.fn(),
+  };
 });
 
 const getBracketMock = vi.mocked(getBracket);
 const getSimulateMock = vi.mocked(getSimulate);
+const getStorybookMock = vi.mocked(getStorybook);
 
 afterEach(() => {
   cleanup();
@@ -45,12 +52,22 @@ const DEFAULT_ID = 'usopen_2024_atp_full';
 function loadUrl(url: string) {
   getBracketMock.mockReturnValue(new Promise(() => {}));
   getSimulateMock.mockReturnValue(new Promise(() => {}));
+  getStorybookMock.mockReturnValue(new Promise(() => {}));
   window.history.replaceState({}, '', url);
   return render(<App />);
 }
 
-/** Which screen actually mounted, read off its own loading status. */
-function mountedScreen(): 'bracket' | 'odds' {
+/**
+ * Which screen actually mounted, read off the screen's own markup.
+ *
+ * The storybook screen is identified by its run control rather than by a status,
+ * because it renders the bracket underneath — so its loading status is the
+ * bracket's, and checking that first would report `bracket` for both.
+ */
+function mountedScreen(): 'bracket' | 'odds' | 'storybook' {
+  if (document.querySelector('[data-action="simulate"], [data-action="rerun"]') !== null) {
+    return 'storybook';
+  }
   const status = screen.getByRole('status').textContent ?? '';
   if (status.includes('bracket')) return 'bracket';
   if (status.includes('simulation')) return 'odds';
@@ -91,14 +108,25 @@ describe('?view= deep-linking', () => {
     expect(currentNavLink()).toBe('Bracket');
   });
 
-  it('falls back to the bracket for a view value it does not know', () => {
-    // `storybook` is T4.4's, and is exactly the value a half-landed feature
-    // would leave in a shared link. An unknown view must not render blank.
+  it('loads the storybook screen directly from ?view=storybook', () => {
+    // T4.4's third value, and the one a shared link carries. It must reach its
+    // own screen — the two-way `?:` this dispatch replaced sent it to the odds
+    // board, which is what "unknown view" used to mean here.
     loadUrl('/?view=storybook');
+
+    expect(mountedScreen()).toBe('storybook');
+    expect(currentNavLink()).toBe('Storybook');
+    expect(getSimulateMock).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the bracket for a view value it does not know', () => {
+    // Exactly the value a mistyped or half-landed link would leave behind. An
+    // unknown view must not render blank.
+    loadUrl('/?view=nonsense');
 
     expect(mountedScreen()).toBe('bracket');
     expect(currentNavLink()).toBe('Bracket');
-    expect(screen.getAllByRole('link')).toHaveLength(2);
+    expect(screen.getAllByRole('link')).toHaveLength(3);
   });
 
   it('marks exactly one nav link as the current page', () => {
@@ -124,13 +152,14 @@ describe('?tournament= and ?view= are independent axes', () => {
     expect(getSimulateMock.mock.calls[0][0]).toBe(DEFAULT_ID);
   });
 
-  it('keeps the current tournament in both nav hrefs, so switching view keeps the draw', () => {
+  it('keeps the current tournament in every nav href, so switching view keeps the draw', () => {
     loadUrl('/?tournament=example_usopen_2026_atp&view=bracket');
 
     const hrefs = screen.getAllByRole('link').map((a) => a.getAttribute('href'));
     expect(hrefs).toEqual([
       '?tournament=example_usopen_2026_atp&view=bracket',
       '?tournament=example_usopen_2026_atp&view=odds',
+      '?tournament=example_usopen_2026_atp&view=storybook',
     ]);
   });
 

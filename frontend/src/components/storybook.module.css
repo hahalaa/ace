@@ -1,0 +1,150 @@
+/*
+ * Storybook screen styles.
+ *
+ * The bracket below brings its own stylesheet (`bracket.module.css`, including
+ * the winner/scoreline rules a run switches on), so this file covers only what
+ * wraps it: the run controls, the champion panel and the footnote. Colours come
+ * from `src/index.css`'s tokens, as everywhere else.
+ */
+
+.storybook {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+  min-width: 0;
+  padding-bottom: 24px;
+}
+
+/* -------------------------------------------------------------------------
+ * Run controls.
+ * ------------------------------------------------------------------------- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.primary,
+.secondary {
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-border);
+  cursor: pointer;
+}
+
+.primary {
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.secondary {
+  color: var(--text);
+  background: transparent;
+  border-color: var(--border);
+}
+
+.primary:hover,
+.secondary:hover {
+  border-color: var(--accent);
+}
+
+.primary:disabled,
+.secondary:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.seed {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.copy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.copyUrl {
+  font-size: 12px;
+  user-select: all;
+  word-break: break-all;
+}
+
+/* -------------------------------------------------------------------------
+ * Champion.
+ * ------------------------------------------------------------------------- */
+
+.champion {
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  background: var(--accent-bg);
+  padding: 16px 18px;
+}
+
+.championLabel {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.championName {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 4px 0 0;
+  font-size: 28px;
+  line-height: 1.15;
+  color: var(--text-h);
+}
+
+.championSeed {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.championMeta {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.championFinal {
+  margin: 2px 0 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.footnote {
+  margin: 0;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text);
+  line-height: 1.7;
+}

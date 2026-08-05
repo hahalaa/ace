@@ -22,14 +22,26 @@
  * went wrong". That branching lives in {@link ErrorPanel}, shared with T4.3's
  * screen; only the one failure unique to laying out a bracket (a draw size that
  * cannot halve) is rendered here.
+ *
+ * **T4.4 adds results *on top of* this, and changes nothing underneath.** The
+ * optional `storybook` prop is the whole of that ticket's footprint here: absent
+ * — every T4.2/T4.3 caller, and this screen before a run — the component fetches
+ * and renders exactly as it always did, byte for byte (pinned by the snapshot
+ * differential in `Bracket.test.tsx`). Present, each card gains the winner,
+ * loser and scoreline that `./overlay` keys onto this same layout, and the
+ * later rounds `/bracket` leaves as `TBD` fill in with whoever won their way
+ * there. The two bodies come from two endpoints and are joined by structure, not
+ * by trust — see `./overlay`, whose `describesBracket` refuses a run that is not
+ * about this draw.
  */
 
 import { useEffect, useMemo, useState } from 'react';
 
 import { getBracket } from '../api/client';
-import type { BracketResponse } from '../api/types';
+import type { BracketResponse, StorybookResponse } from '../api/types';
 import ErrorPanel from './ErrorPanel';
 import MatchCard from './MatchCard';
+import { buildStorybookOverlay, describesBracket, overlayKey } from './overlay';
 import { buildRounds } from './rounds';
 import styles from './bracket.module.css';
 import panelStyles from './panel.module.css';
@@ -37,6 +49,13 @@ import panelStyles from './panel.module.css';
 export interface BracketProps {
   /** Registry id, as listed by `/tournaments`. */
   tournamentId: string;
+  /**
+   * A played-out run to draw over the draw (T4.4), or nothing.
+   *
+   * Passed by {@link Storybook}; **nobody else passes it**, and without it this
+   * component behaves precisely as T4.2 shipped it.
+   */
+  storybook?: StorybookResponse | null;
 }
 
 type LoadState =
@@ -51,7 +70,7 @@ type RoundFilter = number | null;
 // The bracket.
 // --------------------------------------------------------------------------
 
-export default function Bracket({ tournamentId }: BracketProps) {
+export default function Bracket({ tournamentId, storybook = null }: BracketProps) {
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [selectedRound, setSelectedRound] = useState<RoundFilter>(null);
 
@@ -79,6 +98,12 @@ export default function Bracket({ tournamentId }: BracketProps) {
     () => (bracket === null ? [] : buildRounds(bracket.draw_size, bracket.slots)),
     [bracket],
   );
+  const overlay = useMemo(() => {
+    if (bracket === null || storybook === null || storybook === undefined) return null;
+    // A run for another draw is not drawn at all — see `./overlay`.
+    if (!describesBracket(storybook, bracket.tournament_id, bracket.draw_size)) return null;
+    return buildStorybookOverlay(rounds, storybook);
+  }, [bracket, rounds, storybook]);
 
   if (state.status === 'loading') {
     return (
@@ -149,15 +174,24 @@ export default function Bracket({ tournamentId }: BracketProps) {
               </span>
             </h3>
             <ol className={styles.matches} aria-label={`${round.label} matches`}>
-              {round.matches.map((match) => (
-                <MatchCard
-                  key={match.matchIndex}
-                  roundLabel={round.label}
-                  matchIndex={match.matchIndex}
-                  top={{ slot: match.top }}
-                  bottom={{ slot: match.bottom }}
-                />
-              ))}
+              {round.matches.map((match) => {
+                // `played === undefined` for every non-storybook render, which
+                // reduces the props below to exactly T4.2's two `{ slot }`s.
+                const played = overlay?.get(overlayKey(round.index, match.matchIndex));
+                return (
+                  <MatchCard
+                    key={match.matchIndex}
+                    roundLabel={round.label}
+                    matchIndex={match.matchIndex}
+                    top={{ slot: played ? played.top : match.top, result: played?.topResult }}
+                    bottom={{
+                      slot: played ? played.bottom : match.bottom,
+                      result: played?.bottomResult,
+                    }}
+                    scoreline={played?.scoreline}
+                  />
+                );
+              })}
             </ol>
           </div>
         ))}

@@ -1,0 +1,36 @@
+/*
+ * Disclosure styles — deliberately above the numbers, not below them.
+ *
+ * Lifted out of `titleOdds.module.css` when T4.4 added a second screen that
+ * publishes model output and therefore carries the identical caveat. One
+ * stylesheet, so the disclosure looks the same wherever it appears.
+ */
+
+.disclosure {
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  background: var(--accent-bg);
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.disclosureHead {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.limitation {
+  margin: 8px 0 0;
+}
+
+.limitation > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.limitationBody {
+  margin: 6px 0 0;
+  line-height: 1.55;
+  font-size: 13px;
+}

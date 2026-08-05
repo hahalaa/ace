@@ -15,11 +15,10 @@
  * `metadata.is_forecast` and `metadata.classifier_limitation` are *required*
  * fields on the wire (`api.schemas.ModelDisclosure`) precisely so probabilities
  * cannot be published without their caveat — the point of seam 7 is that the
- * caveat reaches a person, not just a response body. When `is_forecast` is
- * `false` — true for every draw shipped today, whose events have already been
- * played — this says so **above the numbers**, where they are read, and carries
- * the limitation prose in an open-by-default `<details>` rather than a tooltip
- * that can be missed.
+ * caveat reaches a person, not just a response body. It renders **above the
+ * numbers**, where they are read, and lives in {@link Disclosure} — moved there
+ * by T4.4 rather than copied, so the storybook screen publishes the same caveat
+ * from the same component.
  *
  * **Sorting is re-applied, not assumed.** The server already sorts by title
  * probability (ties by bracket position) and this sorts by the same key rather
@@ -31,6 +30,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { getSimulate } from '../api/client';
 import type { SimulationResponse } from '../api/types';
+import Disclosure from './Disclosure';
 import ErrorPanel from './ErrorPanel';
 import PlayerCard from './PlayerCard';
 import { formatPercent, rankPlayers, survivalColumns } from './odds';
@@ -46,32 +46,6 @@ type LoadState =
   | { status: 'loading' }
   | { status: 'ready'; simulation: SimulationResponse }
   | { status: 'error'; error: unknown };
-
-// --------------------------------------------------------------------------
-// Disclosure — required, rendered, not merely received.
-// --------------------------------------------------------------------------
-
-function Disclosure({ metadata }: { metadata: SimulationResponse['metadata'] }) {
-  return (
-    <section className={styles.disclosure} data-forecast={metadata.is_forecast}>
-      <p className={styles.disclosureHead}>
-        {metadata.is_forecast ? (
-          <>These are model projections for a draw that has not been played.</>
-        ) : (
-          <>
-            <strong>Not a forecast.</strong> Read these as a retrospective: the model's knowledge
-            runs to {metadata.data_through_year}, which for an event already played includes the
-            event itself.
-          </>
-        )}
-      </p>
-      <details className={styles.limitation} open>
-        <summary>What the model does and does not know</summary>
-        <p className={styles.limitationBody}>{metadata.classifier_limitation}</p>
-      </details>
-    </section>
-  );
-}
 
 function Footnote({ metadata, drawSize }: { metadata: SimulationResponse['metadata']; drawSize: number }) {
   return (

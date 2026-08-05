@@ -218,5 +218,39 @@
   color: var(--text);
 }
 
+/* -------------------------------------------------------------------------
+ * Storybook results (T4.4). Every rule below is gated on an attribute or a
+ * class that only a played match carries, so a bracket with no run attached
+ * picks up none of it.
+ * ------------------------------------------------------------------------- */
+
+.entrant[data-result='won'] .name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* The loser stays legible rather than being greyed out of the story: who lost
+   the semi-final is half of what a bracket is for. */
+.entrant[data-result='lost'] .name {
+  color: var(--text);
+}
+
+.winner {
+  background: var(--accent-bg);
+}
+
+.scoreline {
+  border-top: 1px solid var(--border);
+  padding: 5px 10px;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Loading and error panels live in `panel.module.css` — shared with T4.3's
    screen so a message looks the same wherever the app shows one. */

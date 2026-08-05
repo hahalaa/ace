@@ -30,38 +30,8 @@
   margin: 2px 0 0;
 }
 
-/* -------------------------------------------------------------------------
- * Disclosure — deliberately above the numbers, not below them.
- * ------------------------------------------------------------------------- */
-
-.disclosure {
-  border: 1px solid var(--accent-border);
-  border-radius: 8px;
-  background: var(--accent-bg);
-  padding: 12px 14px;
-  font-size: 14px;
-}
-
-.disclosureHead {
-  margin: 0;
-  line-height: 1.5;
-}
-
-.limitation {
-  margin: 8px 0 0;
-}
-
-.limitation > summary {
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--accent);
-}
-
-.limitationBody {
-  margin: 6px 0 0;
-  line-height: 1.55;
-  font-size: 13px;
-}
+/* The disclosure moved to `disclosure.module.css` in T4.4, when the storybook
+   screen became the second thing publishing model output that must carry it. */
 
 /* -------------------------------------------------------------------------
  * The table.

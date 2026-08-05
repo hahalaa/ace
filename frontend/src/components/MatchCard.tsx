@@ -13,6 +13,19 @@
  * reserves the column those numbers land in — see `.prob` in the stylesheet —
  * so populating it later shifts no name and rewraps no card.
  *
+ * **T4.4 took that extension point, and split it exactly where the data
+ * splits.** `result` — did *this side* win — is per entrant, so it is the field
+ * on {@link MatchEntrant} the docstring above reserved. The **scoreline is not**:
+ * the API sends one winner-first string per match (`6-4 3-6 7-6(5) 6-2`), not a
+ * pair of per-side values, so it is a match-level prop rendered once beneath the
+ * two rows. Putting half a string on each entrant would have been the parallel
+ * prop this file warns against, wearing the opposite costume.
+ *
+ * **Both are optional, and absent means absent.** With neither passed — every
+ * T4.2/T4.3 caller — the emitted markup is byte-identical to what this component
+ * shipped with: no `data-result` attribute, no extra class, no scoreline node.
+ * That is pinned by the snapshot differential in `Bracket.test.tsx`.
+ *
  * **Three entrant states, three renderings, none of them `undefined`:**
  *
  *   * a resolved player — seed chip (when seeded) and name;
@@ -31,6 +44,9 @@
 import type { BracketSlot } from '../api/types';
 import styles from './bracket.module.css';
 
+/** Which side of a played match this entrant was — T4.4's storybook result. */
+export type MatchResult = 'won' | 'lost';
+
 /**
  * One side of a match.
  *
@@ -47,6 +63,13 @@ export interface MatchEntrant {
    * renders into is laid out whether or not it arrives.
    */
   winProbability?: number;
+  /**
+   * Whether this entrant won the match, once a storybook run has played it out.
+   *
+   * `undefined` — every caller outside T4.4's storybook — renders exactly as
+   * before: an unplayed match, with no result claimed either way.
+   */
+  result?: MatchResult;
 }
 
 export interface MatchCardProps {
@@ -57,6 +80,13 @@ export interface MatchCardProps {
   /** The lower-numbered bracket position. */
   top: MatchEntrant;
   bottom: MatchEntrant;
+  /**
+   * The match's scoreline, **winner-first**, e.g. `6-4 3-6 7-6(5) 6-2`.
+   *
+   * A match-level fact rather than an entrant one — see the module docstring.
+   * Omitted for a match nothing has played.
+   */
+  scoreline?: string;
 }
 
 type EntrantState = 'player' | 'placeholder' | 'unknown';
@@ -73,7 +103,7 @@ function formatProbability(value: number | undefined): string {
 }
 
 function EntrantRow({ entrant }: { entrant: MatchEntrant }) {
-  const { slot } = entrant;
+  const { slot, result } = entrant;
   const state = entrantState(slot);
 
   // `slot.player` is a required string on the wire; the fallback is here so a
@@ -82,7 +112,14 @@ function EntrantRow({ entrant }: { entrant: MatchEntrant }) {
   const seed = slot?.seed ?? null;
 
   return (
-    <div className={styles.entrant} data-state={state}>
+    // `result === undefined` (every non-storybook caller) leaves both the class
+    // list and the attribute set exactly as T4.2 emitted them: React omits an
+    // `undefined` attribute, and the winner class is only ever appended.
+    <div
+      className={result === 'won' ? `${styles.entrant} ${styles.winner}` : styles.entrant}
+      data-state={state}
+      data-result={result}
+    >
       <span className={styles.seed} data-cell="seed" aria-hidden={seed === null}>
         {seed === null ? '' : seed}
       </span>
@@ -103,11 +140,22 @@ function EntrantRow({ entrant }: { entrant: MatchEntrant }) {
 }
 
 /** One matchup, as a list item inside its round's `<ol>`. */
-export default function MatchCard({ roundLabel, matchIndex, top, bottom }: MatchCardProps) {
+export default function MatchCard({
+  roundLabel,
+  matchIndex,
+  top,
+  bottom,
+  scoreline,
+}: MatchCardProps) {
   return (
     <li className={styles.card} aria-label={`${roundLabel} match ${matchIndex + 1}`}>
       <EntrantRow entrant={top} />
       <EntrantRow entrant={bottom} />
+      {scoreline !== undefined && (
+        <p className={styles.scoreline} data-cell="scoreline">
+          {scoreline}
+        </p>
+      )}
     </li>
   );
 }
