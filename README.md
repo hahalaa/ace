@@ -4,6 +4,8 @@ Ever wondered who's actually going to win Wimbledon before a single ball is serv
 
 **🔗 Try Ace here → Coming soon**
 
+Running it yourself, or deploying it: [`frontend/README.md`](frontend/README.md) covers the API + web app locally and the static build.
+
 ---
 
 Match data from [TML-Database](https://github.com/Tennismylife/TML-Database), used for educational, analytical, and research purposes. Originally inspired by Jeff Sackmann's [ATP Matches Dataset](https://github.com/JeffSackmann/tennis_atp) (CC BY-NC-SA 4.0). Non-commercial portfolio project.

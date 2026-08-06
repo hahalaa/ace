@@ -209,12 +209,24 @@ API_VERSION = "0.1.0"
 # Browser origins allowed to call the API (CORS). Deliberately an explicit
 # allow-list, never "*": these responses are read by a browser app, and a
 # wildcard would let any page on the internet read them. The defaults are the
-# Phase 4 frontend's local dev server (Vite's default port, both hostname
-# spellings a dev machine uses). A deployed frontend's origin is NOT here —
-# whoever deploys the API must add it explicitly (T5.1).
+# Phase 4 frontend's two *local* servers, and nothing else:
+#
+#   :5173  `npm run dev`     — Vite's dev server, both hostname spellings a dev
+#                              machine uses.
+#   :4173  `npm run preview` — Vite's preview server, which serves an already
+#                              built `frontend/dist/` the way a static host
+#                              would. Added by T4.5: checking a production
+#                              build against a local API is the one thing the
+#                              deploy docs ask a developer to do, and without
+#                              this entry every request fails at the preflight.
+#
+# A deployed frontend's origin is NOT here — whoever deploys the API must add it
+# explicitly (T5.1). Tests index this list positionally, so append rather than
+# reorder.
 API_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:4173",
 ]
 
 # ---- Live storybook endpoint (T3.4; adapter replaced in T3.5) ----

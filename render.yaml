@@ -1,0 +1,62 @@
+# Static-host deploy config for the ace frontend (T4.5).
+#
+# A Render Blueprint. Render reads this file from the repo root; `rootDir` moves
+# the build into `frontend/`, and every other path below is relative to that.
+# The same three facts port to any static host — see frontend/README.md for the
+# Netlify / Vercel / plain-file-server translations:
+#
+#     build command   npm ci && npm run build
+#     publish dir     frontend/dist
+#     build env var   VITE_API_BASE_URL   (required, no default)
+#
+# SCOPE NOTE — this is the static-site path, and it is the whole of the frontend
+# deploy story T4.5 owns. **Container packaging is T5.1's and is deliberately
+# not built here**: no frontend Dockerfile, no docker-compose.yml. T5.1 still
+# owns both, and finding this file must not read as "the frontend is already
+# containerised". See the T4.5 entry in docs/tickets/ace-ticket-index.md.
+
+services:
+  - type: web
+    name: ace-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+
+    envVars:
+      # Base URL of the deployed ace API, e.g. https://ace-api.example.com —
+      # read by Vite at BUILD time and inlined into the bundle, so changing it
+      # in the dashboard requires a redeploy that actually rebuilds; a rollback
+      # to a previously built bundle keeps whatever URL that build baked in.
+      #
+      # `sync: false` = Render prompts for the value and stores it on the
+      # service instead of reading it here. Deliberate: the repo hardcodes no
+      # origin (frontend/.env.example is the only place a value is written
+      # down), and the API's CORS allow-list is an explicit list, so the two
+      # sides must be configured together at deploy time — whatever origin this
+      # site ends up on has to be added to config.API_ALLOWED_ORIGINS.
+      - key: VITE_API_BASE_URL
+        sync: false
+
+    headers:
+      # Vite content-hashes everything under /assets, so those filenames change
+      # whenever their bytes do and may be cached forever.
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      # index.html is NOT hashed — it is the file that points at the current
+      # asset hashes. Caching it is how a deploy goes out and nobody sees it.
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+
+    # No SPA rewrite rule, on purpose. The app does no path-based routing: every
+    # screen is `/` plus a query string (`?tournament=`, `?view=`, `?seed=` —
+    # App.tsx), so no deep link ever requests a path that is not index.html, and
+    # a catch-all rewrite would only turn genuine 404s into blank app shells.
+    # If a real router is ever adopted, this is the rule to add:
+    #
+    # routes:
+    #   - type: rewrite
+    #     source: /*
+    #     destination: /index.html
