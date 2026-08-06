@@ -2,12 +2,22 @@
 #
 # A Render Blueprint. Render reads this file from the repo root; `rootDir` moves
 # the build into `frontend/`, and every other path below is relative to that.
-# The same three facts port to any static host — see frontend/README.md for the
-# Netlify / Vercel / plain-file-server translations:
+# These three facts are the whole contract and port to any static host —
+# Netlify (base `frontend`, publish `dist`), Vercel (root `frontend`, Vite
+# preset), or any file server (`npx serve dist`, nginx, S3 + CloudFront):
 #
 #     build command   npm ci && npm run build
 #     publish dir     frontend/dist
-#     build env var   VITE_API_BASE_URL   (required, no default)
+#     build env var   VITE_API_BASE_URL   (required, no default, BUILD-time only)
+#
+# Render is the only host with a committed, checked config; the one-liners above
+# are read off each host's documented settings and have not been deployed.
+#
+# Two things on the API side after any real deploy: add the frontend's origin to
+# config.API_ALLOWED_ORIGINS and restart (the allow-list ships with local dev
+# origins only, and is never `*`), and serve the API over HTTPS if the frontend
+# is — a browser blocks an https:// page from calling http://, and it surfaces
+# as the generic "could not reach the ace API" panel.
 #
 # SCOPE NOTE — this is the static-site path, and it is the whole of the frontend
 # deploy story T4.5 owns. **Container packaging is T5.1's and is deliberately

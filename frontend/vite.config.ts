@@ -45,7 +45,7 @@ export default defineConfig(({ command, mode }) => {
           '  This build will succeed, but the bundle has no API to call and every\n' +
           '  screen will render the "API base URL is not configured" panel.\n' +
           '  The value is inlined at BUILD time — setting it later does not fix an\n' +
-          '  existing bundle; it needs a rebuild. See frontend/README.md.\n',
+          '  existing bundle; it needs a rebuild. See frontend/.env.example.\n',
       )
     }
   }
