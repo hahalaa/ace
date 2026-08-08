@@ -97,3 +97,161 @@ with TestClient(m.app) as c:
     print(c.get('/health').json())
     print(c.get('/tournaments/usopen_2024_atp_full/simulate?top=3').status_code)"
 ```
+
+---
+
+## Keeping the data fresh — the scheduled refresh (T5.3)
+
+`.github/workflows/refresh-and-simulate.yml` refreshes the vendored match data,
+retrains the classifier, regenerates the Monte Carlo cache and **opens a pull
+request** with the result. `scripts/update_and_cache.py` is the orchestrator —
+all of the sequencing and every abort live there, so the same run is
+reproducible from a terminal:
+
+```bash
+python scripts/update_and_cache.py                            # the scheduled run
+python scripts/update_and_cache.py --draw usopen_2026_atp     # one draw
+python scripts/update_and_cache.py --no-refresh --force       # re-simulate only
+python scripts/update_and_cache.py --summary-json summary.json
+```
+
+### What it does not do
+
+**It never touches `data/draws/`.** Tournament entrants are entered by hand;
+there is no scraper in this project and this workflow adds none. It refreshes
+historical *match data* and regenerates *simulations*, and the `git add` in the
+workflow names `data/raw` and `data/cache` explicitly so nothing else can be
+swept into an automated commit. A draw still holding `Qualifier`/`Bye` slots is
+skipped with a log line and is picked up automatically by the next run once
+someone has filled it in and merged it.
+
+### Triggers
+
+| | |
+|---|---|
+| `schedule` | `17 23 * * 1` — Mondays, 23:17 UTC |
+| `workflow_dispatch` | `tournament_id` (blank = every simulatable draw), `refresh_data` (default true), `force` (default false) |
+
+Weekly is matched to the source, not guessed: TML-Database republishes the
+current season's main-tour file (`2026.csv`, the only one this project fetches
+for the running year) roughly weekly — on 2026-08-08 the manifest showed it last
+written 2026-08-03, against a bulk republish of every historical year on
+2026-07-30. The files that do change daily (`*_ongoing_tourneys.csv`) are ones
+this project never downloads. Tour events finish on Sundays, so a Monday run
+captures a completed week in one pass.
+
+**Late Monday, not Monday morning**, and the reason matters if you ever move it:
+that observed 2026-08-03 timestamp is **20:43 UTC** — Monday *evening*. A morning
+slot would have run ~14 h before the week's republish and so fetched the previous
+Monday's file every time, a week behind by construction and invisible in the logs
+(the run just looks like a no-op). 23:17 stays on the same day, so nothing waits
+an extra week the way a Tuesday slot would. **This rests on one observed publish
+timestamp** — enough to rule out the morning, not enough to pin the vendor's
+publish window. If real runs start reporting no changed years, the publish time
+has drifted and this needs revisiting.
+
+The two dispatch inputs are separate on purpose: "pull new match data" and
+"re-simulate draw X" are different jobs, and pairing them would force a
+13-season re-download just to re-run one Monte Carlo for a draw whose entrants
+were entered an hour ago. `refresh_data: false` + a `tournament_id` is the
+before-a-Slam path.
+
+### It opens a PR; it does not push to `main`
+
+This is the only workflow in the repo that can write to the default branch, and
+it runs unattended. Its output changes what the public demo shows — a refresh
+moves every published title probability — so it lands as a reviewable diff on
+the long-lived branch `automation/data-refresh` (force-pushed, so there is at
+most one open data-refresh PR at a time, always carrying the latest data). The
+trade is real and deliberate: "auto-updates before each Slam" means *prepared,
+awaiting merge*.
+
+**Two repository settings are required**, both under Settings → Actions →
+General:
+
+1. Workflow permissions — the job declares `contents: write` and
+   `pull-requests: write` itself, which is enough if the repo default is
+   read-only.
+2. ✅ **"Allow GitHub Actions to create and approve pull requests"** — without
+   it `gh pr create` fails with a 403 *even though the token has
+   `pull-requests: write`*.
+
+Two more GitHub behaviours worth knowing. Scheduled workflows are **disabled
+after 60 days** of repository inactivity. And **`ci.yml` will not have run by
+itself on a PR this workflow opens.** The precise mechanism, because the
+approximate version misleads: events triggered by `GITHUB_TOKEN` create no
+workflow runs, *except* `pull_request` events with the `opened`, `synchronize` or
+`reopened` activity types — those do queue a run, but GitHub holds it in an
+**approval-required** state until someone with write access clicks "Approve
+workflows to run" on the PR. (The force-push to the automation branch is the
+plain case: its `push` event creates no run at all.) So a reviewer looking at the
+PR sees no green checks unless they first approve them — which is why this job
+runs `pytest -q` itself before opening the PR. Approving the queued `ci.yml` run
+is still worth doing; it just cannot be relied on to happen.
+
+### How a bad refresh is stopped
+
+`scripts/refresh_data.py` reports a failed year by *omission*: it logs it, skips
+it, and still exits 0. An unattended wrapper that trusted that exit code would
+precompute against half-updated data and stamp the cache with today's date — a
+false claim of freshness that nothing downstream could detect. So the
+orchestrator gates every phase and each gate fails closed. There are **six**:
+
+0. **Coverage** — `--end` (default: the calendar year) must not exceed
+   `config.END_YEAR`, because the pipeline loads data only through `END_YEAR`.
+   Refreshing past it would regenerate, date and commit a cache that ignores the
+   new season entirely — the same falsely-fresh failure by a slower route.
+   **This is the one gate guaranteed to fire on its own, and the one most likely
+   to be the reason a run is red when nothing else is wrong:** on the first
+   scheduled run after New Year, `--end` becomes the new year and every run stops
+   here until someone bumps `config.END_YEAR` (and checks `TEST_YEAR`, which is
+   deliberately decoupled — `2026` is a partial season). The abort message names
+   that fix. It happens before the network, so nothing is downloaded.
+1. **Refresh** — every requested year must be in the returned `{year: path}`
+   map, or the run aborts before anything else happens.
+2. **Verify** — each file is re-read and checked for the columns the
+   preprocessor indexes by name, for `tourney_date` values that parse as
+   `YYYYMMDD` (the loader coerces failures to `NaT`, which would silently
+   destroy the date ordering every leakage-safe feature depends on), and for a
+   row count that has not *shrunk* against the file it replaced. Pass
+   `--allow-shrink` if the vendor genuinely removed rows.
+3. **Change detection** — sha256 per file, before and after. Unchanged bytes
+   ⇒ the run stops successfully, having retrained and regenerated nothing.
+   This is the "no empty commits" gate, and it has to live here: every cache
+   file carries a `generated_at` that moves on every run, so `git diff
+   data/cache/` can never answer the question.
+4. **Retrain** — the persisted model is **deleted** and rebuilt. The skill table
+   is rebuilt implicitly (nothing persists it), but `outputs/tennis_model.pkl`
+   is loaded by `predictor.py` whenever it exists, with no staleness check at
+   all (`ace-04-current-state.md` §4). New data plus an old pickle is a silent
+   mismatch. **Running this by hand is destructive:** the delete happens before
+   training and is not rolled back, so a training failure leaves your machine
+   with *no* model rather than a stale one (regenerate with
+   `python src/predictor.py`, ~1 min; or pass `--retrain never` to leave the
+   pickle alone). That is the intended trade — a missing model fails loudly
+   everywhere, a stale one does not.
+5. **Precompute** — only now, and via `scripts/precompute_sim.py`, so the
+   placeholder refusal, the error ladder and the disclosure metadata are the
+   same ones the API already relies on.
+
+A failure at any gate exits non-zero, names what failed, and **commits
+nothing** — including the draws that succeeded, so the repository never holds a
+mix of fresh and stale caches. (Within the precompute phase every target is
+still attempted, so one run reports the whole failure list rather than one draw
+per run.)
+
+### Why the cache is `git add -f`'d
+
+`.gitignore:15` (`data/cache/*.json`) stays exactly as it is: it stops a
+developer committing a locally-generated cache by accident, which is still worth
+having. This workflow is the one place where writing that file is the intended
+act, so it is the one place that overrides the rule. Without the `-f` the add is
+a **silent no-op** and the freshly computed cache never leaves the runner.
+
+Two consequences of that cache being in git, neither of them a problem:
+`outputs/tennis_model.pkl` is *not* committed (it stays gitignored), so the
+numbers in the PR were produced by a model that only ever existed on the
+runner — `metadata.estimator_class` in each cache file records which of the
+best-of-four it was (§4). And the container build ignores the committed cache
+entirely: `.dockerignore` excludes `data/cache/` so every image regenerates it
+from source, as described above.
