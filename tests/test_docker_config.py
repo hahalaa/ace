@@ -1,7 +1,7 @@
 """Regression guards for the container build (T5.1).
 
 These do not build an image — that is the documented manual/CI step in
-``README.md`` (and T5.2's job). What they pin is the handful of facts that are
+``DEPLOYING.md`` (and T5.2's job). What they pin is the handful of facts that are
 *silently* wrong when broken: an image that builds and runs perfectly while
 serving a bundle pointed at the wrong API, or a build that quietly inherits a
 developer's model pickle instead of producing one. Each assertion below

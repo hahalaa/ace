@@ -50,6 +50,7 @@ data/cache/
 tests/
 docs/
 README.md
+DEPLOYING.md
 CLAUDE.md
 ace-startup-guide.md
 render.yaml

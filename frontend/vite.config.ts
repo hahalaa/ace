@@ -18,7 +18,9 @@ import react from '@vitejs/plugin-react'
 //     `import.meta.env` substitution; nothing here changes that and nothing
 //     should. `apiBaseUrl()` in `src/api/client.ts` compiles down to a string
 //     literal, so one built bundle talks to exactly one API and pointing it at
-//     another requires a **rebuild**. See README.md — "Building for production".
+//     another requires a **rebuild**. Written up in the repo-root `DEPLOYING.md`
+//     ("Full stack — API + web app"), which is where the build-time-URL
+//     contract now lives; `frontend/.env.example` is the tracked local value.
 //
 // The `test` block below is vitest's, not the build's.
 //

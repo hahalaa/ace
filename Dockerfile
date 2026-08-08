@@ -73,7 +73,7 @@
 #     **image digest**. A digest is exactly reproducible; a rebuild is not.
 #
 # Build cost of (a): the model train dominates. `--build-arg PRECOMPUTE_RUNS=`
-# trims the Monte Carlo for CI (see README).
+# trims the Monte Carlo for CI (see DEPLOYING.md).
 
 
 # --------------------------------------------------------------------------- #
@@ -270,5 +270,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 # NO NETWORK, EVER — not at start, not per request. The data is vendored into
 # the image (data/loader.py raises rather than downloading, T0.2) and both
 # generated artefacts were baked in above. Verified with `--network none`; see
-# README.
+# DEPLOYING.md.
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
