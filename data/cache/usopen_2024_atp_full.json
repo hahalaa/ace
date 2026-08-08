@@ -1,0 +1,3618 @@
+{
+  "tournament_id": "usopen_2024_atp_full",
+  "name": "US Open 2024 — Men's Singles (real 128 draw)",
+  "surface": "Hard",
+  "best_of": 5,
+  "final_set_tiebreak": "10pt_at_6_6",
+  "draw_size": 128,
+  "round_labels": [
+    "R128",
+    "R64",
+    "R32",
+    "R16",
+    "QF",
+    "SF",
+    "F"
+  ],
+  "count": 128,
+  "players": [
+    {
+      "position": 1,
+      "player": "Jannik Sinner",
+      "player_id": "S0AG",
+      "seed": 1,
+      "titles": 2079,
+      "matches_won": 24926,
+      "p_title": 0.4158,
+      "expected_rounds_won": 4.9852,
+      "reached": {
+        "R128": 5000,
+        "R64": 4807,
+        "R32": 4416,
+        "R16": 4081,
+        "QF": 3728,
+        "SF": 3235,
+        "F": 2580
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.9614,
+        "R32": 0.8832,
+        "R16": 0.8162,
+        "QF": 0.7456,
+        "SF": 0.647,
+        "F": 0.516
+      }
+    },
+    {
+      "position": 65,
+      "player": "Novak Djokovic",
+      "player_id": "D643",
+      "seed": 2,
+      "titles": 867,
+      "matches_won": 20416,
+      "p_title": 0.1734,
+      "expected_rounds_won": 4.0832,
+      "reached": {
+        "R128": 5000,
+        "R64": 4612,
+        "R32": 4011,
+        "R16": 3612,
+        "QF": 3013,
+        "SF": 2484,
+        "F": 1817
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.9224,
+        "R32": 0.8022,
+        "R16": 0.7224,
+        "QF": 0.6026,
+        "SF": 0.4968,
+        "F": 0.3634
+      }
+    },
+    {
+      "position": 33,
+      "player": "Carlos Alcaraz",
+      "player_id": "A0E2",
+      "seed": 3,
+      "titles": 672,
+      "matches_won": 18413,
+      "p_title": 0.1344,
+      "expected_rounds_won": 3.6826,
+      "reached": {
+        "R128": 5000,
+        "R64": 4559,
+        "R32": 3918,
+        "R16": 3237,
+        "QF": 2766,
+        "SF": 2177,
+        "F": 1084
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.9118,
+        "R32": 0.7836,
+        "R16": 0.6474,
+        "QF": 0.5532,
+        "SF": 0.4354,
+        "F": 0.2168
+      }
+    },
+    {
+      "position": 97,
+      "player": "Alexander Zverev",
+      "player_id": "Z355",
+      "seed": 4,
+      "titles": 396,
+      "matches_won": 20264,
+      "p_title": 0.0792,
+      "expected_rounds_won": 4.0528,
+      "reached": {
+        "R128": 5000,
+        "R64": 4773,
+        "R32": 4531,
+        "R16": 4002,
+        "QF": 3156,
+        "SF": 2212,
+        "F": 1194
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.9546,
+        "R32": 0.9062,
+        "R16": 0.8004,
+        "QF": 0.6312,
+        "SF": 0.4424,
+        "F": 0.2388
+      }
+    },
+    {
+      "position": 17,
+      "player": "Daniil Medvedev",
+      "player_id": "MM58",
+      "seed": 5,
+      "titles": 207,
+      "matches_won": 16024,
+      "p_title": 0.0414,
+      "expected_rounds_won": 3.2048,
+      "reached": {
+        "R128": 5000,
+        "R64": 4743,
+        "R32": 4094,
+        "R16": 3401,
+        "QF": 2495,
+        "SF": 702,
+        "F": 382
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.9486,
+        "R32": 0.8188,
+        "R16": 0.6802,
+        "QF": 0.499,
+        "SF": 0.1404,
+        "F": 0.0764
+      }
+    },
+    {
+      "position": 61,
+      "player": "Alex de Minaur",
+      "player_id": "DH58",
+      "seed": null,
+      "titles": 138,
+      "matches_won": 15363,
+      "p_title": 0.0276,
+      "expected_rounds_won": 3.0726,
+      "reached": {
+        "R128": 5000,
+        "R64": 4376,
+        "R32": 3880,
+        "R16": 2992,
+        "QF": 2513,
+        "SF": 1173,
+        "F": 291
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.8752,
+        "R32": 0.776,
+        "R16": 0.5984,
+        "QF": 0.5026,
+        "SF": 0.2346,
+        "F": 0.0582
+      }
+    },
+    {
+      "position": 121,
+      "player": "Taylor Fritz",
+      "player_id": "FB98",
+      "seed": 12,
+      "titles": 129,
+      "matches_won": 13357,
+      "p_title": 0.0258,
+      "expected_rounds_won": 2.6714,
+      "reached": {
+        "R128": 5000,
+        "R64": 4376,
+        "R32": 3160,
+        "R16": 2426,
+        "QF": 1796,
+        "SF": 1000,
+        "F": 470
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.8752,
+        "R32": 0.632,
+        "R16": 0.4852,
+        "QF": 0.3592,
+        "SF": 0.2,
+        "F": 0.094
+      }
+    },
+    {
+      "position": 81,
+      "player": "Andrey Rublev",
+      "player_id": "RE44",
+      "seed": 6,
+      "titles": 80,
+      "matches_won": 13982,
+      "p_title": 0.016,
+      "expected_rounds_won": 2.7964,
+      "reached": {
+        "R128": 5000,
+        "R64": 4499,
+        "R32": 3712,
+        "R16": 2612,
+        "QF": 1907,
+        "SF": 808,
+        "F": 364
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.8998,
+        "R32": 0.7424,
+        "R16": 0.5224,
+        "QF": 0.3814,
+        "SF": 0.1616,
+        "F": 0.0728
+      }
+    },
+    {
+      "position": 73,
+      "player": "Ben Shelton",
+      "player_id": "S0S1",
+      "seed": 13,
+      "titles": 49,
+      "matches_won": 11920,
+      "p_title": 0.0098,
+      "expected_rounds_won": 2.384,
+      "reached": {
+        "R128": 5000,
+        "R64": 4154,
+        "R32": 3502,
+        "R16": 2512,
+        "QF": 944,
+        "SF": 528,
+        "F": 231
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.8308,
+        "R32": 0.7004,
+        "R16": 0.5024,
+        "QF": 0.1888,
+        "SF": 0.1056,
+        "F": 0.0462
+      }
+    },
+    {
+      "position": 9,
+      "player": "Tommy Paul",
+      "player_id": "PL56",
+      "seed": 14,
+      "titles": 42,
+      "matches_won": 11203,
+      "p_title": 0.0084,
+      "expected_rounds_won": 2.2406,
+      "reached": {
+        "R128": 5000,
+        "R64": 4111,
+        "R32": 3616,
+        "R16": 2569,
+        "QF": 527,
+        "SF": 243,
+        "F": 95
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.8222,
+        "R32": 0.7232,
+        "R16": 0.5138,
+        "QF": 0.1054,
+        "SF": 0.0486,
+        "F": 0.019
+      }
+    },
+    {
+      "position": 30,
+      "player": "Felix Auger-Aliassime",
+      "player_id": "AG37",
+      "seed": null,
+      "titles": 38,
+      "matches_won": 8858,
+      "p_title": 0.0076,
+      "expected_rounds_won": 1.7716,
+      "reached": {
+        "R128": 5000,
+        "R64": 2989,
+        "R32": 2714,
+        "R16": 1925,
+        "QF": 893,
+        "SF": 211,
+        "F": 88
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.5978,
+        "R32": 0.5428,
+        "R16": 0.385,
+        "QF": 0.1786,
+        "SF": 0.0422,
+        "F": 0.0176
+      }
+    },
+    {
+      "position": 29,
+      "player": "Jakub Mensik",
+      "player_id": "M0NI",
+      "seed": null,
+      "titles": 27,
+      "matches_won": 5500,
+      "p_title": 0.0054,
+      "expected_rounds_won": 1.1,
+      "reached": {
+        "R128": 5000,
+        "R64": 2011,
+        "R32": 1686,
+        "R16": 1075,
+        "QF": 493,
+        "SF": 153,
+        "F": 55
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.4022,
+        "R32": 0.3372,
+        "R16": 0.215,
+        "QF": 0.0986,
+        "SF": 0.0306,
+        "F": 0.011
+      }
+    },
+    {
+      "position": 41,
+      "player": "Sebastian Korda",
+      "player_id": "K0AH",
+      "seed": 16,
+      "titles": 26,
+      "matches_won": 10741,
+      "p_title": 0.0052,
+      "expected_rounds_won": 2.1482,
+      "reached": {
+        "R128": 5000,
+        "R64": 4151,
+        "R32": 2992,
+        "R16": 2377,
+        "QF": 750,
+        "SF": 371,
+        "F": 74
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.8302,
+        "R32": 0.5984,
+        "R16": 0.4754,
+        "QF": 0.15,
+        "SF": 0.0742,
+        "F": 0.0148
+      }
+    },
+    {
+      "position": 37,
+      "player": "Jack Draper",
+      "player_id": "D0CO",
+      "seed": 25,
+      "titles": 24,
+      "matches_won": 9358,
+      "p_title": 0.0048,
+      "expected_rounds_won": 1.8716,
+      "reached": {
+        "R128": 5000,
+        "R64": 4050,
+        "R32": 3218,
+        "R16": 1011,
+        "QF": 638,
+        "SF": 342,
+        "F": 75
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.81,
+        "R32": 0.6436,
+        "R16": 0.2022,
+        "QF": 0.1276,
+        "SF": 0.0684,
+        "F": 0.015
+      }
+    },
+    {
+      "position": 85,
+      "player": "Jiri Lehecka",
+      "player_id": "L0BV",
+      "seed": 32,
+      "titles": 23,
+      "matches_won": 9338,
+      "p_title": 0.0046,
+      "expected_rounds_won": 1.8676,
+      "reached": {
+        "R128": 5000,
+        "R64": 3639,
+        "R32": 2879,
+        "R16": 1426,
+        "QF": 942,
+        "SF": 313,
+        "F": 116
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7278,
+        "R32": 0.5758,
+        "R16": 0.2852,
+        "QF": 0.1884,
+        "SF": 0.0626,
+        "F": 0.0232
+      }
+    },
+    {
+      "position": 113,
+      "player": "Casper Ruud",
+      "player_id": "RH16",
+      "seed": 8,
+      "titles": 22,
+      "matches_won": 10489,
+      "p_title": 0.0044,
+      "expected_rounds_won": 2.0978,
+      "reached": {
+        "R128": 5000,
+        "R64": 4097,
+        "R32": 2823,
+        "R16": 2086,
+        "QF": 967,
+        "SF": 366,
+        "F": 128
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.8194,
+        "R32": 0.5646,
+        "R16": 0.4172,
+        "QF": 0.1934,
+        "SF": 0.0732,
+        "F": 0.0256
+      }
+    },
+    {
+      "position": 57,
+      "player": "Karen Khachanov",
+      "player_id": "KE29",
+      "seed": 23,
+      "titles": 18,
+      "matches_won": 9074,
+      "p_title": 0.0036,
+      "expected_rounds_won": 1.8148,
+      "reached": {
+        "R128": 5000,
+        "R64": 3693,
+        "R32": 2959,
+        "R16": 1210,
+        "QF": 864,
+        "SF": 270,
+        "F": 60
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7386,
+        "R32": 0.5918,
+        "R16": 0.242,
+        "QF": 0.1728,
+        "SF": 0.054,
+        "F": 0.012
+      }
+    },
+    {
+      "position": 123,
+      "player": "Matteo Berrettini",
+      "player_id": "BK40",
+      "seed": null,
+      "titles": 17,
+      "matches_won": 7722,
+      "p_title": 0.0034,
+      "expected_rounds_won": 1.5444,
+      "reached": {
+        "R128": 5000,
+        "R64": 4281,
+        "R32": 1613,
+        "R16": 947,
+        "QF": 569,
+        "SF": 219,
+        "F": 76
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.8562,
+        "R32": 0.3226,
+        "R16": 0.1894,
+        "QF": 0.1138,
+        "SF": 0.0438,
+        "F": 0.0152
+      }
+    },
+    {
+      "position": 89,
+      "player": "Grigor Dimitrov",
+      "player_id": "D875",
+      "seed": 9,
+      "titles": 15,
+      "matches_won": 7959,
+      "p_title": 0.003,
+      "expected_rounds_won": 1.5918,
+      "reached": {
+        "R128": 5000,
+        "R64": 3618,
+        "R32": 1957,
+        "R16": 1442,
+        "QF": 648,
+        "SF": 210,
+        "F": 69
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7236,
+        "R32": 0.3914,
+        "R16": 0.2884,
+        "QF": 0.1296,
+        "SF": 0.042,
+        "F": 0.0138
+      }
+    },
+    {
+      "position": 105,
+      "player": "Holger Rune",
+      "player_id": "R0DG",
+      "seed": 15,
+      "titles": 14,
+      "matches_won": 7945,
+      "p_title": 0.0028,
+      "expected_rounds_won": 1.589,
+      "reached": {
+        "R128": 5000,
+        "R64": 2950,
+        "R32": 2437,
+        "R16": 1601,
+        "QF": 544,
+        "SF": 293,
+        "F": 106
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.59,
+        "R32": 0.4874,
+        "R16": 0.3202,
+        "QF": 0.1088,
+        "SF": 0.0586,
+        "F": 0.0212
+      }
+    },
+    {
+      "position": 125,
+      "player": "Ugo Humbert",
+      "player_id": "HH26",
+      "seed": 17,
+      "titles": 14,
+      "matches_won": 10391,
+      "p_title": 0.0028,
+      "expected_rounds_won": 2.0782,
+      "reached": {
+        "R128": 5000,
+        "R64": 4319,
+        "R32": 3573,
+        "R16": 1369,
+        "QF": 795,
+        "SF": 242,
+        "F": 79
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.8638,
+        "R32": 0.7146,
+        "R16": 0.2738,
+        "QF": 0.159,
+        "SF": 0.0484,
+        "F": 0.0158
+      }
+    },
+    {
+      "position": 92,
+      "player": "Alejandro Davidovich Fokina",
+      "player_id": "DH50",
+      "seed": null,
+      "titles": 11,
+      "matches_won": 9289,
+      "p_title": 0.0022,
+      "expected_rounds_won": 1.8578,
+      "reached": {
+        "R128": 5000,
+        "R64": 4297,
+        "R32": 2365,
+        "R16": 1684,
+        "QF": 694,
+        "SF": 180,
+        "F": 58
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.8594,
+        "R32": 0.473,
+        "R16": 0.3368,
+        "QF": 0.1388,
+        "SF": 0.036,
+        "F": 0.0116
+      }
+    },
+    {
+      "position": 106,
+      "player": "Brandon Nakashima",
+      "player_id": "N0AE",
+      "seed": null,
+      "titles": 11,
+      "matches_won": 4649,
+      "p_title": 0.0022,
+      "expected_rounds_won": 0.9298,
+      "reached": {
+        "R128": 5000,
+        "R64": 2050,
+        "R32": 1434,
+        "R16": 766,
+        "QF": 254,
+        "SF": 102,
+        "F": 32
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.41,
+        "R32": 0.2868,
+        "R16": 0.1532,
+        "QF": 0.0508,
+        "SF": 0.0204,
+        "F": 0.0064
+      }
+    },
+    {
+      "position": 49,
+      "player": "Hubert Hurkacz",
+      "player_id": "HB71",
+      "seed": 7,
+      "titles": 10,
+      "matches_won": 9018,
+      "p_title": 0.002,
+      "expected_rounds_won": 1.8036,
+      "reached": {
+        "R128": 5000,
+        "R64": 3957,
+        "R32": 2645,
+        "R16": 1651,
+        "QF": 538,
+        "SF": 177,
+        "F": 40
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7914,
+        "R32": 0.529,
+        "R16": 0.3302,
+        "QF": 0.1076,
+        "SF": 0.0354,
+        "F": 0.008
+      }
+    },
+    {
+      "position": 109,
+      "player": "Lorenzo Musetti",
+      "player_id": "M0EJ",
+      "seed": 18,
+      "titles": 10,
+      "matches_won": 8037,
+      "p_title": 0.002,
+      "expected_rounds_won": 1.6074,
+      "reached": {
+        "R128": 5000,
+        "R64": 3486,
+        "R32": 2442,
+        "R16": 1360,
+        "QF": 466,
+        "SF": 199,
+        "F": 74
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6972,
+        "R32": 0.4884,
+        "R16": 0.272,
+        "QF": 0.0932,
+        "SF": 0.0398,
+        "F": 0.0148
+      }
+    },
+    {
+      "position": 77,
+      "player": "Frances Tiafoe",
+      "player_id": "TD51",
+      "seed": 20,
+      "titles": 8,
+      "matches_won": 8858,
+      "p_title": 0.0016,
+      "expected_rounds_won": 1.7716,
+      "reached": {
+        "R128": 5000,
+        "R64": 3972,
+        "R32": 2854,
+        "R16": 1378,
+        "QF": 407,
+        "SF": 185,
+        "F": 54
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7944,
+        "R32": 0.5708,
+        "R16": 0.2756,
+        "QF": 0.0814,
+        "SF": 0.037,
+        "F": 0.0108
+      }
+    },
+    {
+      "position": 25,
+      "player": "Stefanos Tsitsipas",
+      "player_id": "TE51",
+      "seed": 11,
+      "titles": 7,
+      "matches_won": 8354,
+      "p_title": 0.0014,
+      "expected_rounds_won": 1.6708,
+      "reached": {
+        "R128": 5000,
+        "R64": 3699,
+        "R32": 2801,
+        "R16": 1235,
+        "QF": 466,
+        "SF": 109,
+        "F": 37
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7398,
+        "R32": 0.5602,
+        "R16": 0.247,
+        "QF": 0.0932,
+        "SF": 0.0218,
+        "F": 0.0074
+      }
+    },
+    {
+      "position": 13,
+      "player": "Arthur Fils",
+      "player_id": "F0F1",
+      "seed": 24,
+      "titles": 4,
+      "matches_won": 5060,
+      "p_title": 0.0008,
+      "expected_rounds_won": 1.012,
+      "reached": {
+        "R128": 5000,
+        "R64": 2552,
+        "R32": 1568,
+        "R16": 722,
+        "QF": 146,
+        "SF": 50,
+        "F": 18
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.5104,
+        "R32": 0.3136,
+        "R16": 0.1444,
+        "QF": 0.0292,
+        "SF": 0.01,
+        "F": 0.0036
+      }
+    },
+    {
+      "position": 14,
+      "player": "Learner Tien",
+      "player_id": "T0HA",
+      "seed": null,
+      "titles": 4,
+      "matches_won": 4633,
+      "p_title": 0.0008,
+      "expected_rounds_won": 0.9266,
+      "reached": {
+        "R128": 5000,
+        "R64": 2448,
+        "R32": 1392,
+        "R16": 593,
+        "QF": 134,
+        "SF": 46,
+        "F": 16
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.4896,
+        "R32": 0.2784,
+        "R16": 0.1186,
+        "QF": 0.0268,
+        "SF": 0.0092,
+        "F": 0.0032
+      }
+    },
+    {
+      "position": 36,
+      "player": "Denis Shapovalov",
+      "player_id": "SU55",
+      "seed": null,
+      "titles": 4,
+      "matches_won": 5071,
+      "p_title": 0.0008,
+      "expected_rounds_won": 1.0142,
+      "reached": {
+        "R128": 5000,
+        "R64": 3579,
+        "R32": 767,
+        "R16": 399,
+        "QF": 209,
+        "SF": 98,
+        "F": 15
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7158,
+        "R32": 0.1534,
+        "R16": 0.0798,
+        "QF": 0.0418,
+        "SF": 0.0196,
+        "F": 0.003
+      }
+    },
+    {
+      "position": 55,
+      "player": "Roman Safiullin",
+      "player_id": "SX50",
+      "seed": null,
+      "titles": 4,
+      "matches_won": 8052,
+      "p_title": 0.0008,
+      "expected_rounds_won": 1.6104,
+      "reached": {
+        "R128": 5000,
+        "R64": 3996,
+        "R32": 2434,
+        "R16": 1237,
+        "QF": 305,
+        "SF": 67,
+        "F": 9
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7992,
+        "R32": 0.4868,
+        "R16": 0.2474,
+        "QF": 0.061,
+        "SF": 0.0134,
+        "F": 0.0018
+      }
+    },
+    {
+      "position": 43,
+      "player": "Tomas Machac",
+      "player_id": "M0FH",
+      "seed": null,
+      "titles": 3,
+      "matches_won": 7118,
+      "p_title": 0.0006,
+      "expected_rounds_won": 1.4236,
+      "reached": {
+        "R128": 5000,
+        "R64": 4172,
+        "R32": 1585,
+        "R16": 1028,
+        "QF": 232,
+        "SF": 84,
+        "F": 14
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.8344,
+        "R32": 0.317,
+        "R16": 0.2056,
+        "QF": 0.0464,
+        "SF": 0.0168,
+        "F": 0.0028
+      }
+    },
+    {
+      "position": 115,
+      "player": "Gael Monfils",
+      "player_id": "MC65",
+      "seed": null,
+      "titles": 3,
+      "matches_won": 6364,
+      "p_title": 0.0006,
+      "expected_rounds_won": 1.2728,
+      "reached": {
+        "R128": 5000,
+        "R64": 3667,
+        "R32": 1507,
+        "R16": 849,
+        "QF": 249,
+        "SF": 74,
+        "F": 15
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7334,
+        "R32": 0.3014,
+        "R16": 0.1698,
+        "QF": 0.0498,
+        "SF": 0.0148,
+        "F": 0.003
+      }
+    },
+    {
+      "position": 117,
+      "player": "Alexander Bublik",
+      "player_id": "BK92",
+      "seed": 27,
+      "titles": 3,
+      "matches_won": 7444,
+      "p_title": 0.0006,
+      "expected_rounds_won": 1.4888,
+      "reached": {
+        "R128": 5000,
+        "R64": 3281,
+        "R32": 2511,
+        "R16": 1136,
+        "QF": 392,
+        "SF": 97,
+        "F": 24
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6562,
+        "R32": 0.5022,
+        "R16": 0.2272,
+        "QF": 0.0784,
+        "SF": 0.0194,
+        "F": 0.0048
+      }
+    },
+    {
+      "position": 23,
+      "player": "Zizou Bergs",
+      "player_id": "BU13",
+      "seed": null,
+      "titles": 2,
+      "matches_won": 7061,
+      "p_title": 0.0004,
+      "expected_rounds_won": 1.4122,
+      "reached": {
+        "R128": 5000,
+        "R64": 3912,
+        "R32": 2414,
+        "R16": 544,
+        "QF": 163,
+        "SF": 22,
+        "F": 4
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7824,
+        "R32": 0.4828,
+        "R16": 0.1088,
+        "QF": 0.0326,
+        "SF": 0.0044,
+        "F": 0.0008
+      }
+    },
+    {
+      "position": 35,
+      "player": "Botic van de Zandschulp",
+      "player_id": "V812",
+      "seed": null,
+      "titles": 2,
+      "matches_won": 1802,
+      "p_title": 0.0004,
+      "expected_rounds_won": 0.3604,
+      "reached": {
+        "R128": 5000,
+        "R64": 1421,
+        "R32": 236,
+        "R16": 100,
+        "QF": 29,
+        "SF": 11,
+        "F": 3
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2842,
+        "R32": 0.0472,
+        "R16": 0.02,
+        "QF": 0.0058,
+        "SF": 0.0022,
+        "F": 0.0006
+      }
+    },
+    {
+      "position": 101,
+      "player": "Francisco Cerundolo",
+      "player_id": "C0AU",
+      "seed": 29,
+      "titles": 2,
+      "matches_won": 7107,
+      "p_title": 0.0004,
+      "expected_rounds_won": 1.4214,
+      "reached": {
+        "R128": 5000,
+        "R64": 3967,
+        "R32": 2342,
+        "R16": 491,
+        "QF": 206,
+        "SF": 76,
+        "F": 23
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7934,
+        "R32": 0.4684,
+        "R16": 0.0982,
+        "QF": 0.0412,
+        "SF": 0.0152,
+        "F": 0.0046
+      }
+    },
+    {
+      "position": 111,
+      "player": "Miomir Kecmanovic",
+      "player_id": "KI95",
+      "seed": null,
+      "titles": 2,
+      "matches_won": 6166,
+      "p_title": 0.0004,
+      "expected_rounds_won": 1.2332,
+      "reached": {
+        "R128": 5000,
+        "R64": 3760,
+        "R32": 1607,
+        "R16": 627,
+        "QF": 132,
+        "SF": 30,
+        "F": 8
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.752,
+        "R32": 0.3214,
+        "R16": 0.1254,
+        "QF": 0.0264,
+        "SF": 0.006,
+        "F": 0.0016
+      }
+    },
+    {
+      "position": 10,
+      "player": "Lorenzo Sonego",
+      "player_id": "SU87",
+      "seed": null,
+      "titles": 1,
+      "matches_won": 1704,
+      "p_title": 0.0002,
+      "expected_rounds_won": 0.3408,
+      "reached": {
+        "R128": 5000,
+        "R64": 889,
+        "R32": 565,
+        "R16": 204,
+        "QF": 34,
+        "SF": 9,
+        "F": 2
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.1778,
+        "R32": 0.113,
+        "R16": 0.0408,
+        "QF": 0.0068,
+        "SF": 0.0018,
+        "F": 0.0004
+      }
+    },
+    {
+      "position": 16,
+      "player": "Jaume Munar",
+      "player_id": "MU94",
+      "seed": null,
+      "titles": 1,
+      "matches_won": 6039,
+      "p_title": 0.0002,
+      "expected_rounds_won": 1.2078,
+      "reached": {
+        "R128": 5000,
+        "R64": 3625,
+        "R32": 1670,
+        "R16": 610,
+        "QF": 99,
+        "SF": 31,
+        "F": 3
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.725,
+        "R32": 0.334,
+        "R16": 0.122,
+        "QF": 0.0198,
+        "SF": 0.0062,
+        "F": 0.0006
+      }
+    },
+    {
+      "position": 20,
+      "player": "Hamad Medjedovic",
+      "player_id": "M0JF",
+      "seed": null,
+      "titles": 1,
+      "matches_won": 3504,
+      "p_title": 0.0002,
+      "expected_rounds_won": 0.7008,
+      "reached": {
+        "R128": 5000,
+        "R64": 2556,
+        "R32": 506,
+        "R16": 310,
+        "QF": 107,
+        "SF": 22,
+        "F": 2
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.5112,
+        "R32": 0.1012,
+        "R16": 0.062,
+        "QF": 0.0214,
+        "SF": 0.0044,
+        "F": 0.0004
+      }
+    },
+    {
+      "position": 47,
+      "player": "Adrian Mannarino",
+      "player_id": "ME82",
+      "seed": null,
+      "titles": 1,
+      "matches_won": 5533,
+      "p_title": 0.0002,
+      "expected_rounds_won": 1.1066,
+      "reached": {
+        "R128": 5000,
+        "R64": 3200,
+        "R32": 1674,
+        "R16": 517,
+        "QF": 106,
+        "SF": 29,
+        "F": 6
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.64,
+        "R32": 0.3348,
+        "R16": 0.1034,
+        "QF": 0.0212,
+        "SF": 0.0058,
+        "F": 0.0012
+      }
+    },
+    {
+      "position": 53,
+      "player": "Matteo Arnaldi",
+      "player_id": "A0FC",
+      "seed": 30,
+      "titles": 1,
+      "matches_won": 6288,
+      "p_title": 0.0002,
+      "expected_rounds_won": 1.2576,
+      "reached": {
+        "R128": 5000,
+        "R64": 3499,
+        "R32": 1759,
+        "R16": 798,
+        "QF": 191,
+        "SF": 36,
+        "F": 4
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6998,
+        "R32": 0.3518,
+        "R16": 0.1596,
+        "QF": 0.0382,
+        "SF": 0.0072,
+        "F": 0.0008
+      }
+    },
+    {
+      "position": 69,
+      "player": "Alexei Popyrin",
+      "player_id": "P09Z",
+      "seed": 28,
+      "titles": 1,
+      "matches_won": 4681,
+      "p_title": 0.0002,
+      "expected_rounds_won": 0.9362,
+      "reached": {
+        "R128": 5000,
+        "R64": 2710,
+        "R32": 1609,
+        "R16": 266,
+        "QF": 78,
+        "SF": 13,
+        "F": 4
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.542,
+        "R32": 0.3218,
+        "R16": 0.0532,
+        "QF": 0.0156,
+        "SF": 0.0026,
+        "F": 0.0008
+      }
+    },
+    {
+      "position": 75,
+      "player": "Roberto Bautista Agut",
+      "player_id": "BD06",
+      "seed": null,
+      "titles": 1,
+      "matches_won": 4127,
+      "p_title": 0.0002,
+      "expected_rounds_won": 0.8254,
+      "reached": {
+        "R128": 5000,
+        "R64": 3058,
+        "R32": 725,
+        "R16": 264,
+        "QF": 54,
+        "SF": 17,
+        "F": 8
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6116,
+        "R32": 0.145,
+        "R16": 0.0528,
+        "QF": 0.0108,
+        "SF": 0.0034,
+        "F": 0.0016
+      }
+    },
+    {
+      "position": 80,
+      "player": "Dominik Koepfer",
+      "player_id": "KE73",
+      "seed": null,
+      "titles": 1,
+      "matches_won": 4653,
+      "p_title": 0.0002,
+      "expected_rounds_won": 0.9306,
+      "reached": {
+        "R128": 5000,
+        "R64": 3048,
+        "R32": 1165,
+        "R16": 346,
+        "QF": 72,
+        "SF": 18,
+        "F": 3
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6096,
+        "R32": 0.233,
+        "R16": 0.0692,
+        "QF": 0.0144,
+        "SF": 0.0036,
+        "F": 0.0006
+      }
+    },
+    {
+      "position": 86,
+      "player": "Marton Fucsovics",
+      "player_id": "F724",
+      "seed": null,
+      "titles": 1,
+      "matches_won": 2584,
+      "p_title": 0.0002,
+      "expected_rounds_won": 0.5168,
+      "reached": {
+        "R128": 5000,
+        "R64": 1361,
+        "R32": 841,
+        "R16": 237,
+        "QF": 119,
+        "SF": 21,
+        "F": 4
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2722,
+        "R32": 0.1682,
+        "R16": 0.0474,
+        "QF": 0.0238,
+        "SF": 0.0042,
+        "F": 0.0008
+      }
+    },
+    {
+      "position": 87,
+      "player": "Mitchell Krueger",
+      "player_id": "KC12",
+      "seed": null,
+      "titles": 1,
+      "matches_won": 5291,
+      "p_title": 0.0002,
+      "expected_rounds_won": 1.0582,
+      "reached": {
+        "R128": 5000,
+        "R64": 3675,
+        "R32": 1123,
+        "R16": 320,
+        "QF": 135,
+        "SF": 32,
+        "F": 5
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.735,
+        "R32": 0.2246,
+        "R16": 0.064,
+        "QF": 0.027,
+        "SF": 0.0064,
+        "F": 0.001
+      }
+    },
+    {
+      "position": 94,
+      "player": "Luciano Darderi",
+      "player_id": "D0FJ",
+      "seed": null,
+      "titles": 1,
+      "matches_won": 3659,
+      "p_title": 0.0002,
+      "expected_rounds_won": 0.7318,
+      "reached": {
+        "R128": 5000,
+        "R64": 2182,
+        "R32": 1063,
+        "R16": 311,
+        "QF": 79,
+        "SF": 17,
+        "F": 6
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.4364,
+        "R32": 0.2126,
+        "R16": 0.0622,
+        "QF": 0.0158,
+        "SF": 0.0034,
+        "F": 0.0012
+      }
+    },
+    {
+      "position": 95,
+      "player": "Tallon Griekspoor",
+      "player_id": "GJ37",
+      "seed": null,
+      "titles": 1,
+      "matches_won": 6410,
+      "p_title": 0.0002,
+      "expected_rounds_won": 1.282,
+      "reached": {
+        "R128": 5000,
+        "R64": 3594,
+        "R32": 1972,
+        "R16": 663,
+        "QF": 145,
+        "SF": 29,
+        "F": 6
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7188,
+        "R32": 0.3944,
+        "R16": 0.1326,
+        "QF": 0.029,
+        "SF": 0.0058,
+        "F": 0.0012
+      }
+    },
+    {
+      "position": 103,
+      "player": "Tomas Martin Etcheverry",
+      "player_id": "EA24",
+      "seed": null,
+      "titles": 1,
+      "matches_won": 5753,
+      "p_title": 0.0002,
+      "expected_rounds_won": 1.1506,
+      "reached": {
+        "R128": 5000,
+        "R64": 3489,
+        "R32": 1861,
+        "R16": 270,
+        "QF": 92,
+        "SF": 33,
+        "F": 7
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6978,
+        "R32": 0.3722,
+        "R16": 0.054,
+        "QF": 0.0184,
+        "SF": 0.0066,
+        "F": 0.0014
+      }
+    },
+    {
+      "position": 2,
+      "player": "Mackenzie McDonald",
+      "player_id": "MK66",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 254,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.0508,
+      "reached": {
+        "R128": 5000,
+        "R64": 193,
+        "R32": 37,
+        "R16": 21,
+        "QF": 2,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.0386,
+        "R32": 0.0074,
+        "R16": 0.0042,
+        "QF": 0.0004,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 3,
+      "player": "Alex Michelsen",
+      "player_id": "M0QI",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2487,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4974,
+      "reached": {
+        "R128": 5000,
+        "R64": 1951,
+        "R32": 238,
+        "R16": 193,
+        "QF": 76,
+        "SF": 24,
+        "F": 5
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3902,
+        "R32": 0.0476,
+        "R16": 0.0386,
+        "QF": 0.0152,
+        "SF": 0.0048,
+        "F": 0.001
+      }
+    },
+    {
+      "position": 4,
+      "player": "Eliot Spizzirri",
+      "player_id": "S0JA",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3755,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.751,
+      "reached": {
+        "R128": 5000,
+        "R64": 3049,
+        "R32": 309,
+        "R16": 229,
+        "QF": 113,
+        "SF": 47,
+        "F": 8
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6098,
+        "R32": 0.0618,
+        "R16": 0.0458,
+        "QF": 0.0226,
+        "SF": 0.0094,
+        "F": 0.0016
+      }
+    },
+    {
+      "position": 5,
+      "player": "Christopher O'Connell",
+      "player_id": "O483",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2686,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.5372,
+      "reached": {
+        "R128": 5000,
+        "R64": 1833,
+        "R32": 807,
+        "R16": 41,
+        "QF": 5,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3666,
+        "R32": 0.1614,
+        "R16": 0.0082,
+        "QF": 0.001,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 6,
+      "player": "Nicolas Jarry",
+      "player_id": "J551",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 5255,
+      "p_title": 0.0,
+      "expected_rounds_won": 1.051,
+      "reached": {
+        "R128": 5000,
+        "R64": 3167,
+        "R32": 1894,
+        "R16": 149,
+        "QF": 37,
+        "SF": 7,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6334,
+        "R32": 0.3788,
+        "R16": 0.0298,
+        "QF": 0.0074,
+        "SF": 0.0014,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 7,
+      "player": "Mattia Bellucci",
+      "player_id": "B0GG",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2577,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.5154,
+      "reached": {
+        "R128": 5000,
+        "R64": 1784,
+        "R32": 719,
+        "R16": 60,
+        "QF": 12,
+        "SF": 2,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3568,
+        "R32": 0.1438,
+        "R16": 0.012,
+        "QF": 0.0024,
+        "SF": 0.0004,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 8,
+      "player": "Stan Wawrinka",
+      "player_id": "W367",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 5093,
+      "p_title": 0.0,
+      "expected_rounds_won": 1.0186,
+      "reached": {
+        "R128": 5000,
+        "R64": 3216,
+        "R32": 1580,
+        "R16": 226,
+        "QF": 59,
+        "SF": 12,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6432,
+        "R32": 0.316,
+        "R16": 0.0452,
+        "QF": 0.0118,
+        "SF": 0.0024,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 11,
+      "player": "Max Purcell",
+      "player_id": "PH71",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3935,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.787,
+      "reached": {
+        "R128": 5000,
+        "R64": 3180,
+        "R32": 579,
+        "R16": 159,
+        "QF": 14,
+        "SF": 2,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.636,
+        "R32": 0.1158,
+        "R16": 0.0318,
+        "QF": 0.0028,
+        "SF": 0.0004,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 12,
+      "player": "Aleksandar Vukic",
+      "player_id": "V832",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2114,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4228,
+      "reached": {
+        "R128": 5000,
+        "R64": 1820,
+        "R32": 240,
+        "R16": 52,
+        "QF": 2,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.364,
+        "R32": 0.048,
+        "R16": 0.0104,
+        "QF": 0.0004,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 15,
+      "player": "Gabriel Diallo",
+      "player_id": "D0F6",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1849,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.3698,
+      "reached": {
+        "R128": 5000,
+        "R64": 1375,
+        "R32": 370,
+        "R16": 91,
+        "QF": 12,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.275,
+        "R32": 0.074,
+        "R16": 0.0182,
+        "QF": 0.0024,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 18,
+      "player": "Dusan Lajovic",
+      "player_id": "L987",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 383,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.0766,
+      "reached": {
+        "R128": 5000,
+        "R64": 257,
+        "R32": 89,
+        "R16": 32,
+        "QF": 5,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.0514,
+        "R32": 0.0178,
+        "R16": 0.0064,
+        "QF": 0.001,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 19,
+      "player": "Fabian Marozsan",
+      "player_id": "M0CI",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3020,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.604,
+      "reached": {
+        "R128": 5000,
+        "R64": 2444,
+        "R32": 311,
+        "R16": 187,
+        "QF": 63,
+        "SF": 15,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.4888,
+        "R32": 0.0622,
+        "R16": 0.0374,
+        "QF": 0.0126,
+        "SF": 0.003,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 21,
+      "player": "Flavio Cobolli",
+      "player_id": "C0E9",
+      "seed": 31,
+      "titles": 0,
+      "matches_won": 5652,
+      "p_title": 0.0,
+      "expected_rounds_won": 1.1304,
+      "reached": {
+        "R128": 5000,
+        "R64": 3364,
+        "R32": 1678,
+        "R16": 430,
+        "QF": 141,
+        "SF": 31,
+        "F": 8
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6728,
+        "R32": 0.3356,
+        "R16": 0.086,
+        "QF": 0.0282,
+        "SF": 0.0062,
+        "F": 0.0016
+      }
+    },
+    {
+      "position": 22,
+      "player": "James Duckworth",
+      "player_id": "D994",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2291,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4582,
+      "reached": {
+        "R128": 5000,
+        "R64": 1636,
+        "R32": 572,
+        "R16": 70,
+        "QF": 12,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3272,
+        "R32": 0.1144,
+        "R16": 0.014,
+        "QF": 0.0024,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 24,
+      "player": "Pavel Kotov",
+      "player_id": "K09F",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1453,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.2906,
+      "reached": {
+        "R128": 5000,
+        "R64": 1088,
+        "R32": 336,
+        "R16": 26,
+        "QF": 2,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2176,
+        "R32": 0.0672,
+        "R16": 0.0052,
+        "QF": 0.0004,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 26,
+      "player": "Thanasi Kokkinakis",
+      "player_id": "KD46",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2307,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4614,
+      "reached": {
+        "R128": 5000,
+        "R64": 1301,
+        "R32": 725,
+        "R16": 220,
+        "QF": 52,
+        "SF": 8,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2602,
+        "R32": 0.145,
+        "R16": 0.044,
+        "QF": 0.0104,
+        "SF": 0.0016,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 27,
+      "player": "Nuno Borges",
+      "player_id": "BT72",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 5694,
+      "p_title": 0.0,
+      "expected_rounds_won": 1.1388,
+      "reached": {
+        "R128": 5000,
+        "R64": 3948,
+        "R32": 1299,
+        "R16": 360,
+        "QF": 75,
+        "SF": 12,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7896,
+        "R32": 0.2598,
+        "R16": 0.072,
+        "QF": 0.015,
+        "SF": 0.0024,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 28,
+      "player": "Federico Coria",
+      "player_id": "CE77",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1264,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.2528,
+      "reached": {
+        "R128": 5000,
+        "R64": 1052,
+        "R32": 175,
+        "R16": 31,
+        "QF": 5,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2104,
+        "R32": 0.035,
+        "R16": 0.0062,
+        "QF": 0.001,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 31,
+      "player": "Tristan Schoolkate",
+      "player_id": "S0N0",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3529,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.7058,
+      "reached": {
+        "R128": 5000,
+        "R64": 3011,
+        "R32": 391,
+        "R16": 106,
+        "QF": 19,
+        "SF": 2,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6022,
+        "R32": 0.0782,
+        "R16": 0.0212,
+        "QF": 0.0038,
+        "SF": 0.0004,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 32,
+      "player": "Taro Daniel",
+      "player_id": "DA81",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2255,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.451,
+      "reached": {
+        "R128": 5000,
+        "R64": 1989,
+        "R32": 209,
+        "R16": 48,
+        "QF": 9,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3978,
+        "R32": 0.0418,
+        "R16": 0.0096,
+        "QF": 0.0018,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 34,
+      "player": "Li Tu",
+      "player_id": "TC01",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 542,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.1084,
+      "reached": {
+        "R128": 5000,
+        "R64": 441,
+        "R32": 79,
+        "R16": 18,
+        "QF": 4,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.0882,
+        "R32": 0.0158,
+        "R16": 0.0036,
+        "QF": 0.0008,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 38,
+      "player": "Zhizhen Zhang",
+      "player_id": "Z371",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1511,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.3022,
+      "reached": {
+        "R128": 5000,
+        "R64": 950,
+        "R32": 498,
+        "R16": 52,
+        "QF": 9,
+        "SF": 1,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.19,
+        "R32": 0.0996,
+        "R16": 0.0104,
+        "QF": 0.0018,
+        "SF": 0.0002,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 39,
+      "player": "Facundo Diaz Acosta",
+      "player_id": "D0CG",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 4206,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.8412,
+      "reached": {
+        "R128": 5000,
+        "R64": 3225,
+        "R32": 826,
+        "R16": 116,
+        "QF": 32,
+        "SF": 6,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.645,
+        "R32": 0.1652,
+        "R16": 0.0232,
+        "QF": 0.0064,
+        "SF": 0.0012,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 40,
+      "player": "Hugo Gaston",
+      "player_id": "G09O",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2317,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4634,
+      "reached": {
+        "R128": 5000,
+        "R64": 1775,
+        "R32": 458,
+        "R16": 67,
+        "QF": 16,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.355,
+        "R32": 0.0916,
+        "R16": 0.0134,
+        "QF": 0.0032,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 42,
+      "player": "Corentin Moutet",
+      "player_id": "MW02",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1323,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.2646,
+      "reached": {
+        "R128": 5000,
+        "R64": 849,
+        "R32": 305,
+        "R16": 147,
+        "QF": 19,
+        "SF": 3,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.1698,
+        "R32": 0.061,
+        "R16": 0.0294,
+        "QF": 0.0038,
+        "SF": 0.0006,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 44,
+      "player": "Fabio Fognini",
+      "player_id": "F510",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 965,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.193,
+      "reached": {
+        "R128": 5000,
+        "R64": 828,
+        "R32": 118,
+        "R16": 15,
+        "QF": 4,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.1656,
+        "R32": 0.0236,
+        "R16": 0.003,
+        "QF": 0.0008,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 45,
+      "player": "Alejandro Tabilo",
+      "player_id": "TE30",
+      "seed": 22,
+      "titles": 0,
+      "matches_won": 4919,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.9838,
+      "reached": {
+        "R128": 5000,
+        "R64": 2741,
+        "R32": 1539,
+        "R16": 504,
+        "QF": 109,
+        "SF": 25,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.5482,
+        "R32": 0.3078,
+        "R16": 0.1008,
+        "QF": 0.0218,
+        "SF": 0.005,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 46,
+      "player": "David Goffin",
+      "player_id": "GB88",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3691,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.7382,
+      "reached": {
+        "R128": 5000,
+        "R64": 2259,
+        "R32": 1103,
+        "R16": 270,
+        "QF": 48,
+        "SF": 11,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.4518,
+        "R32": 0.2206,
+        "R16": 0.054,
+        "QF": 0.0096,
+        "SF": 0.0022,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 48,
+      "player": "Borna Coric",
+      "player_id": "CG80",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2665,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.533,
+      "reached": {
+        "R128": 5000,
+        "R64": 1800,
+        "R32": 684,
+        "R16": 142,
+        "QF": 29,
+        "SF": 9,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.36,
+        "R32": 0.1368,
+        "R16": 0.0284,
+        "QF": 0.0058,
+        "SF": 0.0018,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 50,
+      "player": "Timofey Skatov",
+      "player_id": "S0GR",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1672,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.3344,
+      "reached": {
+        "R128": 5000,
+        "R64": 1043,
+        "R32": 446,
+        "R16": 149,
+        "QF": 28,
+        "SF": 5,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2086,
+        "R32": 0.0892,
+        "R16": 0.0298,
+        "QF": 0.0056,
+        "SF": 0.001,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 51,
+      "player": "Jordan Thompson",
+      "player_id": "TC61",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 6570,
+      "p_title": 0.0,
+      "expected_rounds_won": 1.314,
+      "reached": {
+        "R128": 5000,
+        "R64": 3812,
+        "R32": 1660,
+        "R16": 850,
+        "QF": 202,
+        "SF": 44,
+        "F": 2
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7624,
+        "R32": 0.332,
+        "R16": 0.17,
+        "QF": 0.0404,
+        "SF": 0.0088,
+        "F": 0.0004
+      }
+    },
+    {
+      "position": 52,
+      "player": "Constant Lestienne",
+      "player_id": "LB66",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1520,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.304,
+      "reached": {
+        "R128": 5000,
+        "R64": 1188,
+        "R32": 249,
+        "R16": 70,
+        "QF": 11,
+        "SF": 2,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2376,
+        "R32": 0.0498,
+        "R16": 0.014,
+        "QF": 0.0022,
+        "SF": 0.0004,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 54,
+      "player": "Zachary Svajda",
+      "player_id": "S0K7",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2230,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.446,
+      "reached": {
+        "R128": 5000,
+        "R64": 1501,
+        "R32": 532,
+        "R16": 177,
+        "QF": 20,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3002,
+        "R32": 0.1064,
+        "R16": 0.0354,
+        "QF": 0.004,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 56,
+      "player": "Matthew Forbes",
+      "player_id": "F0I8",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1360,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.272,
+      "reached": {
+        "R128": 5000,
+        "R64": 1004,
+        "R32": 275,
+        "R16": 68,
+        "QF": 11,
+        "SF": 1,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2008,
+        "R32": 0.055,
+        "R16": 0.0136,
+        "QF": 0.0022,
+        "SF": 0.0002,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 58,
+      "player": "Daniel Evans",
+      "player_id": "E687",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2435,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.487,
+      "reached": {
+        "R128": 5000,
+        "R64": 1307,
+        "R32": 844,
+        "R16": 186,
+        "QF": 79,
+        "SF": 15,
+        "F": 4
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2614,
+        "R32": 0.1688,
+        "R16": 0.0372,
+        "QF": 0.0158,
+        "SF": 0.003,
+        "F": 0.0008
+      }
+    },
+    {
+      "position": 59,
+      "player": "Mariano Navone",
+      "player_id": "N0BS",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 4286,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.8572,
+      "reached": {
+        "R128": 5000,
+        "R64": 3240,
+        "R32": 825,
+        "R16": 151,
+        "QF": 56,
+        "SF": 12,
+        "F": 2
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.648,
+        "R32": 0.165,
+        "R16": 0.0302,
+        "QF": 0.0112,
+        "SF": 0.0024,
+        "F": 0.0004
+      }
+    },
+    {
+      "position": 60,
+      "player": "Daniel Altmaier",
+      "player_id": "AE14",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2200,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.44,
+      "reached": {
+        "R128": 5000,
+        "R64": 1760,
+        "R32": 372,
+        "R16": 51,
+        "QF": 15,
+        "SF": 2,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.352,
+        "R32": 0.0744,
+        "R16": 0.0102,
+        "QF": 0.003,
+        "SF": 0.0004,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 62,
+      "player": "Marcos Giron",
+      "player_id": "GC88",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1223,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.2446,
+      "reached": {
+        "R128": 5000,
+        "R64": 624,
+        "R32": 375,
+        "R16": 150,
+        "QF": 60,
+        "SF": 12,
+        "F": 2
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.1248,
+        "R32": 0.075,
+        "R16": 0.03,
+        "QF": 0.012,
+        "SF": 0.0024,
+        "F": 0.0004
+      }
+    },
+    {
+      "position": 63,
+      "player": "Otto Virtanen",
+      "player_id": "V0AM",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2404,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4808,
+      "reached": {
+        "R128": 5000,
+        "R64": 2013,
+        "R32": 269,
+        "R16": 85,
+        "QF": 33,
+        "SF": 4,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.4026,
+        "R32": 0.0538,
+        "R16": 0.017,
+        "QF": 0.0066,
+        "SF": 0.0008,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 64,
+      "player": "Quentin Halys",
+      "player_id": "HB64",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3727,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.7454,
+      "reached": {
+        "R128": 5000,
+        "R64": 2987,
+        "R32": 476,
+        "R16": 175,
+        "QF": 74,
+        "SF": 12,
+        "F": 3
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.5974,
+        "R32": 0.0952,
+        "R16": 0.035,
+        "QF": 0.0148,
+        "SF": 0.0024,
+        "F": 0.0006
+      }
+    },
+    {
+      "position": 66,
+      "player": "Radu Albot",
+      "player_id": "A829",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 601,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.1202,
+      "reached": {
+        "R128": 5000,
+        "R64": 388,
+        "R32": 142,
+        "R16": 58,
+        "QF": 13,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.0776,
+        "R32": 0.0284,
+        "R16": 0.0116,
+        "QF": 0.0026,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 67,
+      "player": "Laslo Djere",
+      "player_id": "DB63",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2163,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4326,
+      "reached": {
+        "R128": 5000,
+        "R64": 1840,
+        "R32": 205,
+        "R16": 94,
+        "QF": 19,
+        "SF": 5,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.368,
+        "R32": 0.041,
+        "R16": 0.0188,
+        "QF": 0.0038,
+        "SF": 0.001,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 68,
+      "player": "Jan-Lennard Struff",
+      "player_id": "SL28",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 4378,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.8756,
+      "reached": {
+        "R128": 5000,
+        "R64": 3160,
+        "R32": 642,
+        "R16": 384,
+        "QF": 140,
+        "SF": 50,
+        "F": 2
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.632,
+        "R32": 0.1284,
+        "R16": 0.0768,
+        "QF": 0.028,
+        "SF": 0.01,
+        "F": 0.0004
+      }
+    },
+    {
+      "position": 70,
+      "player": "Soonwoo Kwon",
+      "player_id": "KF17",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3967,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.7934,
+      "reached": {
+        "R128": 5000,
+        "R64": 2290,
+        "R32": 1364,
+        "R16": 234,
+        "QF": 69,
+        "SF": 9,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.458,
+        "R32": 0.2728,
+        "R16": 0.0468,
+        "QF": 0.0138,
+        "SF": 0.0018,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 71,
+      "player": "Pedro Martinez",
+      "player_id": "MO44",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1348,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.2696,
+      "reached": {
+        "R128": 5000,
+        "R64": 1064,
+        "R32": 258,
+        "R16": 26,
+        "QF": 0,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2128,
+        "R32": 0.0516,
+        "R16": 0.0052,
+        "QF": 0.0,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 72,
+      "player": "Maks Kasnikowski",
+      "player_id": "K0HC",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 6141,
+      "p_title": 0.0,
+      "expected_rounds_won": 1.2282,
+      "reached": {
+        "R128": 5000,
+        "R64": 3936,
+        "R32": 1769,
+        "R16": 326,
+        "QF": 91,
+        "SF": 15,
+        "F": 4
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7872,
+        "R32": 0.3538,
+        "R16": 0.0652,
+        "QF": 0.0182,
+        "SF": 0.003,
+        "F": 0.0008
+      }
+    },
+    {
+      "position": 74,
+      "player": "Dominic Thiem",
+      "player_id": "TB69",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1501,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.3002,
+      "reached": {
+        "R128": 5000,
+        "R64": 846,
+        "R32": 448,
+        "R16": 164,
+        "QF": 36,
+        "SF": 6,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.1692,
+        "R32": 0.0896,
+        "R16": 0.0328,
+        "QF": 0.0072,
+        "SF": 0.0012,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 76,
+      "player": "Luca Nardi",
+      "player_id": "N0BG",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2390,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.478,
+      "reached": {
+        "R128": 5000,
+        "R64": 1942,
+        "R32": 325,
+        "R16": 95,
+        "QF": 24,
+        "SF": 4,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3884,
+        "R32": 0.065,
+        "R16": 0.019,
+        "QF": 0.0048,
+        "SF": 0.0008,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 78,
+      "player": "Aleksandar Kovacevic",
+      "player_id": "K0AZ",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1645,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.329,
+      "reached": {
+        "R128": 5000,
+        "R64": 1028,
+        "R32": 466,
+        "R16": 129,
+        "QF": 20,
+        "SF": 2,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2056,
+        "R32": 0.0932,
+        "R16": 0.0258,
+        "QF": 0.004,
+        "SF": 0.0004,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 79,
+      "player": "Alexander Shevchenko",
+      "player_id": "S0H2",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2601,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.5202,
+      "reached": {
+        "R128": 5000,
+        "R64": 1952,
+        "R32": 515,
+        "R16": 112,
+        "QF": 20,
+        "SF": 2,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3904,
+        "R32": 0.103,
+        "R16": 0.0224,
+        "QF": 0.004,
+        "SF": 0.0004,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 82,
+      "player": "Thiago Seyboth Wild",
+      "player_id": "SX91",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 686,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.1372,
+      "reached": {
+        "R128": 5000,
+        "R64": 501,
+        "R32": 150,
+        "R16": 30,
+        "QF": 5,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.1002,
+        "R32": 0.03,
+        "R16": 0.006,
+        "QF": 0.001,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 83,
+      "player": "Arthur Rinderknech",
+      "player_id": "RC91",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 4332,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.8664,
+      "reached": {
+        "R128": 5000,
+        "R64": 3125,
+        "R32": 808,
+        "R16": 287,
+        "QF": 91,
+        "SF": 18,
+        "F": 3
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.625,
+        "R32": 0.1616,
+        "R16": 0.0574,
+        "QF": 0.0182,
+        "SF": 0.0036,
+        "F": 0.0006
+      }
+    },
+    {
+      "position": 84,
+      "player": "Christopher Eubanks",
+      "player_id": "E865",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2292,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4584,
+      "reached": {
+        "R128": 5000,
+        "R64": 1875,
+        "R32": 330,
+        "R16": 65,
+        "QF": 19,
+        "SF": 3,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.375,
+        "R32": 0.066,
+        "R16": 0.013,
+        "QF": 0.0038,
+        "SF": 0.0006,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 88,
+      "player": "Hugo Grenier",
+      "player_id": "GF95",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1511,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.3022,
+      "reached": {
+        "R128": 5000,
+        "R64": 1325,
+        "R32": 157,
+        "R16": 23,
+        "QF": 5,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.265,
+        "R32": 0.0314,
+        "R16": 0.0046,
+        "QF": 0.001,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 90,
+      "player": "Kyrian Jacquet",
+      "player_id": "J0AZ",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2258,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4516,
+      "reached": {
+        "R128": 5000,
+        "R64": 1382,
+        "R32": 498,
+        "R16": 287,
+        "QF": 77,
+        "SF": 12,
+        "F": 2
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2764,
+        "R32": 0.0996,
+        "R16": 0.0574,
+        "QF": 0.0154,
+        "SF": 0.0024,
+        "F": 0.0004
+      }
+    },
+    {
+      "position": 91,
+      "player": "Rinky Hijikata",
+      "player_id": "H0BH",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 960,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.192,
+      "reached": {
+        "R128": 5000,
+        "R64": 703,
+        "R32": 180,
+        "R16": 68,
+        "QF": 9,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.1406,
+        "R32": 0.036,
+        "R16": 0.0136,
+        "QF": 0.0018,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 93,
+      "player": "Sebastian Baez",
+      "player_id": "B0BI",
+      "seed": 21,
+      "titles": 0,
+      "matches_won": 5042,
+      "p_title": 0.0,
+      "expected_rounds_won": 1.0084,
+      "reached": {
+        "R128": 5000,
+        "R64": 2818,
+        "R32": 1599,
+        "R16": 490,
+        "QF": 116,
+        "SF": 18,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.5636,
+        "R32": 0.3198,
+        "R16": 0.098,
+        "QF": 0.0232,
+        "SF": 0.0036,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 96,
+      "player": "Sumit Nagal",
+      "player_id": "N897",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1836,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.3672,
+      "reached": {
+        "R128": 5000,
+        "R64": 1406,
+        "R32": 366,
+        "R16": 55,
+        "QF": 9,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2812,
+        "R32": 0.0732,
+        "R16": 0.011,
+        "QF": 0.0018,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 98,
+      "player": "Maximilian Marterer",
+      "player_id": "MN13",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 310,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.062,
+      "reached": {
+        "R128": 5000,
+        "R64": 227,
+        "R32": 72,
+        "R16": 9,
+        "QF": 2,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.0454,
+        "R32": 0.0144,
+        "R16": 0.0018,
+        "QF": 0.0004,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 99,
+      "player": "Alexandre Muller",
+      "player_id": "MP20",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2051,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4102,
+      "reached": {
+        "R128": 5000,
+        "R64": 1880,
+        "R32": 137,
+        "R16": 30,
+        "QF": 4,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.376,
+        "R32": 0.0274,
+        "R16": 0.006,
+        "QF": 0.0008,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 100,
+      "player": "Adam Walton",
+      "player_id": "W09E",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3493,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.6986,
+      "reached": {
+        "R128": 5000,
+        "R64": 3120,
+        "R32": 260,
+        "R16": 86,
+        "QF": 22,
+        "SF": 4,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.624,
+        "R32": 0.052,
+        "R16": 0.0172,
+        "QF": 0.0044,
+        "SF": 0.0008,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 102,
+      "player": "Sebastian Ofner",
+      "player_id": "O513",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1374,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.2748,
+      "reached": {
+        "R128": 5000,
+        "R64": 1033,
+        "R32": 304,
+        "R16": 32,
+        "QF": 4,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2066,
+        "R32": 0.0608,
+        "R16": 0.0064,
+        "QF": 0.0008,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 104,
+      "player": "Giovanni Mpetshi Perricard",
+      "player_id": "M0GZ",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2107,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4214,
+      "reached": {
+        "R128": 5000,
+        "R64": 1511,
+        "R32": 493,
+        "R16": 80,
+        "QF": 21,
+        "SF": 2,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3022,
+        "R32": 0.0986,
+        "R16": 0.016,
+        "QF": 0.0042,
+        "SF": 0.0004,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 107,
+      "player": "Arthur Cazaux",
+      "player_id": "C0H0",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3329,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.6658,
+      "reached": {
+        "R128": 5000,
+        "R64": 2541,
+        "R32": 556,
+        "R16": 188,
+        "QF": 32,
+        "SF": 11,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.5082,
+        "R32": 0.1112,
+        "R16": 0.0376,
+        "QF": 0.0064,
+        "SF": 0.0022,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 108,
+      "player": "Pablo Carreno Busta",
+      "player_id": "CD85",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3267,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.6534,
+      "reached": {
+        "R128": 5000,
+        "R64": 2459,
+        "R32": 573,
+        "R16": 202,
+        "QF": 28,
+        "SF": 4,
+        "F": 1
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.4918,
+        "R32": 0.1146,
+        "R16": 0.0404,
+        "QF": 0.0056,
+        "SF": 0.0008,
+        "F": 0.0002
+      }
+    },
+    {
+      "position": 110,
+      "player": "Reilly Opelka",
+      "player_id": "O522",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2472,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4944,
+      "reached": {
+        "R128": 5000,
+        "R64": 1514,
+        "R32": 706,
+        "R16": 208,
+        "QF": 34,
+        "SF": 8,
+        "F": 2
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3028,
+        "R32": 0.1412,
+        "R16": 0.0416,
+        "QF": 0.0068,
+        "SF": 0.0016,
+        "F": 0.0004
+      }
+    },
+    {
+      "position": 112,
+      "player": "Yoshihito Nishioka",
+      "player_id": "N732",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1537,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.3074,
+      "reached": {
+        "R128": 5000,
+        "R64": 1240,
+        "R32": 245,
+        "R16": 48,
+        "QF": 3,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.248,
+        "R32": 0.049,
+        "R16": 0.0096,
+        "QF": 0.0006,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 114,
+      "player": "Yunchaokete Bu",
+      "player_id": "Y09V",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1507,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.3014,
+      "reached": {
+        "R128": 5000,
+        "R64": 903,
+        "R32": 404,
+        "R16": 170,
+        "QF": 27,
+        "SF": 3,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.1806,
+        "R32": 0.0808,
+        "R16": 0.034,
+        "QF": 0.0054,
+        "SF": 0.0006,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 116,
+      "player": "Diego Schwartzman",
+      "player_id": "SM37",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1688,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.3376,
+      "reached": {
+        "R128": 5000,
+        "R64": 1333,
+        "R32": 266,
+        "R16": 78,
+        "QF": 10,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2666,
+        "R32": 0.0532,
+        "R16": 0.0156,
+        "QF": 0.002,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 118,
+      "player": "Juncheng Shang",
+      "player_id": "S0RE",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3090,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.618,
+      "reached": {
+        "R128": 5000,
+        "R64": 1719,
+        "R32": 1000,
+        "R16": 307,
+        "QF": 57,
+        "SF": 7,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3438,
+        "R32": 0.2,
+        "R16": 0.0614,
+        "QF": 0.0114,
+        "SF": 0.0014,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 119,
+      "player": "Roberto Carballes Baena",
+      "player_id": "CF59",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 5138,
+      "p_title": 0.0,
+      "expected_rounds_won": 1.0276,
+      "reached": {
+        "R128": 5000,
+        "R64": 3559,
+        "R32": 1198,
+        "R16": 319,
+        "QF": 56,
+        "SF": 6,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.7118,
+        "R32": 0.2396,
+        "R16": 0.0638,
+        "QF": 0.0112,
+        "SF": 0.0012,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 120,
+      "player": "Jan Choinski",
+      "player_id": "CH12",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 1802,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.3604,
+      "reached": {
+        "R128": 5000,
+        "R64": 1441,
+        "R32": 291,
+        "R16": 55,
+        "QF": 14,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.2882,
+        "R32": 0.0582,
+        "R16": 0.011,
+        "QF": 0.0028,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 122,
+      "player": "Camilo Ugo Carabelli",
+      "player_id": "U182",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 840,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.168,
+      "reached": {
+        "R128": 5000,
+        "R64": 624,
+        "R32": 172,
+        "R16": 40,
+        "QF": 4,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.1248,
+        "R32": 0.0344,
+        "R16": 0.008,
+        "QF": 0.0008,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 124,
+      "player": "Albert Ramos-Vinolas",
+      "player_id": "R772",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 785,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.157,
+      "reached": {
+        "R128": 5000,
+        "R64": 719,
+        "R32": 55,
+        "R16": 8,
+        "QF": 3,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.1438,
+        "R32": 0.011,
+        "R16": 0.0016,
+        "QF": 0.0006,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 126,
+      "player": "Thiago Monteiro",
+      "player_id": "MJ08",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 973,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.1946,
+      "reached": {
+        "R128": 5000,
+        "R64": 681,
+        "R32": 256,
+        "R16": 30,
+        "QF": 6,
+        "SF": 0,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.1362,
+        "R32": 0.0512,
+        "R16": 0.006,
+        "QF": 0.0012,
+        "SF": 0.0,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 127,
+      "player": "Francisco Comesana",
+      "player_id": "C0DF",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 2481,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.4962,
+      "reached": {
+        "R128": 5000,
+        "R64": 1987,
+        "R32": 422,
+        "R16": 57,
+        "QF": 14,
+        "SF": 1,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.3974,
+        "R32": 0.0844,
+        "R16": 0.0114,
+        "QF": 0.0028,
+        "SF": 0.0002,
+        "F": 0.0
+      }
+    },
+    {
+      "position": 128,
+      "player": "Dominic Stricker",
+      "player_id": "S0LA",
+      "seed": null,
+      "titles": 0,
+      "matches_won": 3933,
+      "p_title": 0.0,
+      "expected_rounds_won": 0.7866,
+      "reached": {
+        "R128": 5000,
+        "R64": 3013,
+        "R32": 749,
+        "R16": 123,
+        "QF": 41,
+        "SF": 7,
+        "F": 0
+      },
+      "p_reach": {
+        "R128": 1.0,
+        "R64": 0.6026,
+        "R32": 0.1498,
+        "R16": 0.0246,
+        "QF": 0.0082,
+        "SF": 0.0014,
+        "F": 0.0
+      }
+    }
+  ],
+  "metadata": {
+    "mode": "blend",
+    "w": 0.5,
+    "data_through_year": 2026,
+    "estimator_class": "RandomForestClassifier",
+    "adapter": "common.classifier_adapter.make_classifier_prob",
+    "is_forecast": false,
+    "classifier_limitation": "The classifier is fed a fully populated feature row — all 27 features, including recent form, from the pipeline's own leakage-safe history (ace-04-current-state.md §7 seam 7, closed in T3.5). The remaining caveat is timing: rankings, surface records, head-to-heads and recent form are an as-of-now snapshot of the loaded data, so simulating a draw that has already been played gives every entrant knowledge from after the event. Read a past event's numbers as a retrospective, not as a forecast; a draw that has not yet been played carries no such caveat.",
+    "source": "example_usopen_2024_full.json",
+    "runs": 5000,
+    "seed": 0,
+    "workers": 1,
+    "generated_at": "2026-08-08T06:40:52.736870Z"
+  }
+}
