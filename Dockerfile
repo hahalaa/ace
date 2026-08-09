@@ -24,7 +24,9 @@
 #   outputs/tennis_model.pkl   api/deps.py loads it at startup and fails fast
 #                              without it — no model, no API at all.
 #   data/cache/<id>.json       what GET /tournaments/{id}/simulate serves;
-#                              absent, every draw answers 425 cache_missing.
+#                              absent, every simulatable draw answers 425
+#                              cache_missing (a draw with placeholder entrants
+#                              answers 409 first, cache or no cache).
 #
 # Only data/raw/ (the vendored per-year CSVs) and data/draws/ are in git. So
 # "COPY data/ and hope" ships a broken image. The ticket allows three fixes —

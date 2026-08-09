@@ -234,15 +234,26 @@ class BracketResponse(BaseModel):
 # because a real limitation remains: every input is an **as-of-now snapshot** of
 # the loaded data, so simulating a draw that has already been played uses form
 # and skills its participants did not have at the time.
+#
+# **This string must stay self-contained.** It is published on every /simulate
+# and /storybook response and rendered verbatim in the web app's disclosure
+# panel, so its audience is a reader of the deployed site — someone with no
+# access to this repository's internal design notes (which are not distributed)
+# and no idea what a ticket number refers to. It carried a
+# "(ace-04-current-state.md §7 seam 7, closed in T3.5)" citation until the
+# 2026-08-09 audit; the claim it supported is true and stays, the pointer to a
+# file no reader has does not. Describe the limitation, never cite where it is
+# discussed.
 CLASSIFIER_LIMITATION = (
     "The classifier is fed a fully populated feature row — all 27 features, "
-    "including recent form, from the pipeline's own leakage-safe history "
-    "(ace-04-current-state.md §7 seam 7, closed in T3.5). The remaining caveat "
-    "is timing: rankings, surface records, head-to-heads and recent form are an "
-    "as-of-now snapshot of the loaded data, so simulating a draw that has "
-    "already been played gives every entrant knowledge from after the event. "
-    "Read a past event's numbers as a retrospective, not as a forecast; a draw "
-    "that has not yet been played carries no such caveat."
+    "including recent form, computed from the pipeline's own leakage-safe match "
+    "history, where every value is derived only from matches played before the "
+    "one being predicted. The remaining caveat is timing: rankings, surface "
+    "records, head-to-heads and recent form are an as-of-now snapshot of the "
+    "loaded data, so simulating a draw that has already been played gives every "
+    "entrant knowledge from after the event. Read a past event's numbers as a "
+    "retrospective, not as a forecast; a draw that has not yet been played "
+    "carries no such caveat."
 )
 
 # Whether output produced under the adapter above may be presented as a
@@ -291,8 +302,12 @@ class ModelDisclosure(BaseModel):
         "classifier were built from."
     )
     estimator_class: str = Field(
-        description="Class name of the pinned classifier used (the persisted "
-        "model is a best-of-four; see ``ace-04-current-state.md §4``)."
+        description="Class name of the pinned classifier used. The training "
+        "pipeline persists whichever of four candidate models (logistic "
+        "regression, decision tree, random forest, gradient-boosted trees) "
+        "scores best on the held-out season, so this can differ between "
+        "deployments built in different environments — which is why it is "
+        "reported rather than assumed."
     )
     adapter: str = Field(
         description="Which ``ClassifierProb`` adapter produced ``P_clf`` — the "

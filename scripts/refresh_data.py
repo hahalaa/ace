@@ -116,11 +116,23 @@ def refresh(start_year: int, end_year: int, raw_dir: Path = RAW_DATA_DIR) -> dic
             print(f"   ✗ Failed to refresh {year}: {err}")
 
     print(f"\n✅ Refreshed {len(written)}/{end_year - start_year + 1} years into {raw_dir}")
+    # Self-contained on purpose: this is the terms notice, printed to whoever
+    # just downloaded the data, and it must not depend on any file they may not
+    # have. It pointed at `docs/ace-02-data-schema.md` until the 2026-08-09
+    # audit — a path that is not distributed, so the notice resolved to nothing.
+    # The wording below is the operative-terms summary from that research.
     print(
         "ℹ️  Data source: Tennismylife TML-Database (stats.tennismylife.org),\n"
-        "   in partnership with CanalTenis (canaltenis.com). Non-commercial use\n"
-        "   only unless explicitly permitted; acknowledge the source. See\n"
-        "   docs/ace-02-data-schema.md for the full terms."
+        "   offered in partnership with CanalTenis (canaltenis.com).\n"
+        "   TML-Database ships no formal licence file; the binding terms are its\n"
+        "   own repository notice: the data is for educational, analytical and\n"
+        "   research purposes, all use is non-commercial unless explicitly\n"
+        "   permitted, and redistributing or selling the raw database without\n"
+        "   permission from TennisMyLife and/or the ATP may infringe copyright.\n"
+        "   Acknowledge both sources in anything you publish from it.\n"
+        "   (TML-Database was originally inspired by Jeff Sackmann's tennis_atp,\n"
+        "   which is CC BY-NC-SA 4.0 — that is *his* dataset's licence and does\n"
+        "   not govern the files downloaded here.)"
     )
     return written
 

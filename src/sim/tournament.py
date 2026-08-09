@@ -85,16 +85,23 @@ shipped ``data/draws/example_usopen_2026.json`` contains placeholders and so
 cannot be simulated as-is. Deciding how an unfilled slot should be modelled is
 left to the project owner.
 
-**Classifier quality caveat (``ace-04-current-state.md §7`` seam 7).** This
-module takes its classifier as an injected callable (T1.8's dependency
-inversion, exercised by T1.10) and never constructs one. The only adapter that
-exists today, ``cli/simulate_match.make_classifier_prob``, builds a feature row
-whose 20 recent-form columns are synthetic constants, which flattens ``P_clf``
-toward 0.5. A bracket exercises that adapter far harder than T1.10 did — every
-distinct matchup in the draw, feeding every Monte Carlo run — so a caller
-should pick its reconciliation ``mode`` with that in mind (T1.10 defaults to
-``"blend"`` for exactly this reason) or build an adapter with real engineered
-rows. Nothing here fixes it; it is inherited, not resolved.
+**Classifier quality (was a caveat; resolved by T3.5).** This module takes its
+classifier as an injected callable (T1.8's dependency inversion, exercised by
+T1.10) and never constructs one — so the quality of ``P_clf`` is the calling
+layer's property, not this module's. That distinction mattered: a bracket
+exercises the adapter far harder than a single match does, every distinct
+matchup in the draw feeding every Monte Carlo run, and the adapter this module
+was written against built a feature row whose 20 recent-form columns were
+synthetic constants, flattening ``P_clf`` toward 0.5.
+
+**That is fixed.** ``common/classifier_adapter.py`` is now the one adapter every
+caller uses, and it assembles all 27 ``config.MODEL_FEATURES`` from the
+pipeline's own leakage-safe state, so a bracket run today gets a fully populated
+row for every matchup. Callers still choose their reconciliation ``mode``
+(``config.SIM_CLI_RECONCILE_MODE`` is ``"blend"``, kept as a modelling choice
+rather than the mitigation it started as), but they are no longer choosing it to
+compensate for a degraded ``P_clf``. **Do not build a second adapter** — import
+the shared one.
 
 **Monte Carlo (T2.3).** :func:`monte_carlo` runs :func:`simulate_bracket` many
 times — always with ``outcome_only=True``, never a scoreline — and aggregates
@@ -957,17 +964,17 @@ def monte_carlo(
     decision).** ``mode`` defaults to ``config.RECONCILE_MODE``
     (``"classifier_anchor"``), the same default :func:`simulate_bracket` uses,
     and this function deliberately does **not** substitute a "safer" one of its
-    own. ``ace-04-current-state.md §7`` seam 7 records that the only adapter
-    built so far (``cli/simulate_match.make_classifier_prob``) emits a
-    form-blind ``P_clf`` flattened toward 0.5, and that
-    ``config.SIM_CLI_RECONCILE_MODE = "blend"`` is a **CLI-scoped mitigation for
-    that one adapter, explicitly not a project-wide recommendation**. The defect
-    belongs to the adapter, not to the reconciliation default: a caller feeding
-    real engineered feature rows should get ``"classifier_anchor"``, and a
-    caller reusing the flattened CLI adapter should pass ``mode="blend"`` (and
-    say so in whatever it publishes). Baking the workaround in here would push
-    a degraded adapter's problem into the core and silently change the model for
-    callers that do not have it.
+    own. Which mode is right depends on how much authority the caller wants to
+    hand its classifier, and that is knowledge the caller has and this function
+    does not. ``config.SIM_CLI_RECONCILE_MODE = "blend"`` is what the CLIs, the
+    precompute script and the live storybook all pass — originally a mitigation
+    for an adapter that emitted a form-blind ``P_clf``, and **kept after T3.5
+    fixed that adapter** because blending is the configuration T1.9/T1.9b's
+    scoreline-realism validation was run under. It remains a caller-level choice
+    rather than a project-wide recommendation; moving those callers to
+    ``"classifier_anchor"`` would hand every winner to the classifier alone and
+    needs its own validation pass. Baking either one in here would silently
+    change the model for callers that chose the other.
     """
     if n_runs < 1:
         raise ValueError(f"n_runs must be >= 1, got {n_runs!r}")
@@ -1274,18 +1281,17 @@ def storybook_run(
     **not** substitute ``"blend"`` of its own accord — even though a storybook
     is the first *shareable* output in the project and its readability depends
     directly on the reconciled probabilities not collapsing toward a coin flip.
-    The reasoning is the same as T2.3's and it does not weaken here: the flat,
-    form-blind ``P_clf`` is a defect of one adapter
-    (``cli/simulate_match.make_classifier_prob``, ``ace-04-current-state.md``
-    §7 seam 7), not of the reconciliation default, and a caller that feeds real
-    engineered feature rows wants ``"classifier_anchor"`` — silently diluting
-    its classifier by half to protect a different caller's bad rows would be
-    the core making a modelling decision on evidence it does not have. What
+    The reasoning is the same as T2.3's and it does not weaken here: how much
+    authority to give the classifier is a modelling decision belonging to the
+    layer that knows what it built, not to the core, and silently halving it for
+    every caller would be the core deciding on evidence it does not have. What
     changes for a *showcase* run is only the cost of getting it wrong, and that
     is addressed where the knowledge lives: the layer that builds the adapter
-    picks the mode (T2.5 accordingly passes ``config.SIM_CLI_RECONCILE_MODE``
-    while it reuses the CLI adapter), and :class:`StorybookResult` records
-    ``mode``/``w`` so any published story states which model produced it.
+    picks the mode (every caller today passes
+    ``config.SIM_CLI_RECONCILE_MODE = "blend"``, a deliberate modelling choice
+    since T3.5 — it is the configuration the scoreline-realism validation ran
+    under), and :class:`StorybookResult` records ``mode``/``w`` so any published
+    story states which model produced it.
     """
     rng = np.random.default_rng(seed)
     bracket = simulate_bracket(

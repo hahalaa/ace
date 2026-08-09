@@ -9,29 +9,42 @@ table + classifier once at startup, not per request.*
 
 **Why this is not simply ``cli.simulate_match.build_context``.** T1.10 built the
 same startup context for the CLIs and T2.5 reused it, so a third loader looks
-like duplication. It is not reusable here: ``build_context`` lives in ``cli/``
-and returns a ``SimContext`` whose ``classifier`` field is the ``ClassifierProb``
-adapter, which is built from ``cli/interactive.build_feature_row``. Importing it
-would put ``api/ → cli/`` into the dependency graph, which the layering rule
-forbids outright. So this module reuses every *core* step verbatim
+like duplication. It is not reusable here: ``build_context`` lives in ``cli/``,
+so importing it would put ``api/ → cli/`` into the dependency graph, which the
+layering rule forbids outright. (T3.1 had a second reason — that ``SimContext``'s
+``classifier`` field was then an adapter built from
+``cli/interactive.build_feature_row``. That reason is **gone**: since T3.5
+``build_context`` calls ``common.classifier_adapter.make_classifier_prob`` like
+every other caller. The layering reason stands on its own, so the decision is
+unchanged.) So this module reuses every *core* step verbatim
 (``data.loader`` → ``data.preprocess`` → ``features.engineering.add_features``,
 plus ``sim.reconcile.load_pinned_classifier``) and duplicates only the four-line
 orchestration that sequences them.
 
 **What is deliberately *not* built here: the ``ClassifierProb`` adapter.**
 :class:`ApiContext` carries the pinned **estimator** and the two name-keyed
-histories — the raw materials an adapter needs — but stops there, for two
-reasons. First, the only existing adapter is the one in ``cli/``, which the API
-may not import. Second, ``ace-04-current-state.md §7`` seam 7 records that that
-adapter fills 20 of the 27 ``config.MODEL_FEATURES`` with synthetic constants,
-collapsing ``P_clf`` toward 0.5; seam 6 is explicit that each new caller must
-assess this for itself and pick its own reconciliation mode rather than
-inheriting one. Whichever ticket first *publishes* a simulated probability
-(T3.3) owns that decision, and owns building an adapter — from these materials —
-that it is willing to stand behind. Nothing in T3.1 calls the classifier: it is
-loaded because the Phase 3 constraint says startup is where loading happens, and
-because failing fast on a missing/stale ``outputs/tennis_model.pkl`` at startup
-beats failing on the first simulate request.
+histories — the raw materials an adapter needs — but stops there. The adapter is
+built by whoever actually needs one: ``create_app``'s lifespan for the live
+``/storybook`` endpoint (resolved through ``config.API_CLASSIFIER_ADAPTER``), and
+``scripts/precompute_sim.py`` for the offline Monte Carlo. Both construct it from
+exactly these materials, and construction is free — the rolling-form table and
+every ``predict_proba`` are deferred to first use, then memoised — so nothing is
+lost by not building it here, and endpoints that need no ``P_clf`` at all (such
+as ``/players``) do not pay for one.
+
+**Historical note, because the old text here said otherwise until 2026-08-09.**
+This docstring used to record that the only adapter lived in ``cli/`` and filled
+20 of the 27 ``config.MODEL_FEATURES`` with synthetic constants, collapsing
+``P_clf`` toward 0.5. **That defect was fixed by T3.5** —
+``common/classifier_adapter.py`` is now the single UI-free adapter, it assembles
+all 27 features from the pipeline's own leakage-safe state, and its held-out
+Brier score equals the training pipeline's own. The prose above was simply
+missed when the rest of the codebase was updated.
+
+Nothing in this module calls the classifier: the estimator is loaded because the
+Phase 3 constraint says startup is where loading happens, and because failing
+fast on a missing ``outputs/tennis_model.pkl`` at startup beats failing on the
+first simulate request.
 """
 
 from __future__ import annotations

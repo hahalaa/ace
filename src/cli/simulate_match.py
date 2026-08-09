@@ -80,6 +80,13 @@ from sim.reconcile import (  # noqa: E402
     load_pinned_classifier,
     simulate_reconciled_match,
 )
+# The winner-first renderer, reused rather than reimplemented. This module's own
+# format_scoreline is A-perspective by contract (see its docstring), which is the
+# right framing for MatchSimulation.scoreline and win_prob_a but the *wrong* one
+# for a "winner def. loser" line — see print_simulation. cli/ -> sim/ is the
+# allowed import direction, and a third copy of this rendering is exactly what
+# sim.tournament.format_scoreline's docstring exists to prevent.
+from sim.tournament import format_scoreline as winner_first_scoreline  # noqa: E402
 
 
 # --------------------------------------------------------------------------- #
@@ -349,7 +356,19 @@ def simulate_named_match(
 
 
 def print_simulation(sim: MatchSimulation) -> None:
-    """Print the matchup table (reusing the REPL's ``display_matchup``) + result."""
+    """Print the matchup table (reusing the REPL's ``display_matchup``) + result.
+
+    **The result line renders the scoreline winner-first, not A-first.** It reads
+    ``"<winner> def. <loser>  <scoreline>"``, the tennis convention, so every set
+    must be written from the *winner's* side — otherwise a match player B wins
+    prints as ``"B def. A  6-2 1-6 2-6 0-6"``, naming B the winner beside a
+    scoreline showing B losing three sets to one. That is why this uses
+    :func:`winner_first_scoreline` over ``sim.result`` rather than
+    ``sim.scoreline``: the latter is A-perspective *by contract*, matching
+    ``MatchSimulation.win_prob_a`` and this function's own "A wins X%" line
+    below, and is correct as a field. The two framings sit one line apart on
+    purpose; do not "unify" them.
+    """
     s = sim.stats
     interactive.display_matchup(
         sim.player_a,
@@ -368,10 +387,9 @@ def print_simulation(sim: MatchSimulation) -> None:
         s.h2h_msg,
         sim.win_prob_a,
     )
+    loser = sim.player_b if sim.winner == sim.player_a else sim.player_a
     print(f"🎾 SIMULATED MATCH (best of {sim.best_of}, {sim.final_set_rule})")
-    print(f"   {sim.winner} def. "
-          f"{sim.player_b if sim.winner == sim.player_a else sim.player_a}  "
-          f"{sim.scoreline}")
+    print(f"   {sim.winner} def. {loser}  {winner_first_scoreline(sim.result)}")
     print(
         f"   {sim.player_a} wins {sim.win_prob_a:.1%} of {sim.n_sims:,} simulations "
         f"(classifier: {sim.p_clf:.1%}, mode: {sim.reconcile_mode})"

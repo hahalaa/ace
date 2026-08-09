@@ -404,6 +404,148 @@ def test_format_scoreline_uses_the_losers_tiebreak_points():
 
 
 # --------------------------------------------------------------------------- #
+# The printed result line: "<winner> def. <loser>  <scoreline>".
+#
+# Regression coverage for a real defect that shipped in T1.10 and survived every
+# later audit: format_scoreline is A-perspective *by contract*, and
+# print_simulation composed it into a winner-first sentence. When player B won,
+# the line named B the winner beside a scoreline showing B losing — e.g.
+# "Jannik Sinner def. Carlos Alcaraz  6-2 1-6 2-6 0-6". Both halves were tested
+# in isolation (format_scoreline above; the winner field in the smoke test) and
+# the *composition* was not, which is precisely why nothing caught it. These
+# tests assert the rendered line itself, in both winner directions.
+# --------------------------------------------------------------------------- #
+def make_simulation(result: MatchResult, winner_name: str) -> SM.MatchSimulation:
+    """A MatchSimulation over a hand-built MatchResult — no pipeline, no model."""
+    stats = SM.MatchupStats(
+        a_rank=1.0, b_rank=3.0, a_age=22.0, b_age=24.0,
+        a_pct=0.8, b_pct=0.5, a_wins=8, a_total=10, b_wins=5, b_total=10,
+        h2h_diff=2, h2h_msg="Player A leads 3-1",
+    )
+    return SM.MatchSimulation(
+        player_a="Player A",
+        player_b="Player B",
+        surface="Hard",
+        best_of=5,
+        final_set_rule="10pt_at_6_6",
+        result=result,
+        scoreline=SM.format_scoreline(result),  # A-perspective, as the field is defined
+        winner=winner_name,
+        win_prob_a=0.62,
+        n_sims=1000,
+        p_clf=0.58,
+        stats=stats,
+    )
+
+
+def result_line(capsys) -> str:
+    """The '<winner> def. <loser>  <scoreline>' line out of captured stdout."""
+    lines = [ln.strip() for ln in capsys.readouterr().out.splitlines()]
+    matches = [ln for ln in lines if " def. " in ln]
+    assert len(matches) == 1, f"expected exactly one result line, got {matches}"
+    return matches[0]
+
+
+def sets_won_from_printed_scoreline(scoreline: str) -> tuple[int, int]:
+    """Count sets won by the first- and second-named player in a printed line."""
+    first = second = 0
+    for token in scoreline.split():
+        games = token.split("(")[0]          # drop any "(5)" tiebreak suffix
+        left, right = (int(part) for part in games.split("-"))
+        if left > right:
+            first += 1
+        else:
+            second += 1
+    return first, second
+
+
+# A won 3-1. A-perspective and winner-first agree here, which is exactly why the
+# bug was invisible for the player_a-wins direction.
+A_WINS = MatchResult(
+    winner=0,
+    sets=[
+        SetResult(winner=0, games_a=6, games_b=2),
+        SetResult(winner=1, games_a=1, games_b=6),
+        SetResult(winner=0, games_a=6, games_b=2),
+        SetResult(winner=0, games_a=6, games_b=0),
+    ],
+    best_of=5,
+)
+
+# B won 3-1 — the shape the live seed-7 run produced. A-perspective renders this
+# as "6-2 1-6 2-6 0-6", which beside "Player B def. Player A" is the defect.
+B_WINS = MatchResult(
+    winner=1,
+    sets=[
+        SetResult(winner=0, games_a=6, games_b=2),
+        SetResult(winner=1, games_a=1, games_b=6),
+        SetResult(winner=1, games_a=2, games_b=6),
+        SetResult(winner=1, games_a=0, games_b=6),
+    ],
+    best_of=5,
+)
+
+
+@pytest.mark.parametrize(
+    "result, winner_name, expected",
+    [
+        (A_WINS, "Player A", "Player A def. Player B  6-2 1-6 6-2 6-0"),
+        (B_WINS, "Player B", "Player B def. Player A  2-6 6-1 6-2 6-0"),
+    ],
+    ids=["player_a_wins", "player_b_wins"],
+)
+def test_printed_result_line_renders_the_scoreline_winner_first(
+    capsys, result, winner_name, expected
+):
+    """The printed line reads winner-first, whichever player won."""
+    SM.print_simulation(make_simulation(result, winner_name))
+    assert result_line(capsys) == expected
+
+
+@pytest.mark.parametrize(
+    "result, winner_name",
+    [(A_WINS, "Player A"), (B_WINS, "Player B")],
+    ids=["player_a_wins", "player_b_wins"],
+)
+def test_printed_line_names_the_player_its_scoreline_shows_winning(
+    capsys, result, winner_name
+):
+    """The named winner must win more sets in the printed scoreline than the loser.
+
+    The semantic form of the assertion above: it fails on *any* rendering that
+    names one player and scores the other, not only on the exact string. This is
+    the invariant the shipped defect violated.
+    """
+    SM.print_simulation(make_simulation(result, winner_name))
+    line = result_line(capsys)
+
+    named_winner, rest = line.split(" def. ", 1)
+    named_loser, scoreline = rest.split("  ", 1)
+    winner_sets, loser_sets = sets_won_from_printed_scoreline(scoreline)
+
+    assert named_winner == winner_name
+    assert named_loser != winner_name
+    assert winner_sets > loser_sets, (
+        f"{named_winner} is named the winner but the printed scoreline "
+        f"{scoreline!r} gives them {winner_sets} sets to {loser_sets}"
+    )
+
+
+def test_the_scoreline_field_stays_a_perspective(capsys):
+    """MatchSimulation.scoreline is unchanged — only the printed line flipped.
+
+    The field feeds ``win_prob_a``'s framing and the "A wins X%" line, so it must
+    stay A-perspective. This pins the two apart: for a match B wins, the printed
+    scoreline and the stored one are deliberately different strings.
+    """
+    sim = make_simulation(B_WINS, "Player B")
+    assert sim.scoreline == "6-2 1-6 2-6 0-6"          # A-perspective, unchanged
+
+    SM.print_simulation(sim)
+    assert result_line(capsys).endswith("2-6 6-1 6-2 6-0")  # winner-first
+
+
+# --------------------------------------------------------------------------- #
 # Reconciliation mode (seam-7 mitigation): CLI defaults to blend.
 # --------------------------------------------------------------------------- #
 def run_main(monkeypatch, argv: list[str]) -> tuple[int, dict]:

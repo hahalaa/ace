@@ -261,7 +261,8 @@ API_STORYBOOK_SEED_MAX = 2**32 - 1
 # ==========================================
 # Where scripts/precompute_sim.py writes a finished Monte Carlo run and where
 # GET /tournaments/{id}/simulate reads it back: one JSON file per tournament,
-# named <tournament_id>.json. A full 128 x 5,000 job takes ~40 s, which the
+# named <tournament_id>.json. A full 128 x 5,000 job takes ~29 s (the ~40 s that
+# stood here was the pre-T3.5 adapter's figure), which the
 # Phase 3 rules forbid doing inside a request handler — so the result is
 # produced offline and the endpoint only ever reads this directory.
 CACHE_DIR = Path("data/cache")

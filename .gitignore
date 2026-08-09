@@ -22,6 +22,19 @@ data/cache/*.json
 # ...and the hand-written test fixtures (T0.5).
 !tests/fixtures/*.csv
 
+# Local environment files, both sides of the repo. frontend/.gitignore already
+# covers `.env` and `*.local`, but not `.env.production` / `.env.development` —
+# and `vite build` reads every one of them, so a stray file bakes the wrong API
+# URL into a shipped bundle. Belt-and-braces here so the guard does not depend
+# on which directory someone creates the file in. `.env.example` is the tracked
+# documentation copy and is exempted.
+.env
+.env.*
+frontend/.env
+frontend/.env.*
+!.env.example
+!frontend/.env.example
+
 # Claude Code
 CLAUDE.md
 ace-startup-guide.md

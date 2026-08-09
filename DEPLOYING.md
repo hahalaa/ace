@@ -1,5 +1,48 @@
 # Deploying Ace
 
+Four ways in, in rough order of effort: [run it locally without Docker](#run-it-locally-without-docker) ·
+[run it with Docker](#run-it-with-docker) · [deploy the frontend to a static host](#deploy-the-frontend-to-a-static-host) ·
+[keep the data fresh automatically](#keeping-the-data-fresh--the-scheduled-refresh-t53).
+
+## Run it locally, without Docker
+
+Python 3.11+ and Node 22+. Everything is offline — the match data is vendored
+into `data/raw/` and nothing fetches from the internet at request time.
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+`python3`, not `python`, for that first line only — macOS ships no bare `python`
+and the command fails outright there. Once the venv is activated `python` exists
+and every command below uses it.
+
+**Two artefacts are gitignored and are in no clean checkout**, so a fresh clone
+has to build them once. This is the same pair the Docker build regenerates:
+
+```bash
+python src/predictor.py                                   # trains outputs/tennis_model.pkl (~1 min)
+                                                          # ends in a REPL — Ctrl-D to exit
+python scripts/precompute_sim.py --draw usopen_2024_atp_full --runs 5000 --seed 0   # ~29 s
+```
+
+Without the model the API fails fast at startup (`FileNotFoundError` on
+`outputs/tennis_model.pkl`, after the ~2 s data load and before it binds a port).
+Without the cache the odds screen answers `425 cache_missing` for every
+**simulatable** draw — a draw still holding `Qualifier`/`Bye` slots answers
+`409 draw_not_simulatable` instead, because simulability is checked before the
+cache is looked at, so that verdict does not change once you precompute.
+
+```bash
+PYTHONPATH=src uvicorn api.main:app --reload               # API on :8000
+cd frontend && npm install && cp .env.example .env && npm run dev   # web app on :5173
+```
+
+`frontend/.env` is gitignored and **required** — `.env.example` is the tracked
+copy and already points at `http://localhost:8000`. Tests: `pytest -q` from the
+root, and `npx vitest run && npm run typecheck && npm run lint` in `frontend/`.
+
 ## Run it with Docker
 
 Everything below is offline: the match data is vendored into the repo and baked
@@ -39,7 +82,7 @@ curl localhost:8000/health
 Two files the API needs at runtime are gitignored, so they are in no clean
 checkout: `outputs/tennis_model.pkl` (without it the API fails fast at startup)
 and `data/cache/*.json` (without it `/simulate` answers `425 cache_missing` for
-every draw). **The build regenerates both** — it trains the classifier and runs
+every simulatable draw). **The build regenerates both** — it trains the classifier and runs
 the Monte Carlo in a builder stage — rather than copying whatever happens to be
 on your machine. `.dockerignore` excludes both paths from the build context, so
 every build behaves like a clean checkout.
@@ -100,6 +143,30 @@ with TestClient(m.app) as c:
 
 ---
 
+## Deploy the frontend to a static host
+
+The container path above is not the only one. `frontend/dist/` is a folder of
+static files with no server side, so any static host serves it — and
+**`render.yaml` at the repo root is the committed, checked Blueprint for that**:
+`rootDir: frontend`, `npm ci && npm run build`, publish `./dist`, immutable
+`/assets/*` with a `no-cache` `index.html`, and deliberately **no SPA rewrite**
+(the app does no path-based routing, so no deep link ever requests a path other
+than `/` — the query string carries the whole view state).
+
+**Read `render.yaml`'s header comment before deploying.** It is the only place
+the deploy contract is written down, and it also carries the portable version
+of the three facts any other host needs. Those other hosts are documented
+translations, not verified deploys. Two things bite on a real deploy regardless
+of host:
+
+1. `VITE_API_BASE_URL` must be set **in the host's build environment**, not as a
+   runtime variable — same build-time inlining as the Docker path.
+2. The frontend's deployed origin must be appended to
+   `config.API_ALLOWED_ORIGINS` and the API redeployed, over HTTPS if the
+   frontend is on HTTPS. CORS is an explicit allow-list and never `*`.
+
+---
+
 ## Keeping the data fresh — the scheduled refresh (T5.3)
 
 `.github/workflows/refresh-and-simulate.yml` refreshes the vendored match data,
@@ -109,11 +176,13 @@ all of the sequencing and every abort live there, so the same run is
 reproducible from a terminal:
 
 ```bash
-python scripts/update_and_cache.py                            # the scheduled run
-python scripts/update_and_cache.py --draw usopen_2026_atp     # one draw
-python scripts/update_and_cache.py --no-refresh --force       # re-simulate only
+python scripts/update_and_cache.py                                  # the scheduled run
+python scripts/update_and_cache.py --draw usopen_2024_atp_full      # one draw
+python scripts/update_and_cache.py --no-refresh --force             # re-simulate only
 python scripts/update_and_cache.py --summary-json summary.json
 ```
+
+`--draw` takes a **`tournament_id`**, which is the field inside the draw JSON and not always the filename stem. The two shipped today are `usopen_2024_atp_full` (in `example_usopen_2024_full.json`) and `example_usopen_2026_atp` (in `example_usopen_2026.json`, currently unsimulatable — it still holds placeholder entrants). Passing an unknown id fails with the registry's own list of what *is* addressable.
 
 ### What it does not do
 
@@ -189,6 +258,14 @@ PR sees no green checks unless they first approve them — which is why this job
 runs `pytest -q` itself before opening the PR. Approving the queued `ci.yml` run
 is still worth doing; it just cannot be relied on to happen.
 
+**Observed, not just documented (2026-08-08).** The first real run opened PR #1
+from `automation/data-refresh`. Its `CI` run was created two seconds after the
+PR appeared and then sat there: `run_started_at` is roughly **eight hours
+later**, on `run_attempt: 2`, with `actor: github-actions[bot]` but
+`triggering_actor` a human. Queued instantly, started only on approval —
+exactly as above. That same run is also the proof that both repository settings
+are on: `gh pr create` would have 403'd otherwise.
+
 ### How a bad refresh is stopped
 
 `scripts/refresh_data.py` reports a failed year by *omission*: it logs it, skips
@@ -223,8 +300,8 @@ orchestrator gates every phase and each gate fails closed. There are **six**:
 4. **Retrain** — the persisted model is **deleted** and rebuilt. The skill table
    is rebuilt implicitly (nothing persists it), but `outputs/tennis_model.pkl`
    is loaded by `predictor.py` whenever it exists, with no staleness check at
-   all (`ace-04-current-state.md` §4). New data plus an old pickle is a silent
-   mismatch. **Running this by hand is destructive:** the delete happens before
+   all — nothing compares the pickle against the data or config it was trained
+   under. New data plus an old pickle is a silent mismatch. **Running this by hand is destructive:** the delete happens before
    training and is not rolled back, so a training failure leaves your machine
    with *no* model rather than a stale one (regenerate with
    `python src/predictor.py`, ~1 min; or pass `--retrain never` to leave the
@@ -239,6 +316,29 @@ nothing** — including the draws that succeeded, so the repository never holds 
 mix of fresh and stale caches. (Within the precompute phase every target is
 still attempted, so one run reports the whole failure list rather than one draw
 per run.)
+
+### One known gap: the cache write is not atomic
+
+`scripts/precompute_sim.py`'s `write_cache` is a bare `path.write_text(...)`
+straight over the destination — there is no temp-file-plus-`os.replace`. A
+crash, a `kill`, or a full disk *during* that write leaves a **truncated JSON
+file** in `data/cache/`.
+
+It is left as-is on purpose, and the reasoning is worth knowing before anyone
+"fixes" it in a hurry or, worse, relies on it not being there. The failure is
+**loud and self-healing**: the API parses every cache file through Pydantic, so
+a truncated one is rejected with a `422`, never served as partial numbers, and
+the next run overwrites it. The window is also small — the write is the last
+act of a phase that spent ~30 s computing. But it *is* a real window, and the
+calculus changes the moment the cache becomes authoritative rather than
+regenerable: serving it off a shared volume, or publishing it somewhere nothing
+re-runs the Monte Carlo. Do that and close this first — write to
+`path.with_suffix(".json.tmp")` and `os.replace` it into place, which is atomic
+within a filesystem.
+
+The scheduled workflow is not exposed to it in practice: the orchestrator exits
+non-zero on a failed precompute, and the commit/PR steps are gated on that, so
+a torn file never reaches a pull request.
 
 ### Why the cache is `git add -f`'d
 

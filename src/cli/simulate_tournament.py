@@ -92,9 +92,15 @@ MODES = ("montecarlo", "storybook")
 # api.schemas.CLASSIFIER_LIMITATION makes to API consumers. The storybook output
 # is not annotated: render_storybook already prints the reconciliation mode, and
 # a single narrative bracket does not read as a published probability.
+#
+# Like CLASSIFIER_LIMITATION, this is **user-facing and must stay
+# self-contained** — it is printed to whoever ran the command, who has no
+# internal design notes to look anything up in. It carried an
+# "(ace-04-current-state.md §7)" citation until the 2026-08-09 audit.
 ADAPTER_CAVEAT = (
-    "ℹ️  These probabilities use an as-of-now snapshot of the loaded data "
-    "(ace-04-current-state.md §7), fused with the point model by "
+    "ℹ️  These probabilities use an as-of-now snapshot of the loaded data — "
+    "rankings, surface records, head-to-heads and recent form as they stand at "
+    "the end of the vendored seasons — fused with the point model by "
     f"'{config.SIM_CLI_RECONCILE_MODE}' reconciliation. For a draw that has "
     "already been played, read them as a retrospective, not a forecast."
 )
