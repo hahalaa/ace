@@ -84,7 +84,7 @@ export function describeError(error: unknown, tournamentId: string): PanelConten
   if (error.status === 404) {
     return {
       kind: 'not-found',
-      heading: `No tournament called “${tournamentId}”`,
+      heading: `No tournament called "${tournamentId}"`,
       // A 404's detail is a bare string naming the registered ids.
       message: typeof error.detail === 'string' ? error.detail : error.message,
     };

@@ -189,7 +189,7 @@ export default function Storybook({ tournamentId }: StorybookProps) {
       {copied !== 'idle' && seed !== null && (
         <p className={styles.copy} data-copy={copied}>
           {copied === 'copied' ? (
-            <>Link copied — it replays this exact tournament.</>
+            <>Link copied. It replays this exact tournament.</>
           ) : (
             <>
               Copy this link to replay this exact tournament:{' '}
@@ -202,7 +202,7 @@ export default function Storybook({ tournamentId }: StorybookProps) {
       {state.status === 'idle' && (
         <p className={panelStyles.panel} data-state="idle">
           Play this draw out match by match. Every run gets a seed, and the seed is in the
-          address bar — so the link you share replays the same tournament, point for point.
+          address bar, so the link you share replays the same tournament, point for point.
         </p>
       )}
 

@@ -117,12 +117,12 @@ export default function PlayerCard({
         )}
         {state.status === 'missing' && (
           <p className={styles.cardNote}>
-            No skill record for this name — the draw resolved it, but `/players` did not.
+            No skill record for this name. The draw resolved it, but `/players` did not.
           </p>
         )}
         {state.status === 'ambiguous' && (
           <p className={styles.cardNote}>
-            The name “{player.player}” matched {state.candidates.length} players, none of them
+            The name "{player.player}" matched {state.candidates.length} players, none of them
             exactly. Skill is not shown rather than shown for the wrong person.
           </p>
         )}
@@ -162,7 +162,7 @@ export default function PlayerCard({
         {state.status === 'ready' &&
           SURFACES.every((name) => state.summary.skills[name].n_serve_pts === 0) && (
             <p className={styles.cardNote}>
-              No measured serve points on any surface — every rate above is the surface baseline.
+              No measured serve points on any surface, so every rate above is the surface baseline.
             </p>
           )}
       </div>

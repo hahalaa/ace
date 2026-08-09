@@ -122,7 +122,7 @@ export default function Bracket({ tournamentId, storybook = null }: BracketProps
       <div className={panelStyles.panel} role="alert" data-error-kind="draw-size">
         <h2 className={panelStyles.panelHeading}>This draw cannot be laid out</h2>
         <p className={panelStyles.panelBody}>
-          A bracket halves each round, so its draw size must be a power of two — the
+          A bracket halves each round, so its draw size must be a power of two. The
           server reported {state.bracket.draw_size}.
         </p>
       </div>

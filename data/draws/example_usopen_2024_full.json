@@ -2,7 +2,7 @@
   "note": "REAL DRAW, HISTORICAL — the actual 128-player men's singles bracket of the 2024 US Open, reconstructed from the vendored round-by-round results in data/raw/. Every entrant is a genuine named player who really played that match, including the qualifiers and wildcards, so there are no placeholder slots and the draw simulates end-to-end (T2.2's simulate_bracket refuses any draw containing placeholders). Seeds are the event's real seedings. Bracket order is the event's true tree, recovered from the results rather than from match_num (which is not draw order) and verified by replaying all 127 matches through the reconstructed pairings. Each pairing is oriented so the half holding the better seed sits higher: a canonical labelling that puts every seed at the top of its block (seed 1 -> position 1, seed 2 -> 65, seed 3 -> 33, seed 4 -> 97). That is NOT the official draw-sheet numbering, which places seed 2 at position 128; the bracket structure -- who can meet whom, and in which round -- is identical either way, and positions are only labels for it. NOT A FORECAST: the default snapshot skill table is built from all vendored seasons, which includes this event and everything after it, so simulating this file re-plays a known draw with hindsight-informed skills. Use build_skill_table(df, as_of=...) for a genuine backtest. Purpose: a full-size, placeholder-free fixture for T2.3 Monte Carlo performance work and end-to-end smoke tests.",
   "source": "data/raw/atp_matches_2024.csv (tourney_id 2024-560)",
   "tournament_id": "usopen_2024_atp_full",
-  "name": "US Open 2024 — Men's Singles (real 128 draw)",
+  "name": "US Open 2024: Men's Singles (real 128 draw)",
   "surface": "Hard",
   "best_of": 5,
   "final_set_tiebreak": "10pt_at_6_6",

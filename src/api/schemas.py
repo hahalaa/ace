@@ -245,7 +245,7 @@ class BracketResponse(BaseModel):
 # file no reader has does not. Describe the limitation, never cite where it is
 # discussed.
 CLASSIFIER_LIMITATION = (
-    "The classifier is fed a fully populated feature row — all 27 features, "
+    "The classifier is fed a fully populated feature row: all 27 features, "
     "including recent form, computed from the pipeline's own leakage-safe match "
     "history, where every value is derived only from matches played before the "
     "one being predicted. The remaining caveat is timing: rankings, surface "

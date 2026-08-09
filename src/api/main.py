@@ -821,7 +821,7 @@ def create_app(
                     "reason": "cache_missing",
                     "message": (
                         f"No precomputed simulation for {tournament_id!r}. Monte "
-                        f"Carlo is never run inside a request — generate the "
+                        f"Carlo is never run inside a request, so generate the "
                         f"cache offline and retry."
                     ),
                     "tournament_id": tournament_id,

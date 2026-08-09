@@ -173,9 +173,9 @@ export default function TitleOdds({ tournamentId }: TitleOddsProps) {
                   {columns.map((label) => (
                     <td key={label} className={styles.numeric} data-cell={`reach_${label}`}>
                       {/* A label the response does not carry for this player is
-                          a server bug, not a 0 — but render something readable. */}
+                          a server bug, not a 0. Render something readable. */}
                       {player.p_reach[label] === undefined
-                        ? '—'
+                        ? 'n/a'
                         : formatPercent(player.p_reach[label])}
                     </td>
                   ))}
