@@ -270,6 +270,39 @@ CACHE_DIR = Path("data/cache")
 # and the reader (the API) must agree on it, and they share nothing else.
 CACHE_SUFFIX = ".json"
 
+# ==========================================
+# MARKET-ODDS BENCHMARK (T6.1) — EVALUATION ONLY
+# ==========================================
+# These name a *static, hand-downloaded* odds snapshot and the report it
+# produces. They are consumed by exactly one module, scripts/benchmark_vs_market.py,
+# and by its test. Nothing in data/preprocess.py, features/, sim/ or model/ reads
+# them — see ace-02-data-schema.md ("A third source considered and explicitly
+# rejected") for why tennis-data.co.uk is permanently scoped to evaluation and
+# must never reach feature engineering, training or the point model.
+# tests/test_benchmark_vs_market.py enforces that by static analysis; if you add
+# a reference to any BENCHMARK_* constant from a training-path module, that test
+# fails, and it is telling you the truth.
+BENCHMARK_DIR = Path("data/benchmarks")
+# The committed snapshot: tennis-data.co.uk's 2025 ATP season, converted from the
+# vendor's .xlsx to .csv once, by hand. Refreshing it is a manual step documented
+# in DEPLOYING.md; no automated script fetches it.
+BENCHMARK_ODDS_SNAPSHOT = BENCHMARK_DIR / "tennis_data_atp_2025.csv"
+# The bookmaker whose two columns are de-vigged. "B365" (Bet365) is a single real
+# book, so its pair of prices has one coherent overround to remove. The file's
+# Avg*/Max* columns are cross-book aggregates whose reciprocals are not one
+# book's book, so de-vigging them is not well defined; they stay selectable via
+# --book for sensitivity checks but are not the default.
+BENCHMARK_DEFAULT_BOOK = "B365"
+# Join window, in days, for (market match date − model tourney_date). It is
+# asymmetric because tourney_date is the tournament's *start* date (see
+# ace-04-current-state.md on features/rolling.py), so a real match sits days
+# after it; the small negative allowance absorbs the vendor dating an early-round
+# match just before the official start.
+BENCHMARK_JOIN_MIN_DAYS = -7
+BENCHMARK_JOIN_MAX_DAYS = 21
+BENCHMARK_PLOT = OUTPUT_DIR / "calibration_vs_market.png"
+BENCHMARK_REPORT = OUTPUT_DIR / "calibration_vs_market.txt"
+
 # Recent Form Windows (N matches)
 RECENT_FORM_WINDOWS = [5, 10]
 

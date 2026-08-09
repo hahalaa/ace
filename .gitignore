@@ -21,6 +21,11 @@ data/cache/*.json
 !data/raw/.gitkeep
 # ...and the hand-written test fixtures (T0.5).
 !tests/fixtures/*.csv
+# ...and the static, hand-downloaded market-odds snapshot (T6.1). Committed on
+# purpose: it is evaluation-only input that no script fetches, so if it is not in
+# git it does not exist. See scripts/benchmark_vs_market.py for its provenance.
+!data/benchmarks/*.csv
+!data/benchmarks/.gitkeep
 
 # Local environment files, both sides of the repo. frontend/.gitignore already
 # covers `.env` and `*.local`, but not `.env.production` / `.env.development` —

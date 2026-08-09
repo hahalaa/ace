@@ -355,3 +355,84 @@ runner — `metadata.estimator_class` in each cache file records which of the
 best-of-four it was (§4). And the container build ignores the committed cache
 entirely: `.dockerignore` excludes `data/cache/` so every image regenerates it
 from source, as described above.
+
+---
+
+## Market-odds benchmark — a one-time manual download (T6.1)
+
+Phase 6 is **optional** and outside v1's success criteria. It exists to answer
+"is this actually any good" against an external yardstick:
+`scripts/benchmark_vs_market.py` joins the model's held-out-season predictions to
+bookmaker prices for the same season and reports Brier score + calibration for
+both, over the identical matched set.
+
+```bash
+python scripts/benchmark_vs_market.py                    # B365, the default
+python scripts/benchmark_vs_market.py --book Avg         # sensitivity check
+```
+
+It writes `outputs/calibration_vs_market.png` (alongside T1.8's
+`outputs/calibration.png`) and `outputs/calibration_vs_market.txt`.
+
+### The odds file is downloaded by hand, once. Do not automate it.
+
+`data/benchmarks/tennis_data_atp_2025.csv` is committed and static. **No script
+fetches it** — not `scripts/refresh_data.py`, not `scripts/update_and_cache.py`,
+not `.github/workflows/refresh-and-simulate.yml`, and `tests/test_benchmark_vs_market.py`
+fails if any of them ever grows a reference to it. `tennis-data.co.uk` serves **no
+TLS at all**, and an unattended job that pulls unauthenticated bytes and then
+retrains on them is exactly the failure mode T5.3's six gates exist to prevent.
+
+To reproduce or refresh the snapshot for a new `config.TEST_YEAR`:
+
+1. Fetch the archived copy over **HTTPS** (the Wayback Machine is the only secure
+   mirror of this vendor; the origin's own `https://` fails the handshake):
+   ```bash
+   curl -L -o wayback.xlsx \
+     "https://web.archive.org/web/2id_/http://www.tennis-data.co.uk/<YEAR>/<YEAR>.xlsx"
+   ```
+2. Fetch the live origin over plain HTTP as a **second, independent copy**:
+   ```bash
+   curl -o origin.xlsx "http://www.tennis-data.co.uk/<YEAR>/<YEAR>.xlsx"
+   ```
+   (The vendor publishes only `.xlsx`; `.csv`/`.zip` return `300 Multiple Choices`.)
+3. **Diff them cell by cell** and read every difference before choosing one. This
+   is the integrity control that makes step 2's plain HTTP acceptable: agreeing
+   with a TLS-delivered archive on all but a handful of rows says far more about
+   the bytes than the transport alone would. For 2025 the two differed on exactly
+   2 of 2,644 rows — both retirements whose `Winner`/`Loser` the vendor had since
+   corrected — so the **origin** copy was committed and the archived copy kept
+   only as the control.
+4. Convert to CSV with `Date` as `YYYY-MM-DD` and commit it. Reading the vendor's
+   workbook needs `openpyxl`; install it ad hoc for the conversion and **do not
+   add it to `requirements.txt`** — CI and both Docker images would then install
+   it forever for an optional script that never reads an `.xlsx`.
+   ```bash
+   pip install openpyxl            # ad hoc, NOT added to requirements.txt
+   python - <<'PY'
+   import pandas as pd
+   df = pd.read_excel("origin.xlsx", engine="openpyxl")
+   df["Date"] = pd.to_datetime(df["Date"]).dt.strftime("%Y-%m-%d")
+   df.to_csv("data/benchmarks/tennis_data_atp_<YEAR>.csv", index=False)
+   PY
+   ```
+   That command is exact, not illustrative: re-running it against the 2025
+   origin workbook reproduces the committed
+   `data/benchmarks/tennis_data_atp_2025.csv` byte for byte
+   (sha256 `89004fc5c1f43a470fdcb02015ea0f36513a13e66809650baee37dfe247d3d24`),
+   which is what makes step 3's diff auditable after the fact.
+5. Point `config.BENCHMARK_ODDS_SNAPSHOT` at the new file.
+
+`.gitignore`'s blanket `*.csv` rule has an explicit exception for
+`data/benchmarks/*.csv`, for the same reason `data/raw/*.csv` has one: a vendored
+input that is not in git does not exist.
+
+### Read the numbers for what they are
+
+The comparison scores the pinned classifier's probability, which *is* the
+reconciled probability under the default `RECONCILE_MODE = "classifier_anchor"`
+(`model/calibrate.py` records the same scope note). Under `"blend"` the
+authoritative probability differs per match and would need the skill table plus
+per-row name→id resolution to reproduce — not covered here. The report prints the
+mode it ran under, the bookmaker, the join rate and every skipped row's reason,
+because a benchmark with a poor join rate is comparing two different match sets.
