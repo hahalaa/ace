@@ -227,6 +227,7 @@ API_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:4173",
+    "https://ace-frontend-0xz4.onrender.com",
 ]
 
 # ---- Live storybook endpoint (T3.4; adapter replaced in T3.5) ----
