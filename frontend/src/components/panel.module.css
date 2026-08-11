@@ -1,47 +1,57 @@
 /*
  * Panel styles — shared by every full-width message the app renders: the
- * loading status, the typed error panels, and the "cannot lay this out" refusal.
+ * loading status, the typed error panels, and the "cannot lay this out"
+ * refusal. One stylesheet, so a message looks the same wherever it appears.
  *
- * Lifted out of `bracket.module.css` when T4.3 added a second screen that needs
- * the identical treatment. One stylesheet, so a panel looks the same wherever it
- * appears and a change lands once.
+ * Tokens come from src/index.css. Panels stay monochrome: an error is not the
+ * place to spend the accent.
  */
 
 .panel {
   text-align: left;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 15px;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  font-size: 0.95rem;
+  color: var(--ink-mid);
+  max-width: 60ch;
 }
 
 .panelHeading {
-  font-size: 18px;
-  margin: 0 0 6px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0 0 0.4rem;
 }
 
 .panelBody {
   margin: 0;
+  line-height: 1.55;
 }
 
 .problems {
-  margin: 10px 0 0;
-  padding-left: 20px;
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: var(--ink-mid);
 }
 
-/* A runnable command the API handed us (425 `cache_missing`). Selectable, and
+/* A runnable command the API handed us (425 cache_missing). Selectable, and
    wide enough to read: an operator is meant to copy this verbatim. */
 .command {
   display: block;
-  margin: 10px 0 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--code-bg);
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-sink);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 0.8rem;
+  color: var(--ink);
   white-space: pre-wrap;
   word-break: break-word;
   user-select: all;

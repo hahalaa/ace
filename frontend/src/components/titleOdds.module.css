@@ -1,37 +1,46 @@
 /*
  * TitleOdds + PlayerCard styles.
  *
- * The table is the widest thing on this screen at 128 (seven survival columns
- * plus Title and E[W]), so `.tableWrap` is the horizontal scroll container and
- * the header row sticks — the same two moves the bracket makes, for the same
- * reason. Colours come from `src/index.css`'s tokens.
+ * The odds board is treated as an editorial index: a monospace, tabular table
+ * with hairline rules, wide-tracked column labels, and the champion sitting at
+ * the top where the eye lands. The table is the widest thing here at 128
+ * (seven survival columns plus Title and E[W]), so `.tableWrap` scrolls
+ * horizontally and the header row sticks. The accent lands on exactly one
+ * thing: the leading row, the projected champion. Tokens come from
+ * src/index.css.
  */
 
 .odds {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1.75rem;
   text-align: left;
   min-width: 0;
-  padding-bottom: 24px;
 }
 
 .head {
-  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
 }
 
 .title {
-  font-size: 20px;
+  font-size: clamp(2rem, 5.5vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  color: var(--ink);
   margin: 0;
 }
 
 .subtitle {
-  font-size: 14px;
-  margin: 2px 0 0;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin: 0;
 }
-
-/* The disclosure moved to `disclosure.module.css` in T4.4, when the storybook
-   screen became the second thing publishing model output that must carry it. */
 
 /* -------------------------------------------------------------------------
  * The table.
@@ -40,52 +49,74 @@
 .tableWrap {
   overflow-x: auto;
   scrollbar-gutter: stable;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
 }
 
 .table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 14px;
+  font-size: 0.85rem;
 }
 
 .caption {
   caption-side: top;
   text-align: left;
-  padding: 10px 12px;
-  font-size: 13px;
-  color: var(--text);
-  border-bottom: 1px solid var(--border);
+  padding: 0.85rem 1rem;
+  font-size: 0.8rem;
+  color: var(--ink-mid);
+  border-bottom: 1px solid var(--line);
 }
 
 .table th,
 .table td {
-  padding: 7px 12px;
+  padding: 0.6rem 1rem;
   white-space: nowrap;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .table thead th {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--bg);
+  background: var(--bg-sink);
   text-align: left;
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-h);
+  color: var(--ink-dim);
 }
 
 .table tbody tr:last-child td {
   border-bottom: none;
 }
 
+/* The projected champion — rank 1 — is the one lit row. */
+.table tbody tr[data-position]:first-child td {
+  background: var(--ball-soft);
+}
+
+.table tbody tr[data-position]:first-child .rowButton {
+  color: var(--ball);
+  font-weight: 600;
+}
+
+.table tbody tr:hover td {
+  background: var(--bg-sink);
+}
+
 .numeric {
   text-align: right;
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
+  color: var(--ink-mid);
+}
+
+.table tbody td.numeric[data-cell='p_title'] {
+  color: var(--ink);
 }
 
 .table thead th.numeric {
@@ -99,34 +130,41 @@
   padding: 0;
   border: none;
   background: none;
-  color: var(--text-h);
+  color: var(--ink);
   cursor: pointer;
   text-align: left;
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: 3px;
+  transition: color 0.18s ease;
 }
 
 .rowButton:hover {
-  color: var(--accent);
+  color: var(--ball);
+}
+
+.rowButton[aria-expanded='true'] {
+  color: var(--ball);
 }
 
 .rowButton:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ball);
   outline-offset: 2px;
 }
 
 .detailRow > td {
   padding: 0;
-  background: var(--code-bg);
+  background: var(--bg-sink);
+}
+
+.detailRow > td:hover {
+  background: var(--bg-sink);
 }
 
 .footnote {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.72rem;
   font-family: var(--mono);
-  color: var(--text);
-  line-height: 1.7;
+  color: var(--ink-dim);
+  line-height: 1.9;
+  letter-spacing: 0.02em;
 }
 
 /* -------------------------------------------------------------------------
@@ -136,66 +174,73 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 14px 16px;
+  gap: 1.25rem;
+  padding: 1.25rem 1.4rem;
+  border-top: 1px solid var(--line);
 }
 
 .cardHead {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.15rem;
 }
 
 .cardName {
-  font-size: 16px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
   margin: 0;
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .cardSeed {
   font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text);
+  font-size: 0.75rem;
+  color: var(--ink-dim);
 }
 
 .cardMeta {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.72rem;
   font-family: var(--mono);
-  color: var(--text);
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
 }
 
 .cardSection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.55rem;
 }
 
 .cardSectionHeading {
   margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--text-h);
+  color: var(--ink-dim);
 }
 
 .cardNote {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.85rem;
   line-height: 1.5;
+  color: var(--ink-mid);
 }
 
 .skillTable {
   border-collapse: collapse;
-  font-size: 13px;
-  max-width: 420px;
+  font-size: 0.82rem;
+  max-width: 440px;
 }
 
 .skillTable th,
 .skillTable td {
-  padding: 5px 14px 5px 0;
+  padding: 0.35rem 1rem 0.35rem 0;
   text-align: left;
   white-space: nowrap;
 }
@@ -203,51 +248,68 @@
 .skillTable td {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
+  color: var(--ink-mid);
+}
+
+.skillTable tbody th {
+  font-weight: 400;
+  color: var(--ink);
 }
 
 .skillTable thead th {
-  font-size: 11px;
-  letter-spacing: 0.05em;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-h);
+  color: var(--ink-dim);
 }
 
 /* A baseline stand-in rather than a measurement of this player. */
 .skillTable tbody tr[data-measured='false'] td {
-  opacity: 0.55;
+  color: var(--ink-dim);
   font-style: italic;
 }
 
+/* The surface this event is played on. */
+.skillTable tbody tr[aria-current='true'] th {
+  color: var(--ball);
+}
+
 .thisSurface {
-  font-size: 11px;
-  color: var(--accent);
-  font-weight: normal;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ball);
+  font-weight: 400;
 }
 
 .stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 22px;
+  gap: 0.75rem 2rem;
   margin: 0;
 }
 
 .stats > div {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0.2rem;
 }
 
 .stats dt {
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text);
+  color: var(--ink-dim);
 }
 
 .stats dd {
   margin: 0;
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
-  font-size: 14px;
-  color: var(--text-h);
+  font-size: 1.05rem;
+  color: var(--ink);
 }

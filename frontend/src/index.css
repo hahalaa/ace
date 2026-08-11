@@ -1,142 +1,220 @@
+/*
+ * Global tokens and base type for Ace.
+ *
+ * Design identity: high-contrast dark editorial. One monochrome base, one
+ * accent — optic-yellow, the colour of the ball — spent only where it means
+ * something (the live action, the projected champion, the current view). The
+ * type does the work: a heavy display face for names, a monospace for every
+ * number and label, wide-tracked uppercase micro-labels for structure, and a
+ * lot of empty space around all of it.
+ *
+ * **Committed to a single dark theme, on purpose.** The accent reads as one
+ * confident thing on near-black; splitting into a light mode would either mute
+ * it or need a second accent treatment, and the reference language here
+ * (broadcast score overlays, dark data-forward editorial) is dark by nature.
+ * So the tokens are defined once, on :root, with no prefers-color-scheme split.
+ *
+ * No web fonts — the system stack keeps the bundle self-contained, and weight +
+ * scale + tracking carry the editorial feel without a download.
+ */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Ground and structure. */
+  --bg: #0a0a0b;
+  --bg-raise: #121214;
+  --bg-sink: #060607;
+  --line: #26262a;
+  --line-soft: #1a1a1d;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Ink. */
+  /* Contrast on --bg: ink 18:1, ink-mid 7.9:1, ink-dim ~5.3:1 — all clear
+     WCAG AA (4.5:1) for the small mono labels ink-dim carries. */
+  --ink: #f4f4f0;
+  --ink-mid: #a4a4a8;
+  --ink-dim: #83838c;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
+  /* The ball. One accent, and its ink for text sitting on top of it. */
+  --ball: #d8ff3d;
+  --ball-ink: #0a0a0b;
+  --ball-soft: rgba(216, 255, 61, 0.14);
+  --ball-line: rgba(216, 255, 61, 0.42);
+
+  --sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Roboto, Helvetica,
+    Arial, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  /* One rhythm, referenced everywhere so spacing stays on a grid. */
+  --gap: 1.5rem;
+  --radius: 4px;
+
+  color-scheme: dark;
+  font: 400 16px/1.55 var(--sans);
+  color: var(--ink-mid);
   background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-/* The Vite template pinned this to a centred 1126px column. A bracket is the
-   widest thing this app renders — seven columns at 128 — so it gets the
-   viewport, less a gutter, and lays out left-to-right. */
-#root {
-  width: 100%;
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 0 16px;
-  text-align: left;
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: var(--bg);
 }
 
-/* The shell's two-screen switch. Links, not buttons — each view is a real URL
-   (see App.tsx), so these navigate rather than toggle state. */
+/* A bracket at 128 is the widest thing here, so the app takes the viewport
+   (less a gutter) rather than a narrow centred column, and lays out left to
+   right. */
+#root {
+  width: 100%;
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 3rem) 4rem;
+  text-align: left;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --------------------------------------------------------------------------
+ * Masthead: wordmark + view switch. A thin editorial header, not a toolbar.
+ * ------------------------------------------------------------------------ */
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem var(--gap);
+  padding: clamp(1.5rem, 4vw, 2.75rem) 0 1.25rem;
+  margin-bottom: clamp(1.5rem, 4vw, 2.75rem);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.wordmark {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  font-size: clamp(1.6rem, 3.2vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+/* The ball: the accent tied to the one real thing it stands for. A single
+   dot, not an icon set. */
+.ballMark {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: var(--ball);
+  translate: 0 -0.04em;
+}
+
+.brandTag {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+
+/* Links, not buttons — every view is a real URL (see App.tsx), so these
+   navigate rather than toggle state. Styled as editorial index links. */
 .viewNav {
   display: flex;
-  gap: 6px;
-  padding: 12px 0 0;
+  flex-wrap: wrap;
+  gap: 1.4rem;
 }
 
 .viewNav a {
-  font-size: 13px;
-  line-height: 1;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  color: var(--text);
+  position: relative;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
   text-decoration: none;
+  padding-bottom: 0.35rem;
+  transition: color 0.18s ease;
 }
 
 .viewNav a:hover {
-  border-color: var(--accent-border);
+  color: var(--ink);
 }
 
 .viewNav a[aria-current='page'] {
-  color: var(--accent);
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
+  color: var(--ink);
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* The accent rule under the current view: the one lit marker in the header. */
+.viewNav a[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--ball);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+.viewNav a:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 4px;
+  border-radius: 1px;
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
+
+/* --------------------------------------------------------------------------
+ * Shared type primitives.
+ * ------------------------------------------------------------------------ */
+
+/* The display headline each screen leads with — a tournament or a champion. */
+.displayTitle {
+  font-size: clamp(2rem, 6vw, 3.75rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  color: var(--ink);
   margin: 0;
 }
 
-code,
-.counter {
+/* The wide-tracked monospace micro-label that marks structure everywhere:
+   round headings, table columns, section kickers. */
+.kicker {
   font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
 }
 
 code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--ink);
+  background: var(--bg-raise);
+  border-radius: 3px;
+  padding: 0.15em 0.4em;
+}
+
+::selection {
+  background: var(--ball);
+  color: var(--ball-ink);
 }

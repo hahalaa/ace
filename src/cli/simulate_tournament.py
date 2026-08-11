@@ -98,11 +98,11 @@ MODES = ("montecarlo", "storybook")
 # internal design notes to look anything up in. It carried an
 # "(ace-04-current-state.md §7)" citation until the 2026-08-09 audit.
 ADAPTER_CAVEAT = (
-    "ℹ️  These probabilities use an as-of-now snapshot of the loaded data — "
-    "rankings, surface records, head-to-heads and recent form as they stand at "
-    "the end of the vendored seasons — fused with the point model by "
-    f"'{config.SIM_CLI_RECONCILE_MODE}' reconciliation. For a draw that has "
-    "already been played, read them as a retrospective, not a forecast."
+    "ℹ️  Not a forecast. This draw already happened, so the model is scoring a "
+    "result it could have seen. These probabilities come from an as-of-now "
+    "snapshot of the loaded data (rankings, surface records, head-to-heads and "
+    "recent form as they stand at the end of the vendored seasons), fused with "
+    f"the point model by '{config.SIM_CLI_RECONCILE_MODE}' reconciliation."
 )
 
 

@@ -177,8 +177,10 @@ export interface ModelDisclosure {
   adapter: string;
   /** **Machine-readable honesty flag.** `false` → do not present as a prediction. */
   is_forecast: boolean;
-  /** Plain-language statement of the model's known limitation. Render it. */
+  /** One-line, plain-language summary of the model's known limitation. Render it. */
   classifier_limitation: string;
+  /** The full technical account behind `classifier_limitation`. Render it behind a collapsed toggle. */
+  classifier_limitation_detail: string;
   /** Draw file basename the simulation ran against. */
   source: string;
 }

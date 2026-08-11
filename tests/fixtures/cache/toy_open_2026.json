@@ -184,7 +184,8 @@
     "estimator_class": "StubClassifier",
     "adapter": "common.classifier_adapter.make_classifier_prob",
     "is_forecast": false,
-    "classifier_limitation": "The classifier is fed a fully populated feature row: all 27 features, including recent form, computed from the pipeline's own leakage-safe match history, where every value is derived only from matches played before the one being predicted. The remaining caveat is timing: rankings, surface records, head-to-heads and recent form are an as-of-now snapshot of the loaded data, so simulating a draw that has already been played gives every entrant knowledge from after the event. Read a past event's numbers as a retrospective, not as a forecast; a draw that has not yet been played carries no such caveat.",
+    "classifier_limitation": "Not a forecast. This draw already happened, so the model is scoring a result it could have seen.",
+    "classifier_limitation_detail": "The classifier is fed a fully populated feature row: all 27 features, including recent form, computed from the pipeline's own leakage-safe match history, where every value is derived only from matches played before the one being predicted. The remaining caveat is timing: rankings, surface records, head-to-heads and recent form are an as-of-now snapshot of the loaded data, so simulating a draw that has already been played gives every entrant knowledge from after the event. Read a past event's numbers as a retrospective, not as a forecast; a draw that has not yet been played carries no such caveat.",
     "source": "toy_open.json"
   }
 }

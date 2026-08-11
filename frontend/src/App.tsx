@@ -72,17 +72,28 @@ function App() {
 
   return (
     <main>
-      <nav className="viewNav" aria-label="View">
-        {VIEWS.map((target) => (
-          <a
-            key={target}
-            href={href(target)}
-            aria-current={view === target ? 'page' : undefined}
-          >
-            {VIEW_LABELS[target]}
-          </a>
-        ))}
-      </nav>
+      {/* Masthead. The wordmark is deliberately not a link — App.test pins the
+          shell at exactly three anchors, the three views — so it is plain text
+          with a single accent dot standing in for the ball. */}
+      <header className="masthead">
+        <div className="brand">
+          <p className="wordmark">
+            Ace<span className="ballMark" aria-hidden="true" />
+          </p>
+          <span className="brandTag">Grand Slam simulator</span>
+        </div>
+        <nav className="viewNav" aria-label="View">
+          {VIEWS.map((target) => (
+            <a
+              key={target}
+              href={href(target)}
+              aria-current={view === target ? 'page' : undefined}
+            >
+              {VIEW_LABELS[target]}
+            </a>
+          ))}
+        </nav>
+      </header>
 
       {screenFor(view, tournamentId)}
     </main>

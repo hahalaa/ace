@@ -185,6 +185,8 @@ function toyEightStory(overrides: Partial<StorybookResponse> = {}): StorybookRes
       adapter: 'common.classifier_adapter:make_classifier_prob',
       is_forecast: false,
       classifier_limitation:
+        'Not a forecast. This draw already happened, so the model is scoring a result it could have seen.',
+      classifier_limitation_detail:
         'Every input is an as-of-now snapshot, so simulating an already-played draw is retrospective.',
       source: 'toy_8.json',
       seed: 42,

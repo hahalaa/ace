@@ -39,6 +39,7 @@ from api.deps import ApiContext
 from api.main import create_app
 from api.schemas import (
     CLASSIFIER_LIMITATION,
+    CLASSIFIER_LIMITATION_DETAIL,
     ModelDisclosure,
     SimulationMetadata,
     StorybookMatch,
@@ -381,16 +382,20 @@ def test_storybook_discloses_the_model_limitation(client):
     """The disclosure requirement, live rather than cached — same fields, same words.
 
     T3.5 rewrote the text (seam 7 fixed; the as-of-now snapshot caveat remains)
-    but not the requirement, so this still checks the wording is the canonical
-    one and that its claims are the current ones.
+    but not the requirement, and the redesign split it into a one-line summary
+    plus a full detail field. This still checks both are the canonical wording
+    and that their claims are the current ones.
     """
     metadata = client.get("/tournaments/toy_open_2026/storybook").json()["metadata"]
 
     assert metadata["is_forecast"] is False
     assert metadata["classifier_limitation"] == CLASSIFIER_LIMITATION
-    assert "all 27 features" in metadata["classifier_limitation"]
-    assert "as-of-now snapshot" in metadata["classifier_limitation"]
-    assert "20 of its 27" not in metadata["classifier_limitation"]
+    assert "Not a forecast" in metadata["classifier_limitation"]
+    assert "already happened" in metadata["classifier_limitation"]
+    assert metadata["classifier_limitation_detail"] == CLASSIFIER_LIMITATION_DETAIL
+    assert "all 27 features" in metadata["classifier_limitation_detail"]
+    assert "as-of-now snapshot" in metadata["classifier_limitation_detail"]
+    assert "20 of its 27" not in metadata["classifier_limitation_detail"]
     assert metadata["adapter"].endswith("stub_classifier_factory")
     assert metadata["data_through_year"] == 2026
     assert metadata["estimator_class"] == "StubClassifier"
@@ -422,7 +427,13 @@ def test_storybook_disclosure_is_the_same_shape_as_simulate(client):
 
     assert disclosure_fields <= set(story)
     assert disclosure_fields <= set(cached)
-    for field in ("classifier_limitation", "is_forecast", "mode", "w"):
+    for field in (
+        "classifier_limitation",
+        "classifier_limitation_detail",
+        "is_forecast",
+        "mode",
+        "w",
+    ):
         assert story[field] == cached[field], field
 
 

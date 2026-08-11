@@ -264,7 +264,10 @@ def test_table_top_n_and_footer(draw, ctx):
     assert "Showing the top" not in everyone
     assert len(table_rows(everyone)) == 8
 
-    # The seam-7 caveat travels with any published probability table.
+    # The caveat travels with any published probability table, and it leads
+    # with the verdict rather than burying it in the reconciliation detail.
+    assert "Not a forecast" in ST.ADAPTER_CAVEAT
+    assert "already happened" in ST.ADAPTER_CAVEAT
     assert ST.ADAPTER_CAVEAT in clipped and ST.ADAPTER_CAVEAT in everyone
 
 

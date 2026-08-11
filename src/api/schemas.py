@@ -235,16 +235,29 @@ class BracketResponse(BaseModel):
 # the loaded data, so simulating a draw that has already been played uses form
 # and skills its participants did not have at the time.
 #
-# **This string must stay self-contained.** It is published on every /simulate
-# and /storybook response and rendered verbatim in the web app's disclosure
-# panel, so its audience is a reader of the deployed site — someone with no
+# **These strings must stay self-contained.** They are published on every
+# /simulate and /storybook response and rendered in the web app's disclosure
+# panel, so their audience is a reader of the deployed site — someone with no
 # access to this repository's internal design notes (which are not distributed)
-# and no idea what a ticket number refers to. It carried a
+# and no idea what a ticket number refers to. The text carried a
 # "(ace-04-current-state.md §7 seam 7, closed in T3.5)" citation until the
 # 2026-08-09 audit; the claim it supported is true and stays, the pointer to a
 # file no reader has does not. Describe the limitation, never cite where it is
 # discussed.
+#
+# **Two fields, one disclosure.** CLASSIFIER_LIMITATION is the one-line summary
+# a reader sees first; CLASSIFIER_LIMITATION_DETAIL is the full technical
+# account behind it, unchanged in substance from the single paragraph this used
+# to be. Both are required response fields — the split is a presentation choice
+# (the web app shows the summary and tucks the detail behind a collapsed
+# toggle), so the API body stays fully self-describing: a non-browser consumer
+# still receives the complete disclosure, not just the teaser.
 CLASSIFIER_LIMITATION = (
+    "Not a forecast. This draw already happened, so the model is scoring a "
+    "result it could have seen."
+)
+
+CLASSIFIER_LIMITATION_DETAIL = (
     "The classifier is fed a fully populated feature row: all 27 features, "
     "including recent form, computed from the pipeline's own leakage-safe match "
     "history, where every value is derived only from matches played before the "
@@ -319,9 +332,16 @@ class ModelDisclosure(BaseModel):
         "as a prediction of the event; see ``classifier_limitation``."
     )
     classifier_limitation: str = Field(
-        description="Plain-language statement of the known limitation of the "
-        "model behind these probabilities. Required, so numbers cannot be "
-        "published without it."
+        description="One-line, plain-language summary of the known limitation of "
+        "the model behind these probabilities. Required, so numbers cannot be "
+        "published without it; the full account is in "
+        "``classifier_limitation_detail``."
+    )
+    classifier_limitation_detail: str = Field(
+        description="The complete technical statement behind "
+        "``classifier_limitation``. Required too, so a non-browser consumer "
+        "receives the whole disclosure in the response body, not just the "
+        "summary; the web app renders it behind a collapsed toggle."
     )
     source: str = Field(
         description="Draw file basename the simulation was run against."

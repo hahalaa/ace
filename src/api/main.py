@@ -58,6 +58,7 @@ from api.deps import ApiContext, ContextFactory, build_api_context, log_context
 from api.registry import TournamentEntry, TournamentRegistry, build_registry, cache_path_for
 from api.schemas import (
     CLASSIFIER_LIMITATION,
+    CLASSIFIER_LIMITATION_DETAIL,
     IS_FORECAST,
     BracketResponse,
     BracketSlot,
@@ -472,6 +473,7 @@ def _storybook_response(
             adapter=adapter,
             is_forecast=IS_FORECAST,
             classifier_limitation=CLASSIFIER_LIMITATION,
+            classifier_limitation_detail=CLASSIFIER_LIMITATION_DETAIL,
             source=entry.source,
         ),
     )

@@ -76,6 +76,7 @@ from api.deps import ApiContext, build_api_context  # noqa: E402
 from api.registry import TournamentRegistry, build_registry, cache_path_for  # noqa: E402
 from api.schemas import (  # noqa: E402
     CLASSIFIER_LIMITATION,
+    CLASSIFIER_LIMITATION_DETAIL,
     IS_FORECAST,
     SimulationMetadata,
     SimulationPlayer,
@@ -112,6 +113,7 @@ def build_payload(
     generated_at: datetime | None = None,
     adapter: str = ADAPTER,
     classifier_limitation: str = CLASSIFIER_LIMITATION,
+    classifier_limitation_detail: str = CLASSIFIER_LIMITATION_DETAIL,
     is_forecast: bool = IS_FORECAST,
 ) -> SimulationResponse:
     """Turn a finished Monte Carlo run into the cache/wire payload.
@@ -131,9 +133,11 @@ def build_payload(
         source: Draw file basename the run was against.
         generated_at: Write timestamp; defaults to now (UTC).
         adapter: Which ``ClassifierProb`` adapter produced ``P_clf``.
-        classifier_limitation: The model-disclosure text (see the module
+        classifier_limitation: The one-line disclosure summary (see the module
             docstring: the seam-7 defect is fixed; the as-of-now snapshot
             caveat remains).
+        classifier_limitation_detail: The full technical account behind that
+            summary, so the cache file carries the complete disclosure.
         is_forecast: Whether these numbers may be presented as a prediction.
             ``False`` while the shipped draws are historical.
 
@@ -178,6 +182,7 @@ def build_payload(
             adapter=adapter,
             is_forecast=is_forecast,
             classifier_limitation=classifier_limitation,
+            classifier_limitation_detail=classifier_limitation_detail,
             source=source,
         ),
     )

@@ -1,19 +1,24 @@
 /*
  * Storybook screen styles.
  *
- * The bracket below brings its own stylesheet (`bracket.module.css`, including
- * the winner/scoreline rules a run switches on), so this file covers only what
- * wraps it: the run controls, the champion panel and the footnote. Colours come
- * from `src/index.css`'s tokens, as everywhere else.
+ * This screen has the one cinematic moment in the app: the champion reveal. It
+ * is the payoff of a played-out run, so it gets the biggest type on any screen
+ * and the accent — the ball, on the one player who lifted the trophy. Motion is
+ * a single considered entrance on that reveal, gated behind
+ * prefers-reduced-motion.
+ *
+ * The bracket below brings its own stylesheet (bracket.module.css, including
+ * the winner rules a run switches on), so this file covers only what wraps it:
+ * the run controls, the champion panel and the footnote. Tokens come from
+ * src/index.css.
  */
 
 .storybook {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1.75rem;
   text-align: left;
   min-width: 0;
-  padding-bottom: 24px;
 }
 
 /* -------------------------------------------------------------------------
@@ -25,126 +30,167 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding-top: 12px;
+  gap: 1rem;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 0.6rem;
 }
 
 .primary,
 .secondary {
-  font: inherit;
-  font-size: 14px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   line-height: 1;
-  padding: 10px 16px;
-  border-radius: 999px;
-  border: 1px solid var(--accent-border);
+  padding: 0.75rem 1.1rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
   cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
 }
 
+/* The primary action is the live one — running the simulation — so it carries
+   the accent as a filled control. */
 .primary {
-  color: var(--accent);
-  background: var(--accent-bg);
+  color: var(--ball-ink);
+  background: var(--ball);
+  border-color: var(--ball);
+}
+
+.primary:hover {
+  background: #e6ff6b;
 }
 
 .secondary {
-  color: var(--text);
+  color: var(--ink-mid);
   background: transparent;
-  border-color: var(--border);
+  border-color: var(--line);
 }
 
-.primary:hover,
 .secondary:hover {
-  border-color: var(--accent);
+  color: var(--ink);
+  border-color: var(--ink-dim);
 }
 
 .primary:disabled,
 .secondary:disabled {
   cursor: default;
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 .primary:focus-visible,
 .secondary:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: 2px solid var(--ball);
+  outline-offset: 3px;
 }
 
 .seed {
   margin: 0;
   font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
 }
 
 .copy {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.85rem;
   line-height: 1.6;
+  color: var(--ink-mid);
 }
 
 .copyUrl {
-  font-size: 12px;
+  font-size: 0.75rem;
   user-select: all;
   word-break: break-all;
 }
 
 /* -------------------------------------------------------------------------
- * Champion.
+ * Champion — the reveal.
  * ------------------------------------------------------------------------- */
 
 .champion {
-  border: 1px solid var(--accent-border);
-  border-radius: 8px;
-  background: var(--accent-bg);
-  padding: 16px 18px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 2rem 0 2.25rem;
 }
 
 .championLabel {
   margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.1em;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--ink-dim);
 }
 
 .championName {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin: 4px 0 0;
-  font-size: 28px;
-  line-height: 1.15;
-  color: var(--text-h);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  color: var(--ball);
 }
 
 .championSeed {
   font-family: var(--mono);
-  font-size: 14px;
-  color: var(--text);
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-dim);
 }
 
 .championMeta {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--text);
+  margin: 1rem 0 0;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-mid);
 }
 
 .championFinal {
-  margin: 2px 0 0;
+  margin: 0.35rem 0 0;
   font-family: var(--mono);
-  font-size: 13px;
-  color: var(--text);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-mid);
+}
+
+/* Cinematic, singular, and off by default for anyone who asked for less. */
+@media (prefers-reduced-motion: no-preference) {
+  .champion {
+    animation: reveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 .footnote {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.72rem;
   font-family: var(--mono);
-  color: var(--text);
-  line-height: 1.7;
+  color: var(--ink-dim);
+  line-height: 1.9;
+  letter-spacing: 0.02em;
 }

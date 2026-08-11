@@ -210,7 +210,8 @@ const DISCLOSURE = {
   estimator_class: 'RandomForestClassifier',
   adapter: 'common.classifier_adapter.make_classifier_prob',
   is_forecast: false,
-  classifier_limitation: 'The classifier is fed a fully populated feature row …',
+  classifier_limitation: 'Not a forecast. This draw already happened.',
+  classifier_limitation_detail: 'The classifier is fed a fully populated feature row …',
   source: 'example_usopen_2024_full.json',
 };
 
@@ -265,9 +266,10 @@ describe('getSimulate', () => {
     expect(result.players[0].p_reach['R128']).toBeUndefined();
     // Round-survival columns follow the CLI precedent: every label after the first.
     expect(result.round_labels.slice(1)).toEqual(['SF', 'F']);
-    // The disclosure survives the round trip — T4.3 has to render both of these.
+    // The disclosure survives the round trip — T4.3 has to render all of these.
     expect(result.metadata.is_forecast).toBe(false);
-    expect(result.metadata.classifier_limitation).toContain('feature row');
+    expect(result.metadata.classifier_limitation).toContain('Not a forecast');
+    expect(result.metadata.classifier_limitation_detail).toContain('feature row');
     expect(result.metadata.runs).toBe(5000);
     expect(result.metadata.generated_at).toBe('2026-08-03T18:22:41Z');
   });

@@ -39,6 +39,7 @@ from api.main import create_app
 from api.registry import build_registry, cache_path_for
 from api.schemas import (
     CLASSIFIER_LIMITATION,
+    CLASSIFIER_LIMITATION_DETAIL,
     SimulationMetadata,
     SimulationPlayer,
     SimulationResponse,
@@ -230,35 +231,55 @@ def test_simulate_response_discloses_the_model_limitation(client):
 
     T3.5 changed what the sentence says, not whether it is required: the
     seam-7 defect it used to describe (20 synthetic features) is fixed, and the
-    text now discloses the as-of-now snapshot caveat that remains.
+    text now discloses the as-of-now snapshot caveat that remains. The redesign
+    then split that disclosure in two — a one-line ``classifier_limitation``
+    summary plus the full ``classifier_limitation_detail`` account — so the
+    response body still carries the whole thing, checked here on both fields.
     """
     metadata = client.get("/tournaments/toy_open_2026/simulate").json()["metadata"]
 
     assert metadata["is_forecast"] is False
     assert metadata["adapter"] == "common.classifier_adapter.make_classifier_prob"
-    limitation = metadata["classifier_limitation"]
-    assert limitation == CLASSIFIER_LIMITATION
-    assert "all 27 features" in limitation  # the fix, stated
-    assert "as-of-now snapshot" in limitation  # the caveat that remains
-    assert "20 of its 27" not in limitation  # the defect that no longer exists
+
+    summary = metadata["classifier_limitation"]
+    assert summary == CLASSIFIER_LIMITATION
+    assert "Not a forecast" in summary  # the verdict, up front
+    assert "already happened" in summary  # why it is retrospective, in the summary
+
+    detail = metadata["classifier_limitation_detail"]
+    assert detail == CLASSIFIER_LIMITATION_DETAIL
+    assert "all 27 features" in detail  # the fix, stated in full
+    assert "as-of-now snapshot" in detail  # the caveat that remains
+    assert "20 of its 27" not in detail  # the defect that no longer exists
     assert metadata["mode"] in {"blend", "classifier_anchor"}
 
 
+@pytest.mark.parametrize(
+    "missing_field",
+    [
+        "classifier_limitation",
+        "classifier_limitation_detail",
+        "is_forecast",
+    ],
+)
 def test_simulate_rejects_a_cache_file_missing_its_disclosure(
-    context, tmp_path, cached_payload
+    context, tmp_path, cached_payload, missing_field
 ):
-    """Disclosure is structural: strip it and the file stops being servable.
+    """Disclosure is structural: strip *any* disclosure field and the file stops
+    being servable.
 
     This is what makes the requirement enforceable rather than a convention —
-    ``SimulationMetadata`` gives no field a default, so an older or hand-edited
-    cache without the limitation fails validation instead of publishing bare
-    probabilities.
+    ``SimulationMetadata`` gives none of these fields a default, so an older or
+    hand-edited cache missing any of them fails validation instead of publishing
+    bare probabilities. Parametrised over each disclosure field individually so
+    that giving *one* of them a default (the two-field split makes that an easy
+    slip) is caught here, not only the summary sentence.
     """
     stripped = dict(cached_payload)
     stripped["metadata"] = {
         key: value
         for key, value in cached_payload["metadata"].items()
-        if key not in {"classifier_limitation", "is_forecast"}
+        if key != missing_field
     }
     (tmp_path / "toy_open_2026.json").write_text(json.dumps(stripped))
 
@@ -712,6 +733,7 @@ def test_precompute_records_the_reconciliation_mode_and_the_limitation(
     assert raw["is_forecast"] is False
     assert raw["adapter"] == "common.classifier_adapter.make_classifier_prob"
     assert raw["classifier_limitation"] == CLASSIFIER_LIMITATION
+    assert raw["classifier_limitation_detail"] == CLASSIFIER_LIMITATION_DETAIL
 
 
 def test_precompute_reconcile_mode_override_is_recorded(stub_precompute, tmp_path):

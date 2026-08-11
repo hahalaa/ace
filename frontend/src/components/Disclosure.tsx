@@ -1,14 +1,21 @@
 /**
  * The model disclosure that has to travel with anything this app publishes.
  *
- * `metadata.is_forecast` and `metadata.classifier_limitation` are **required**
- * fields on the wire — `api.schemas.ModelDisclosure`, the base of both
- * `SimulationMetadata` (T3.3) and `StorybookMetadata` (T3.4) — precisely so
- * probabilities and scorelines cannot be published without their caveat. The
- * point of `ace-04-current-state.md` §7 seam 7 is that the caveat reaches a
- * *person*, not just a response body, so this renders above the thing it
- * qualifies and carries the limitation prose in an open-by-default `<details>`
- * rather than a tooltip that can be missed.
+ * `metadata.is_forecast`, `metadata.classifier_limitation` and
+ * `metadata.classifier_limitation_detail` are **required** fields on the wire —
+ * `api.schemas.ModelDisclosure`, the base of both `SimulationMetadata` (T3.3)
+ * and `StorybookMetadata` (T3.4) — precisely so probabilities and scorelines
+ * cannot be published without their caveat. The point of the caveat is that it
+ * reaches a *person*, not just a response body, so this renders above the thing
+ * it qualifies.
+ *
+ * **Progressive disclosure.** The server splits the caveat in two: a one-line
+ * `classifier_limitation` summary always on screen, and the full
+ * `classifier_limitation_detail` account tucked behind a `<details>` that is
+ * **collapsed by default** — the summary is the sentence a reader must not
+ * miss, the detail is there for anyone who wants the mechanics. Native
+ * `<details>`/`<summary>` carries its own expanded/collapsed state to assistive
+ * tech, matching the disclosure pattern used elsewhere in the app.
  *
  * **Extracted from `TitleOdds.tsx` by T4.4**, on the same reasoning that pulled
  * `ErrorPanel` out of `Bracket.tsx` in T4.3: two screens now publish model
@@ -28,22 +35,24 @@ export interface DisclosureProps {
 }
 
 export default function Disclosure({ metadata }: DisclosureProps) {
+  // The always-visible one-liner. Every draw shipped today is historical
+  // (`is_forecast: false`), so the server's own summary is the honest lead.
+  // When a forecast-capable draw first ships, `is_forecast` flips true and this
+  // branch is where the wording diverges — kept as a conditional now, with a
+  // placeholder, so adding that copy is a one-line change rather than a rewrite.
+  const summary = metadata.is_forecast
+    ? // TODO: real "these are projections" copy once a not-yet-played draw
+      // exists. None ships today, so this branch is currently unreached.
+      'These are model projections for a draw that has not yet been played.'
+    : metadata.classifier_limitation;
+
   return (
     <section className={styles.disclosure} data-forecast={metadata.is_forecast}>
-      <p className={styles.disclosureHead}>
-        {metadata.is_forecast ? (
-          <>These are model projections for a draw that has not been played.</>
-        ) : (
-          <>
-            <strong>Not a forecast.</strong> Read these as a retrospective: the model's knowledge
-            runs to {metadata.data_through_year}, which for an event already played includes the
-            event itself.
-          </>
-        )}
-      </p>
-      <details className={styles.limitation} open>
+      <p className={styles.kicker}>On the model</p>
+      <p className={styles.disclosureHead}>{summary}</p>
+      <details className={styles.limitation}>
         <summary>What the model does and does not know</summary>
-        <p className={styles.limitationBody}>{metadata.classifier_limitation}</p>
+        <p className={styles.limitationBody}>{metadata.classifier_limitation_detail}</p>
       </details>
     </section>
   );

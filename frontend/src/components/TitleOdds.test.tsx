@@ -44,8 +44,12 @@ afterEach(() => {
 // Fixtures — shaped exactly like `data/cache/usopen_2024_atp_full.json`.
 // --------------------------------------------------------------------------
 
+// The one-line summary the reader always sees, and the full account behind the
+// collapsed toggle — the two-field split `api.schemas.ModelDisclosure` ships.
+const SUMMARY =
+  'Not a forecast. This draw already happened, so the model is scoring a result it could have seen.';
 const LIMITATION =
-  'The classifier is fed a fully populated feature row — all 27 features. The remaining ' +
+  'The classifier is fed a fully populated feature row, all 27 features. The remaining ' +
   'caveat is timing: rankings and recent form are an as-of-now snapshot of the loaded data.';
 
 function metadata(overrides: Partial<SimulationResponse['metadata']> = {}) {
@@ -56,7 +60,8 @@ function metadata(overrides: Partial<SimulationResponse['metadata']> = {}) {
     estimator_class: 'RandomForestClassifier',
     adapter: 'common.classifier_adapter.make_classifier_prob',
     is_forecast: false,
-    classifier_limitation: LIMITATION,
+    classifier_limitation: SUMMARY,
+    classifier_limitation_detail: LIMITATION,
     source: 'example_usopen_2024_full.json',
     runs: 5000,
     seed: 0,
@@ -296,11 +301,16 @@ describe('rendering a degenerate payload', () => {
 // --------------------------------------------------------------------------
 
 describe('disclosure', () => {
-  it('renders the limitation prose and says outright that this is not a forecast', async () => {
+  it('renders the summary and the detail prose, and says outright this is not a forecast', async () => {
     await renderOdds(eightDraw());
 
+    // The one-line summary is the always-visible lead.
+    expect(screen.getByText(SUMMARY)).toBeDefined();
     expect(screen.getByText(/Not a forecast/)).toBeDefined();
+    // The full account is present but tucked behind a collapsed <details>.
     expect(screen.getByText(LIMITATION)).toBeDefined();
+    const details = document.querySelector('details') as HTMLDetailsElement;
+    expect(details.open).toBe(false);
     const panel = document.querySelector('[data-forecast]') as HTMLElement;
     expect(panel.dataset.forecast).toBe('false');
   });
@@ -316,7 +326,7 @@ describe('disclosure', () => {
   it('changes its wording — not just a flag — when a draw really is a forecast', async () => {
     await renderOdds(eightDraw({ metadata: metadata({ is_forecast: true }) }));
     expect(screen.queryByText(/Not a forecast/)).toBeNull();
-    expect(screen.getByText(/has not been played/)).toBeDefined();
+    expect(screen.getByText(/has not yet been played/)).toBeDefined();
     expect(screen.getByText(LIMITATION)).toBeDefined();
   });
 
