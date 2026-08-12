@@ -54,6 +54,7 @@ from typing import Annotated, Any, Callable
 
 from fastapi import Depends, FastAPI, HTTPException, Path as PathParam, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import StringConstraints, ValidationError
 
 import config
@@ -150,6 +151,34 @@ SECURITY_HEADERS = {
 }
 
 
+def _apply_security_headers(response, *, csp: str = API_CSP) -> None:
+    """Set the standard security headers + a CSP on ``response`` if unset."""
+    for header, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(header, value)
+    response.headers.setdefault("Content-Security-Policy", csp)
+
+
+def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Catch-all 500 handler that still carries the security headers.
+
+    An unhandled exception is turned into a 500 by Starlette's
+    ``ServerErrorMiddleware``, which sits **outside** the ``BaseHTTPMiddleware``
+    that adds :data:`SECURITY_HEADERS` — so without this, a raw 500 goes out
+    bare (verified: no CSP, no nosniff). Registering a handler for ``Exception``
+    routes those 500s here instead, where the headers are set explicitly.
+
+    The body is a fixed, generic message: ``exc`` is never echoed, so an internal
+    error (a stack detail, a path, a value) cannot leak to the client. More
+    specific handlers (``HTTPException``, ``RequestValidationError``) still win by
+    MRO, so this only ever fires for genuinely unexpected errors — the 4xx paths
+    are untouched.
+    """
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    response = JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+    _apply_security_headers(response)
+    return response
+
+
 # --------------------------------------------------------------------------- #
 # Rate limiting for /storybook (security hardening)
 # --------------------------------------------------------------------------- #
@@ -165,8 +194,10 @@ SECURITY_HEADERS = {
 # only. Render's free tier cold-starts and restarts routinely and every restart
 # wipes the counters; a multi-replica deployment gives each replica its own. So
 # this is resource-exhaustion hygiene against one careless/looping client, NOT
-# abuse prevention. It gates no authorization (there is none), so the spoofable
-# client key below is acceptable.
+# abuse prevention. It gates no authorization (there is none). The client key
+# below prefers Cloudflare's non-spoofable CF-Connecting-IP (Render fronts
+# onrender.com with Cloudflare) and only falls back to the spoofable
+# X-Forwarded-For off-platform.
 _PERIOD_SECONDS = {"second": 1, "minute": 60, "hour": 3600, "day": 86400}
 
 
@@ -185,15 +216,23 @@ def _client_key(request: Request) -> str:
     """Per-client key for the rate limit.
 
     Behind Render's proxy ``request.client.host`` is the *proxy's* address, which
-    would lump every visitor into one bucket, so prefer the first hop of
-    ``X-Forwarded-For`` when present and fall back to the socket peer for direct
-    (local, un-proxied) requests.
+    would lump every visitor into one bucket, so a forwarded header is preferred
+    and the socket peer is the fallback for direct (local, un-proxied) requests.
+    The order matters:
 
-    ⚠️ ``X-Forwarded-For`` is client-supplied and therefore spoofable: an
-    attacker can rotate it to dodge the limit. Acceptable because this limit is
-    hygiene, not a security control, and gates no authorization decision — a
-    forged value costs nothing but the attacker's own evasion.
+      1. ``CF-Connecting-IP`` — Render fronts ``*.onrender.com`` with Cloudflare,
+         which **overwrites** this header with the real connecting IP on every
+         request (a client-sent value is discarded, not appended), so it is not
+         client-spoofable in the deployed topology. Preferred when present.
+      2. First hop of ``X-Forwarded-For`` — the fallback for a deployment without
+         Cloudflare in front. ⚠️ This one *is* client-supplied and spoofable: an
+         attacker can rotate it to dodge the limit. Acceptable because the limit
+         is hygiene, not a security control, and gates no authorization decision.
+      3. The socket peer — direct local dev, no proxy at all.
     """
+    cf_ip = request.headers.get("cf-connecting-ip")
+    if cf_ip:
+        return cf_ip.strip() or "unknown"
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
         return forwarded.split(",")[0].strip() or "unknown"
@@ -726,10 +765,16 @@ def create_app(
         — every JSON body — gets the strict ``default-src 'none'`` policy.
         """
         response = await call_next(request)
-        for header, value in SECURITY_HEADERS.items():
-            response.headers.setdefault(header, value)
-        csp = DOCS_CSP if request.url.path in DOCS_PATHS else API_CSP
-        response.headers.setdefault("Content-Security-Policy", csp)
+        # Read the raw ASGI routed path, NOT request.url.path. request.url is
+        # reconstructed from the Host header and is spoofable
+        # (PYSEC-2026-161/248: a crafted Host or leading-slash-less path can make
+        # request.url.path differ from the path actually routed), which for a
+        # path-keyed security decision like "docs get a looser CSP" is exactly
+        # the sink those advisories warn about. scope["path"] is the path the
+        # router dispatched on and cannot be moved by a header.
+        path = request.scope.get("path", "")
+        csp = DOCS_CSP if path in DOCS_PATHS else API_CSP
+        _apply_security_headers(response, csp=csp)
         return response
 
     # Explicit allow-list from config — never "*". See config.API_ALLOWED_ORIGINS.
@@ -739,6 +784,11 @@ def create_app(
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Catch-all so an unhandled exception (which bypasses the header middleware
+    # above — ServerErrorMiddleware sits outside it) still returns the security
+    # headers and a generic, non-leaking body. See unexpected_error_handler.
+    app.add_exception_handler(Exception, unexpected_error_handler)
 
     @app.get("/health", response_model=HealthResponse, tags=["meta"])
     def health(context: ApiContext = Depends(get_context)) -> HealthResponse:

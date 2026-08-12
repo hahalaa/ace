@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 
 import config
 from api.deps import ApiContext
+import api.main as api_main
 from api.main import (
     API_CSP,
     DOCS_CSP,
@@ -165,6 +166,23 @@ def test_client_key_prefers_forwarded_for():
     assert _client_key(_Req({}, "9.9.9.9")) == "9.9.9.9"
 
 
+def test_client_key_prefers_cf_connecting_ip_over_spoofable_xff():
+    class _Req:
+        def __init__(self, headers, host="10.0.0.1"):
+            self.headers = headers
+            self.client = type("C", (), {"host": host})()
+
+    # Cloudflare overwrites CF-Connecting-IP with the real peer, so a client that
+    # rotates X-Forwarded-For to dodge the limit is still keyed on the CF value.
+    real = "203.0.113.7"
+    assert _client_key(_Req({"cf-connecting-ip": real, "x-forwarded-for": "1.2.3.4"})) == real
+    # No spoof: still the CF value.
+    assert _client_key(_Req({"cf-connecting-ip": real})) == real
+    # Off-platform (no Cloudflare): falls back to XFF, then socket peer.
+    assert _client_key(_Req({"x-forwarded-for": "5.6.7.8, 10.0.0.1"})) == "5.6.7.8"
+    assert _client_key(_Req({}, host="9.9.9.9")) == "9.9.9.9"
+
+
 # --------------------------------------------------------------------------- #
 # Rate limit, end to end
 # --------------------------------------------------------------------------- #
@@ -210,3 +228,68 @@ def test_cache_path_for_contains_literal_names_inside_cache_dir(tmp_path):
         path = cache_path_for(name, tmp_path)
         assert path is not None
         assert path.parent.resolve() == tmp_path.resolve()
+
+
+# --------------------------------------------------------------------------- #
+# Deployed rate-limit value (the end-to-end test above overrides it, so nothing
+# otherwise pins what actually ships — a silent bump to a huge value would pass
+# every other test).
+# --------------------------------------------------------------------------- #
+def test_shipped_storybook_rate_limit_is_sane():
+    count, window = _parse_rate(config.API_STORYBOOK_RATE_LIMIT)
+    # A real, small per-IP cap on the one compute-heavy endpoint — not disabled
+    # by being set absurdly high, and a well-formed spec the limiter can parse.
+    assert 1 <= count <= 60
+    assert window in (1, 60, 3600, 86400)
+
+
+# --------------------------------------------------------------------------- #
+# The docs-vs-strict CSP decision must key on the ROUTED path, not on
+# request.url (which is rebuilt from the spoofable Host header —
+# PYSEC-2026-161/248). We can at least pin that a normal non-docs route gets the
+# strict policy and only the real /docs family gets the relaxed one.
+# --------------------------------------------------------------------------- #
+def test_relaxed_csp_is_scoped_to_docs_only(client):
+    for path in ["/health", "/openapi.json", "/tournaments"]:
+        assert client.get(path).headers["Content-Security-Policy"] == API_CSP
+    for path in ["/docs", "/redoc"]:
+        assert client.get(path).headers["Content-Security-Policy"] == DOCS_CSP
+
+
+# --------------------------------------------------------------------------- #
+# Unhandled 500s bypass the header middleware (ServerErrorMiddleware sits outside
+# it), so a catch-all handler must re-attach the headers AND keep the body
+# generic — no internal detail may leak.
+# --------------------------------------------------------------------------- #
+def test_unhandled_500_carries_headers_and_a_non_leaking_body(context, monkeypatch):
+    secret = "SECRET-INTERNAL-abc123"
+
+    def boom(*args, **kwargs):
+        raise RuntimeError(secret)
+
+    # storybook_run is the symbol the /storybook handler calls; make it blow up.
+    monkeypatch.setattr(api_main, "storybook_run", boom)
+    with TestClient(_make_app(context), raise_server_exceptions=False) as c:
+        r = c.get("/tournaments/toy_open_2026/storybook?seed=1")
+        assert r.status_code == 500
+        # Headers present despite bypassing the middleware.
+        for header, value in STANDARD_HEADERS.items():
+            assert r.headers[header] == value
+        assert r.headers["Content-Security-Policy"] == API_CSP
+        # Body is the fixed generic message; the exception text does not leak.
+        assert r.json() == {"detail": "Internal Server Error"}
+        assert secret not in r.text
+
+
+# --------------------------------------------------------------------------- #
+# render.yaml CSP: connect-src must be pinned to the EXACT API origin, never a
+# wildcard. onrender.com is shared public hosting, so https://*.onrender.com
+# would let a future XSS exfiltrate to any sub-app on the platform.
+# --------------------------------------------------------------------------- #
+def test_frontend_csp_connect_src_is_pinned_not_wildcard():
+    render_yaml = Path(__file__).resolve().parents[1] / "render.yaml"
+    text = render_yaml.read_text(encoding="utf-8")
+    assert "connect-src 'self' https://ace-e21v.onrender.com;" in text
+    # No wildcard host as a CSP source (the comment may still name it as the
+    # anti-pattern being avoided; what must never reappear is a wildcard origin).
+    assert "https://*.onrender.com" not in text

@@ -271,9 +271,10 @@ API_STORYBOOK_SEED_MAX = 2**32 - 1
 # would give each replica its own independent store. So this is
 # RESOURCE-EXHAUSTION HYGIENE against a single careless/looping client, NOT
 # robust abuse prevention — a determined attacker defeats it by waiting out a
-# restart, spreading across replicas, or (see the key function in api/main.py)
-# rotating a spoofed X-Forwarded-For header. Real volumetric/distributed defense
-# is Render's infrastructure layer, by design.
+# restart or spreading across replicas. (The per-client key prefers Cloudflare's
+# non-spoofable CF-Connecting-IP on Render, see api/main._client_key, so header
+# rotation only bypasses it off-platform where X-Forwarded-For is the fallback.)
+# Real volumetric/distributed defense is Render's infrastructure layer, by design.
 #
 # Format: "<int>/<second|minute|hour|day>", parsed by api/main._parse_rate.
 API_STORYBOOK_RATE_LIMIT = "12/minute"

@@ -67,11 +67,14 @@ services:
       #   * style-src  'self'      — the one hashed stylesheet; the app uses plain
       #                              CSS, no CSS-in-JS and no inline style attrs.
       #   * connect-src            — the browser calls the API cross-origin, so
-      #                              'self' alone would BREAK it. Both sides live
-      #                              on onrender.com; https://*.onrender.com
-      #                              admits the API without hardcoding a build-
-      #                              time secret (VITE_API_BASE_URL). Tighten to
-      #                              the exact API origin if you prefer.
+      #                              'self' alone would BREAK it. Pinned to the
+      #                              EXACT deployed API origin, not a wildcard:
+      #                              *.onrender.com is a shared public hosting
+      #                              domain, so it would let a future XSS exfil to
+      #                              any onrender.com sub-app. This must match the
+      #                              origin baked into the bundle at build time
+      #                              (VITE_API_BASE_URL); change both together if
+      #                              the API is ever redeployed to a new origin.
       #   * img-src 'self' data:   — favicon.svg is 'self'; data: covers any
       #                              inlined image Vite emits.
       #   * frame-ancestors 'none' — this app is not meant to be iframed.
@@ -84,7 +87,7 @@ services:
           style-src 'self';
           img-src 'self' data:;
           font-src 'self';
-          connect-src 'self' https://*.onrender.com;
+          connect-src 'self' https://ace-e21v.onrender.com;
           frame-ancestors 'none';
           base-uri 'none';
           form-action 'self'
