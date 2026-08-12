@@ -44,6 +44,9 @@ from __future__ import annotations
 
 import importlib
 import logging
+import threading
+import time
+from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -97,6 +100,135 @@ SURFACE_ORDER = sorted(config.VALID_SURFACES)
 # the same 422 path as "" and a missing query, and the handler searches (and
 # echoes) the stripped string.
 PlayerQuery = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
+# --------------------------------------------------------------------------- #
+# Security headers (security hardening)
+# --------------------------------------------------------------------------- #
+# Sent on every response by the middleware below. Scoped to what this service
+# actually is — a JSON API whose only HTML is the auto-generated docs UI:
+#
+#   * Content-Security-Policy: JSON responses render no markup, so the strict
+#     `default-src 'none'` policy costs nothing and is pure defence-in-depth
+#     (a browser coerced into treating a response as a document can load
+#     nothing). `frame-ancestors 'none'` + `base-uri 'none'` round it out. The
+#     Swagger/ReDoc HTML at /docs and /redoc is the one exception (see
+#     DOCS_CSP): it deliberately pulls its bundle from the jsDelivr CDN and runs
+#     an inline bootstrap, so the strict policy would blank it out.
+#   * X-Content-Type-Options: nosniff — stop a browser MIME-sniffing a JSON body
+#     into something executable; the one header that most matters for an API.
+#   * X-Frame-Options: DENY (paired with frame-ancestors 'none' for old
+#     browsers that predate CSP) — nothing here is meant to be iframed.
+#   * Referrer-Policy: no-referrer — a JSON API and a query-string SPA have no
+#     use for the Referer header, so send the least. (Stricter than the
+#     strict-origin-when-cross-origin default; nothing here needs referrer info.)
+#
+# HSTS is deliberately NOT set here. Render terminates TLS at its edge and owns
+# the certificate and the redirect; forcing Strict-Transport-Security from the
+# app behind that proxy is the platform's call, not the app's, and a wrong
+# max-age set here could outlive the deployment. See the security report.
+API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+
+# Relaxed policy for the Swagger UI / ReDoc HTML only. FastAPI serves those
+# pages with a script + stylesheet from cdn.jsdelivr.net and an inline
+# initialiser, and Swagger uses data: images; this is exactly what they need and
+# nothing more. Applied only to /docs, /redoc and /docs/oauth2-redirect.
+DOCS_CSP = (
+    "default-src 'none'; "
+    "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+    "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+    "img-src 'self' data: https://fastapi.tiangolo.com; "
+    "font-src 'self' https://cdn.jsdelivr.net; "
+    "frame-ancestors 'none'; base-uri 'none'"
+)
+DOCS_PATHS = frozenset({"/docs", "/redoc", "/docs/oauth2-redirect"})
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+}
+
+
+# --------------------------------------------------------------------------- #
+# Rate limiting for /storybook (security hardening)
+# --------------------------------------------------------------------------- #
+# A deliberately tiny in-memory, per-IP sliding-window limiter, built here rather
+# than pulled in as a dependency: the one endpoint that needs it does not justify
+# a rate-limit library (and slowapi's decorator is incompatible with this
+# module's `from __future__ import annotations` + FastAPI forward-ref
+# signatures). Applied as a route *dependency*, so it reads the client IP without
+# touching the handler's own signature.
+#
+# ⚠️ HONEST SCOPE — repeated verbatim from config.API_STORYBOOK_RATE_LIMIT
+# because it is the whole point: the window counts live in this process's memory
+# only. Render's free tier cold-starts and restarts routinely and every restart
+# wipes the counters; a multi-replica deployment gives each replica its own. So
+# this is resource-exhaustion hygiene against one careless/looping client, NOT
+# abuse prevention. It gates no authorization (there is none), so the spoofable
+# client key below is acceptable.
+_PERIOD_SECONDS = {"second": 1, "minute": 60, "hour": 3600, "day": 86400}
+
+
+def _parse_rate(spec: str) -> tuple[int, int]:
+    """``"12/minute"`` → ``(12, 60)`` — (max requests, window seconds)."""
+    count_str, _, period = spec.partition("/")
+    period = period.strip().rstrip("s")  # tolerate "minute"/"minutes"
+    if not count_str.strip().isdigit() or period not in _PERIOD_SECONDS:
+        raise ValueError(
+            f"rate limit {spec!r} must be '<int>/<second|minute|hour|day>'"
+        )
+    return int(count_str), _PERIOD_SECONDS[period]
+
+
+def _client_key(request: Request) -> str:
+    """Per-client key for the rate limit.
+
+    Behind Render's proxy ``request.client.host`` is the *proxy's* address, which
+    would lump every visitor into one bucket, so prefer the first hop of
+    ``X-Forwarded-For`` when present and fall back to the socket peer for direct
+    (local, un-proxied) requests.
+
+    ⚠️ ``X-Forwarded-For`` is client-supplied and therefore spoofable: an
+    attacker can rotate it to dodge the limit. Acceptable because this limit is
+    hygiene, not a security control, and gates no authorization decision — a
+    forged value costs nothing but the attacker's own evasion.
+    """
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip() or "unknown"
+    client = request.client
+    return client.host if client else "unknown"
+
+
+class SlidingWindowRateLimiter:
+    """Thread-safe, in-memory, per-key sliding-window limiter.
+
+    Sync FastAPI dependencies run in a threadpool, so access is guarded by a
+    lock. Memory is bounded by the number of *active* client keys in the window
+    (each key holds at most ``max_requests`` timestamps, pruned on every touch).
+    """
+
+    def __init__(self, spec: str) -> None:
+        self.max_requests, self.window = _parse_rate(spec)
+        self._hits: dict[str, deque[float]] = defaultdict(deque)
+        self._lock = threading.Lock()
+
+    def check(self, key: str) -> float | None:
+        """Register a hit for ``key``; return ``None`` if allowed, else the
+        ``Retry-After`` seconds until the window frees a slot."""
+        now = time.monotonic()
+        with self._lock:
+            hits = self._hits[key]
+            cutoff = now - self.window
+            while hits and hits[0] <= cutoff:
+                hits.popleft()
+            if len(hits) >= self.max_requests:
+                retry_after = self.window - (now - hits[0])
+                return max(1, int(retry_after) + 1)
+            hits.append(now)
+            return None
+
 
 # A factory with ``cli.simulate_match.make_classifier_prob``'s signature:
 # ``(estimator, data, surface_history, h2h_history) -> ClassifierProb``. Called
@@ -557,6 +689,49 @@ def create_app(
         lifespan=lifespan,
     )
 
+    # Per-IP rate limiter for /storybook only (attached as that route's
+    # dependency below). Built per app instance — a fresh window store for every
+    # test app. The honest limits of the in-memory store are documented on
+    # config.API_STORYBOOK_RATE_LIMIT.
+    storybook_limiter = SlidingWindowRateLimiter(config.API_STORYBOOK_RATE_LIMIT)
+
+    def storybook_rate_limit(request: Request) -> None:
+        """Dependency: 429 when a client exceeds the /storybook window.
+
+        Kept a dependency (not a param on the handler) so the compute-heavy route
+        is guarded before its body runs without altering its signature.
+        """
+        retry_after = storybook_limiter.check(_client_key(request))
+        if retry_after is not None:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "reason": "rate_limited",
+                    "message": (
+                        "Too many storybook simulations from this client. This "
+                        "endpoint runs a live bracket per request and is rate "
+                        f"limited to {config.API_STORYBOOK_RATE_LIMIT} per IP. "
+                        "Retry after the window, or precompute via /simulate."
+                    ),
+                },
+                headers={"Retry-After": str(retry_after)},
+            )
+
+    @app.middleware("http")
+    async def add_security_headers(request: Request, call_next):
+        """Attach the standard security headers to every response.
+
+        The docs UI (/docs, /redoc) gets a looser CSP so Swagger/ReDoc can pull
+        their bundle from the CDN and run their inline bootstrap; everything else
+        — every JSON body — gets the strict ``default-src 'none'`` policy.
+        """
+        response = await call_next(request)
+        for header, value in SECURITY_HEADERS.items():
+            response.headers.setdefault(header, value)
+        csp = DOCS_CSP if request.url.path in DOCS_PATHS else API_CSP
+        response.headers.setdefault("Content-Security-Policy", csp)
+        return response
+
     # Explicit allow-list from config — never "*". See config.API_ALLOWED_ORIGINS.
     app.add_middleware(
         CORSMiddleware,
@@ -882,6 +1057,7 @@ def create_app(
         "/tournaments/{tournament_id}/storybook",
         response_model=StorybookResponse,
         tags=["tournaments"],
+        dependencies=[Depends(storybook_rate_limit)],
     )
     def tournament_storybook(
         tournament_id: Annotated[
@@ -948,6 +1124,11 @@ def create_app(
         :func:`_simulatable_entry` gate: unknown id → 404, unloadable draw file →
         422, placeholder entrants → 409. There is no 425 here — nothing is
         cached, so there is nothing to be missing.
+
+        **Rate limited** (``config.API_STORYBOOK_RATE_LIMIT``, per IP): this is
+        the only endpoint that runs real per-request compute, so a client over
+        the limit gets a 429. The limiter's store is in-memory and resets on
+        restart — see the config constant for the honest scope of that.
         """
         entry = _simulatable_entry(tournament_id, registry)
         if seed is None:

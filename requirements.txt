@@ -18,3 +18,6 @@ uvicorn[standard]>=0.34,<0.36
 pydantic>=2.9,<3
 # TestClient's transport; a test-only dependency of fastapi.testclient.
 httpx>=0.27,<0.29
+# NB: rate limiting for /storybook needs no dependency — it is a tiny in-memory
+# sliding window in api/main.py (SlidingWindowRateLimiter). See
+# config.API_STORYBOOK_RATE_LIMIT for its deliberately narrow scope.

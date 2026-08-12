@@ -257,6 +257,27 @@ API_STORYBOOK_SEED = 42
 # range obvious, without touching reproducibility.
 API_STORYBOOK_SEED_MAX = 2**32 - 1
 
+# ---- Rate limit on GET /tournaments/{id}/storybook (security hardening) ----
+# /storybook is the ONE endpoint that runs real per-request compute (one live
+# 128-match bracket, 0.45-1.5 s); every other route reads precomputed or
+# in-memory state. This is a narrow, per-IP limit on that endpoint alone, not a
+# site-wide one — /health, /players, /bracket and the cached /simulate stay
+# unthrottled.
+#
+# ⚠️ HONEST SCOPE: the limiter's store is a plain in-memory sliding window
+# (api/main.SlidingWindowRateLimiter), so its counters live only in the process.
+# On Render's free tier the instance cold-starts and restarts routinely, and
+# every restart resets the counters to zero; a horizontally-scaled deployment
+# would give each replica its own independent store. So this is
+# RESOURCE-EXHAUSTION HYGIENE against a single careless/looping client, NOT
+# robust abuse prevention — a determined attacker defeats it by waiting out a
+# restart, spreading across replicas, or (see the key function in api/main.py)
+# rotating a spoofed X-Forwarded-For header. Real volumetric/distributed defense
+# is Render's infrastructure layer, by design.
+#
+# Format: "<int>/<second|minute|hour|day>", parsed by api/main._parse_rate.
+API_STORYBOOK_RATE_LIMIT = "12/minute"
+
 # ==========================================
 # PRECOMPUTED SIMULATION CACHE (T3.3)
 # ==========================================

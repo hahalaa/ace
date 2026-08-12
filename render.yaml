@@ -60,6 +60,48 @@ services:
         name: Cache-Control
         value: no-cache
 
+      # ---- Security headers (security hardening) ----
+      # Scoped to what a Vite build of THIS app actually loads:
+      #   * script-src 'self'      — the one hashed ES module bundle; Vite emits
+      #                              no inline <script> (verified in dist/).
+      #   * style-src  'self'      — the one hashed stylesheet; the app uses plain
+      #                              CSS, no CSS-in-JS and no inline style attrs.
+      #   * connect-src            — the browser calls the API cross-origin, so
+      #                              'self' alone would BREAK it. Both sides live
+      #                              on onrender.com; https://*.onrender.com
+      #                              admits the API without hardcoding a build-
+      #                              time secret (VITE_API_BASE_URL). Tighten to
+      #                              the exact API origin if you prefer.
+      #   * img-src 'self' data:   — favicon.svg is 'self'; data: covers any
+      #                              inlined image Vite emits.
+      #   * frame-ancestors 'none' — this app is not meant to be iframed.
+      # No 'unsafe-inline' / 'unsafe-eval' anywhere — the build needs neither.
+      - path: /*
+        name: Content-Security-Policy
+        value: >-
+          default-src 'self';
+          script-src 'self';
+          style-src 'self';
+          img-src 'self' data:;
+          font-src 'self';
+          connect-src 'self' https://*.onrender.com;
+          frame-ancestors 'none';
+          base-uri 'none';
+          form-action 'self'
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      # HSTS is intentionally omitted: Render terminates TLS and owns the
+      # certificate/redirect at its edge, so Strict-Transport-Security is the
+      # platform's to set (its dashboard offers it). A wrong max-age pinned from
+      # the app could outlive the deployment. See the security report.
+
     # No SPA rewrite rule, on purpose. The app does no path-based routing: every
     # screen is `/` plus a query string (`?tournament=`, `?view=`, `?seed=` —
     # App.tsx), so no deep link ever requests a path that is not index.html, and
