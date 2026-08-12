@@ -30,6 +30,7 @@ import type { ReactElement } from 'react';
 
 import Bracket from './components/Bracket';
 import Storybook from './components/Storybook';
+import ThemeToggle from './components/ThemeToggle';
 import TitleOdds from './components/TitleOdds';
 
 /** Shown when the URL names no tournament. Any id from `/tournaments` works. */
@@ -82,17 +83,20 @@ function App() {
           </p>
           <span className="brandTag">Grand Slam simulator</span>
         </div>
-        <nav className="viewNav" aria-label="View">
-          {VIEWS.map((target) => (
-            <a
-              key={target}
-              href={href(target)}
-              aria-current={view === target ? 'page' : undefined}
-            >
-              {VIEW_LABELS[target]}
-            </a>
-          ))}
-        </nav>
+        <div className="mastheadEnd">
+          <nav className="viewNav" aria-label="View">
+            {VIEWS.map((target) => (
+              <a
+                key={target}
+                href={href(target)}
+                aria-current={view === target ? 'page' : undefined}
+              >
+                {VIEW_LABELS[target]}
+              </a>
+            ))}
+          </nav>
+          <ThemeToggle />
+        </div>
       </header>
 
       {screenFor(view, tournamentId)}

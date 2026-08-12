@@ -8,11 +8,24 @@
  * number and label, wide-tracked uppercase micro-labels for structure, and a
  * lot of empty space around all of it.
  *
- * **Committed to a single dark theme, on purpose.** The accent reads as one
- * confident thing on near-black; splitting into a light mode would either mute
- * it or need a second accent treatment, and the reference language here
- * (broadcast score overlays, dark data-forward editorial) is dark by nature.
- * So the tokens are defined once, on :root, with no prefers-color-scheme split.
+ * **Two registers of one identity.** The default is the dark theme above:
+ * near-black ground, optic-yellow ball. A second, light register — set by
+ * `data-theme="light"` on <html> — keeps the same type, the same layout, the
+ * same "spend the accent once" discipline, and only swaps the palette into a
+ * Wimbledon register: cream ground, deep court-green ink, a muted trophy-gold
+ * accent standing in for the ball. Both are defined here as flat token sets so
+ * every component keeps reading `var(--bg)` / `var(--ball)` and never learns a
+ * theme exists. The dark set stays on bare `:root` (so it is the default with
+ * no attribute, and untouched by this addition); the light set overrides it
+ * only under `:root[data-theme="light"]`.
+ *
+ * **Theme is deliberately NOT URL state.** `?view=/?tournament=/?seed=` exist so
+ * a simulation is shareable — a link must reproduce the same draw and seed for
+ * whoever opens it, regardless of their own display preference. Theme is a
+ * per-viewer preference, not part of the thing being shared, so it lives in
+ * localStorage (see src/theme.ts), defaulting to the OS `prefers-color-scheme`
+ * on first visit. An inline script in index.html applies it before first paint
+ * so there is no flash of the wrong ground.
  *
  * No web fonts — the system stack keeps the bundle self-contained, and weight +
  * scale + tracking carry the editorial feel without a download.
@@ -56,6 +69,47 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * Light register — the Wimbledon palette. Same token names, same roles; only
+ * the values change, so no component below this file is theme-aware. One fixed
+ * identity regardless of the tournament's surface — the dark theme spends its
+ * one accent identically on Hard, Clay and Grass (data-surface marks the
+ * current column but never recolours the accent), so light mode matches that:
+ * a single cream/green/gold identity, not a per-surface family.
+ *
+ * Every foreground/background pair here clears WCAG AA (4.5:1) for the small
+ * mono labels; the accent is a muted gold dark enough to hold 4.5:1 as text on
+ * cream, on the sunken header, and on its own soft wash (the champion row).
+ * Ratios are recorded in the light-mode report. The hairlines (--line /
+ * --line-soft) are decorative editorial rules, not UI boundaries, and are held
+ * to the same barely-there weight the dark theme uses — a touch more present
+ * here, never a hard box.
+ */
+:root[data-theme='light'] {
+  /* Ground and structure — warm cream, elevated near-white, recessed sink. */
+  --bg: #f2efe4;
+  --bg-raise: #fbfaf3;
+  --bg-sink: #e7e2d3;
+  --line: #cbc4af;
+  --line-soft: #ded8c7;
+
+  /* Ink — deep court green through muted green-greys.
+     Contrast on --bg: ink 12.3:1, ink-mid 7.0:1, ink-dim 5.2:1. */
+  --ink: #173021;
+  --ink-mid: #42544a;
+  --ink-dim: #586759;
+
+  /* The ball, in a muted trophy gold. As text on --bg 5.9:1; as a fill the
+     near-white --ball-ink sits on it at 6.4:1; on its own wash (champion row)
+     the gold text holds 4.9:1. */
+  --ball: #725810;
+  --ball-ink: #fbfaf3;
+  --ball-soft: rgba(114, 88, 16, 0.13);
+  --ball-line: rgba(114, 88, 16, 0.42);
+
+  color-scheme: light;
 }
 
 *,
@@ -134,6 +188,16 @@ body {
   text-transform: uppercase;
   color: var(--ink-dim);
   white-space: nowrap;
+}
+
+/* The right cluster: the view nav and the theme toggle sit together, so the
+   masthead stays a clean brand | controls split. The toggle is baseline-nudged
+   to sit on the nav's text baseline rather than above it. */
+.mastheadEnd {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  translate: 0 0.15em;
 }
 
 /* Links, not buttons — every view is a real URL (see App.tsx), so these

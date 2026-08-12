@@ -1,0 +1,46 @@
+/*
+ * Theme toggle — an icon button that sits at the end of the view nav.
+ *
+ * Styled to the same restraint as the nav links: dim ink at rest, full ink on
+ * hover, the accent only on the focus ring. A hairline square keeps it reading
+ * as a control without shouting. No fill, no colour of its own — the glyph is
+ * currentColor, so it re-inks itself in whichever theme is live.
+ *
+ * Tokens come from src/index.css.
+ */
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  color: var(--ink-dim);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toggle {
+    transition:
+      color 0.18s ease,
+      border-color 0.18s ease;
+  }
+}
+
+.toggle:hover {
+  color: var(--ink);
+  border-color: var(--ink-dim);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 3px;
+}
+
+.toggle svg {
+  display: block;
+}

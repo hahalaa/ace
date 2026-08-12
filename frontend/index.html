@@ -5,6 +5,29 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ace: tennis Grand Slam simulator</title>
+    <!--
+      Apply the theme before first paint so there is no flash of the wrong
+      ground. This mirrors resolveTheme() in src/theme.ts by hand — a blocking
+      inline script cannot import a module, and this is the one place that logic
+      is duplicated. Stored choice wins; otherwise the OS preference; default
+      dark. Kept tiny and failure-tolerant on purpose.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('ace-theme');
+          var theme =
+            stored === 'light' || stored === 'dark'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: light)').matches
+                ? 'light'
+                : 'dark';
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
