@@ -126,7 +126,7 @@ describe('?view= deep-linking', () => {
 
     expect(mountedScreen()).toBe('bracket');
     expect(currentNavLink()).toBe('Bracket');
-    expect(screen.getAllByRole('link')).toHaveLength(3);
+    expect(screen.getAllByRole('link')).toHaveLength(4);
   });
 
   it('marks exactly one nav link as the current page', () => {
@@ -160,6 +160,7 @@ describe('?tournament= and ?view= are independent axes', () => {
       '?tournament=example_usopen_2026_atp&view=bracket',
       '?tournament=example_usopen_2026_atp&view=odds',
       '?tournament=example_usopen_2026_atp&view=storybook',
+      '?tournament=example_usopen_2026_atp&view=upload',
     ]);
   });
 

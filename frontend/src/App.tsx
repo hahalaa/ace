@@ -32,11 +32,12 @@ import Bracket from './components/Bracket';
 import Storybook from './components/Storybook';
 import ThemeToggle from './components/ThemeToggle';
 import TitleOdds from './components/TitleOdds';
+import Upload from './components/Upload';
 
 /** Shown when the URL names no tournament. Any id from `/tournaments` works. */
 const DEFAULT_TOURNAMENT_ID = 'usopen_2024_atp_full';
 
-const VIEWS = ['bracket', 'odds', 'storybook'] as const;
+const VIEWS = ['bracket', 'odds', 'storybook', 'upload'] as const;
 type View = (typeof VIEWS)[number];
 
 /** Nav wording per view, in `VIEWS` order. */
@@ -44,6 +45,7 @@ const VIEW_LABELS: Record<View, string> = {
   bracket: 'Bracket',
   odds: 'Title odds',
   storybook: 'Storybook',
+  upload: 'Upload',
 };
 
 function isView(value: string): value is View {
@@ -59,6 +61,11 @@ function screenFor(view: View, tournamentId: string): ReactElement {
       return <TitleOdds tournamentId={tournamentId} />;
     case 'storybook':
       return <Storybook tournamentId={tournamentId} />;
+    case 'upload':
+      // The one screen with no tournament axis: it creates ids rather than
+      // reading one. The nav still carries `tournament` in its href (harmless,
+      // and keeps every link built the same way); Upload ignores it.
+      return <Upload />;
   }
 }
 

@@ -213,6 +213,8 @@ const DISCLOSURE = {
   classifier_limitation: 'Not a forecast. This draw already happened.',
   classifier_limitation_detail: 'The classifier is fed a fully populated feature row …',
   source: 'example_usopen_2024_full.json',
+  content_source: 'curated' as const,
+  content_note: 'Curated example draw.',
 };
 
 const EIGHT_DRAW_SIM: SimulationResponse = {

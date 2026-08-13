@@ -190,6 +190,8 @@ function toyEightStory(overrides: Partial<StorybookResponse> = {}): StorybookRes
         'Every input is an as-of-now snapshot, so simulating an already-played draw is retrospective.',
       source: 'toy_8.json',
       seed: 42,
+      content_source: 'curated',
+      content_note: 'Curated example draw, verified against the real event.',
     },
     ...overrides,
   };
@@ -589,6 +591,42 @@ describe('disclosure', () => {
     // server says it ran.
     expect(document.querySelector('[data-meta="seed"]')?.textContent).toContain('42');
     expect(document.querySelector('[data-meta="url_seed"]')?.textContent).toContain('seed 7');
+  });
+});
+
+// --------------------------------------------------------------------------
+// Content provenance — an uploaded draw's "user-submitted, unverified,
+// ephemeral" note must reach a shared-link viewer here, not only the uploader
+// at upload time. Distinct from the model disclosure above (is_forecast).
+// --------------------------------------------------------------------------
+
+const UPLOAD_NOTE =
+  'User-submitted draw. It has not been checked against any official record, and it is ' +
+  'held in memory only, so it may be cleared when the server restarts. Save anything you want to keep.';
+
+function uploadStory(): StorybookResponse {
+  const base = toyEightStory();
+  return {
+    ...base,
+    metadata: { ...base.metadata, content_source: 'user_upload', content_note: UPLOAD_NOTE },
+  };
+}
+
+describe('content provenance', () => {
+  it('shows the user-submitted note on the storybook screen for an uploaded draw', async () => {
+    mountAt('/?seed=7', uploadStory());
+    await screen.findByRole('region', { name: 'Champion' });
+
+    const note = document.querySelector('[data-content-source="user_upload"]');
+    expect(note).not.toBeNull();
+    expect(note?.textContent).toBe(UPLOAD_NOTE);
+  });
+
+  it('does not show the user-submitted note for a curated draw', async () => {
+    mountAt('/?seed=7'); // default fixture is content_source: 'curated'
+    await screen.findByRole('region', { name: 'Champion' });
+
+    expect(document.querySelector('[data-content-source="user_upload"]')).toBeNull();
   });
 });
 

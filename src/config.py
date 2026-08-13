@@ -279,6 +279,41 @@ API_STORYBOOK_SEED_MAX = 2**32 - 1
 # Format: "<int>/<second|minute|hour|day>", parsed by api/main._parse_rate.
 API_STORYBOOK_RATE_LIMIT = "12/minute"
 
+# ---- Draw upload (POST /tournaments/upload) ----
+# A visitor can POST a draw JSON matching the same schema the shipped example
+# draws use and then simulate it live. Everything about the feature is shaped by
+# one platform fact: Render's free tier has NO persistent disk. An uploaded draw
+# is therefore held in this process's memory only (api/uploads.UploadStore),
+# never written to disk, so it does not survive a restart, a cold-start wake or a
+# redeploy — and the UI says so rather than implying it persists.
+#
+# Uploaded ids live in a separate namespace from the curated draws: they are
+# generated as "<UPLOAD_ID_PREFIX><random hex>", never the draw's own
+# tournament_id, so a user upload can never be confused with — or shadow — the
+# git-committed, independently-verified example draws in data/draws/.
+UPLOAD_ID_PREFIX = "upload-"
+# Largest accepted request body. A 128-slot draw is tens of KB; 1 MiB caps abuse
+# generously above any legitimate draw without constraining real use. Enforced on
+# the raw bytes before JSON is even parsed (api/main.tournament_upload).
+API_UPLOAD_MAX_BYTES = 1_048_576
+# How many uploaded draws one process holds at once. When a new upload would
+# exceed this, the oldest is evicted (api/uploads.UploadStore is an LRU), so the
+# feature cannot be used to exhaust memory on a 512 MB instance. Small on
+# purpose: uploads are ephemeral scratch space, not storage.
+API_UPLOAD_MAX_DRAWS = 32
+# Per-IP rate limit on the upload endpoint itself, same in-memory sliding-window
+# limiter (and the same honest-scope caveat) as API_STORYBOOK_RATE_LIMIT: this is
+# resource-exhaustion hygiene against one looping client, not robust abuse
+# prevention. Uploads are heavier than a GET (validation + name resolution over
+# up to 128 entrants), so the limit is tighter than /storybook's.
+API_UPLOAD_RATE_LIMIT = "6/minute"
+# Optional field an uploaded draw may carry (ignored by sim.draw.parse_draw as an
+# unknown key, read separately by the upload handler): the event's date as
+# "YYYY-MM-DD". When it names a date in the future, the draw is a genuine
+# not-yet-played event and its disclosure reads is_forecast=true — the first time
+# anything in this project legitimately does. Absent or past → historical.
+UPLOAD_EVENT_DATE_FIELD = "event_date"
+
 # ==========================================
 # PRECOMPUTED SIMULATION CACHE (T3.3)
 # ==========================================

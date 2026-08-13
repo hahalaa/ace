@@ -200,6 +200,13 @@ export interface SimulationMetadata extends ModelDisclosure {
 export interface StorybookMetadata extends ModelDisclosure {
   /** The **RNG** seed that ran (the caller's, or the server default). */
   seed: number;
+  /**
+   * Where the *draw* came from: `curated` for a verified example, `user_upload`
+   * for a submitted one. Distinct from `is_forecast`, which is about the model.
+   */
+  content_source: 'curated' | 'user_upload';
+  /** Plain-language provenance note — for an upload, that it is unverified and temporary. */
+  content_note: string;
 }
 
 // --------------------------------------------------------------------------
@@ -318,6 +325,37 @@ export interface StorybookResponse {
 }
 
 // --------------------------------------------------------------------------
+// POST /tournaments/upload (draw upload feature)
+// --------------------------------------------------------------------------
+
+/**
+ * `api.schemas.UploadResponse` — acknowledgement that a draw was accepted.
+ *
+ * `tournament_id` is a generated `upload-…` id in a namespace separate from the
+ * curated draws; use it for `/bracket` and `/storybook`. Uploaded draws are
+ * **ephemeral** (`ephemeral: true`) — held in memory only, cleared on a server
+ * restart — so a shared link may stop working, which the UI discloses.
+ */
+export interface UploadResponse {
+  /** The `upload-…` id to address this draw by. */
+  tournament_id: string;
+  name: string;
+  surface: Surface;
+  best_of: BestOf;
+  final_set_tiebreak: FinalSetTiebreak;
+  draw_size: number;
+  /** False when the draw still holds placeholder slots — it lists but cannot run. */
+  is_simulatable: boolean;
+  placeholder_count: number;
+  /** True when the draw's `event_date` is in the future — a genuine forecast. */
+  is_forecast: boolean;
+  /** Always true: uploaded draws do not survive a restart. */
+  ephemeral: boolean;
+  /** Note that this draw is user-submitted, unverified and temporary. */
+  content_note: string;
+}
+
+// --------------------------------------------------------------------------
 // Error bodies
 // --------------------------------------------------------------------------
 // These are not Pydantic response models — they are what FastAPI serialises
@@ -371,6 +409,40 @@ export interface CacheProblemDetail {
   tournament_id: string;
 }
 
+/** 404 — `reason: "upload_not_found"`: an upload id that is no longer held (evicted/restarted). */
+export interface UploadNotFoundDetail {
+  reason: 'upload_not_found';
+  message: string;
+  tournament_id: string;
+}
+
+/** 422 — `reason: "draw_invalid"`: an uploaded draw failed validation. Carries the problem list. */
+export interface UploadDrawInvalidDetail {
+  reason: 'draw_invalid';
+  message: string;
+  source: string;
+  /** The validator's full problem list, so a hand-entered draw is fixable in one pass. */
+  problems: string[];
+}
+
+/**
+ * The other structured upload failures, all sharing `{reason, message}`:
+ * `unsupported_media_type` (415), `payload_too_large` (413), `invalid_json`
+ * (422), `invalid_event_date` (422), `monte_carlo_unavailable_for_upload` (409)
+ * and `rate_limited` (429).
+ */
+export interface UploadProblemDetail {
+  reason:
+    | 'unsupported_media_type'
+    | 'payload_too_large'
+    | 'invalid_json'
+    | 'invalid_event_date'
+    | 'monte_carlo_unavailable_for_upload'
+    | 'rate_limited';
+  message: string;
+  tournament_id?: string;
+}
+
 /**
  * Every `detail` **this API** can send: the bare-string 404, the
  * request-validation list, and the four structured bodies.
@@ -393,11 +465,22 @@ export type ApiErrorDetail =
   | InvalidDrawFileDetail
   | NotSimulatableDetail
   | CacheMissingDetail
-  | CacheProblemDetail;
+  | CacheProblemDetail
+  | UploadNotFoundDetail
+  | UploadDrawInvalidDetail
+  | UploadProblemDetail;
 
 /** The `reason` codes the API attaches to a structured error body. */
 export type ApiErrorReason =
   | 'draw_not_simulatable'
   | 'cache_missing'
   | 'cache_unreadable'
-  | 'cache_stale';
+  | 'cache_stale'
+  | 'upload_not_found'
+  | 'draw_invalid'
+  | 'unsupported_media_type'
+  | 'payload_too_large'
+  | 'invalid_json'
+  | 'invalid_event_date'
+  | 'monte_carlo_unavailable_for_upload'
+  | 'rate_limited';

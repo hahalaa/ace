@@ -194,3 +194,18 @@
   line-height: 1.9;
   letter-spacing: 0.02em;
 }
+
+/* Provenance note for an uploaded draw: user-submitted, unverified, temporary.
+   Rendered alongside the model disclosure, not in place of it — the same
+   warning the upload form shows, carried onto the shared results screen. */
+.contentNote {
+  margin: 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-sink);
+  color: var(--ink-mid);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  max-width: 60ch;
+}

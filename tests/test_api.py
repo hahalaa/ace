@@ -364,6 +364,7 @@ def test_every_route_declares_a_response_model():
         "/health",
         "/players",
         "/tournaments",
+        "/tournaments/upload",
         "/tournaments/{tournament_id}/bracket",
         "/tournaments/{tournament_id}/simulate",
         "/tournaments/{tournament_id}/storybook",

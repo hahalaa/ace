@@ -588,6 +588,8 @@ describe('non-storybook rendering is unchanged (T4.4 differential)', () => {
         classifier_limitation_detail: 'As-of-now snapshot.',
         source: 'some_other_draw.json',
         seed: 7,
+        content_source: 'curated',
+        content_note: 'Curated example draw.',
       },
     };
 

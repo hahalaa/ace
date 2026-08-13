@@ -1,0 +1,182 @@
+/*
+ * Upload screen styles.
+ *
+ * A single-column form: a drop zone that doubles as the file-picker label, a
+ * standing note about what "uploaded" means here (in memory only, temporary),
+ * and the result panel. Tokens come from src/index.css; the drop zone borrows
+ * the same line/raise surface every other panel uses so an upload does not look
+ * like a different app.
+ */
+
+.upload {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: left;
+  max-width: 60ch;
+  min-width: 0;
+}
+
+.intro {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--ink-mid);
+  font-size: 0.95rem;
+}
+
+/* The drop zone is a <label> tied to a visually-hidden file input, so a click
+   or a keyboard focus on the input opens the picker, and a drag-drop works too. */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1.5rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  color: var(--ink-mid);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.dropzone:hover,
+.dropzone:focus-within {
+  border-color: var(--ink-mid);
+}
+
+.dropzoneActive {
+  border-color: var(--accent, var(--ink));
+  border-style: solid;
+  background: var(--bg-sink);
+}
+
+.dropTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.dropHint {
+  font-size: 0.85rem;
+  color: var(--ink-mid);
+}
+
+/* Visually hidden but focusable and in the tab order — the accessible control. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The standing ephemerality note — always on screen, near the flow. */
+.ephemeralNote {
+  margin: 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-sink);
+  color: var(--ink-mid);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* Result panel after a successful upload. */
+.result {
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.resultHeading {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.resultMeta {
+  margin: 0 0 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink-mid);
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.resultNote {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--ink-mid);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.actionPrimary,
+.actionSecondary {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  cursor: pointer;
+  color: var(--ink);
+  background: var(--bg-raise);
+}
+
+.actionPrimary {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.actionPrimary:hover,
+.actionSecondary:hover {
+  border-color: var(--ink-mid);
+}
+
+.reset {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: var(--ink-mid);
+  cursor: pointer;
+  padding: 0;
+}
+
+.reset:hover {
+  color: var(--ink);
+}

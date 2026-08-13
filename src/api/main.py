@@ -43,12 +43,14 @@ un-imported here even though the storybook one is now imported.
 from __future__ import annotations
 
 import importlib
+import json
 import logging
 import threading
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Annotated, Any, Callable
 
@@ -63,6 +65,12 @@ from api.registry import TournamentEntry, TournamentRegistry, build_registry, ca
 from api.schemas import (
     CLASSIFIER_LIMITATION,
     CLASSIFIER_LIMITATION_DETAIL,
+    CONTENT_NOTE_CURATED,
+    CONTENT_NOTE_UPLOAD,
+    CONTENT_SOURCE_CURATED,
+    CONTENT_SOURCE_UPLOAD,
+    FORECAST_CLASSIFIER_LIMITATION,
+    FORECAST_CLASSIFIER_LIMITATION_DETAIL,
     IS_FORECAST,
     BracketResponse,
     BracketSlot,
@@ -80,10 +88,12 @@ from api.schemas import (
     SurfaceSkill,
     TournamentListResponse,
     TournamentSummary,
+    UploadResponse,
 )
+from api.uploads import UploadedDraw, UploadStore
 from common.names import NameIndex, resolve_name
 from features.serve import SkillTable
-from sim.draw import Draw
+from sim.draw import Draw, DrawValidationError, parse_draw
 from sim.reconcile import ClassifierProb
 from sim.tournament import StorybookResult, storybook_run
 
@@ -412,6 +422,17 @@ def get_cache_dir(request: Request) -> Path:
     return request.app.state.cache_dir
 
 
+def get_upload_store(request: Request) -> UploadStore:
+    """FastAPI dependency: this app's in-memory store of uploaded draws.
+
+    One store per app instance, created at startup and never persisted — the
+    ephemeral contract in :mod:`api.uploads`. A fresh app (a restart, or a test
+    app) starts with an empty store, which is exactly why an upload does not
+    survive a restart.
+    """
+    return request.app.state.upload_store
+
+
 def _player_summary(
     name: str, index: NameIndex, skill_table: SkillTable
 ) -> PlayerSummary:
@@ -434,14 +455,20 @@ def _player_summary(
     return PlayerSummary(player_id=player_id, name=name, skills=skills)
 
 
-def _bracket_response(draw: Draw) -> BracketResponse:
+def _bracket_response(draw: Draw, tournament_id: str | None = None) -> BracketResponse:
     """Assemble a resolved draw's wire model.
 
     Every slot is included — placeholders are flagged via ``is_placeholder``,
     never filtered out, because a bracket with holes in it is not a bracket.
+
+    ``tournament_id`` overrides the draw's own id in the response. Curated draws
+    pass ``None`` and report their real id; an uploaded draw reports the
+    generated upload id it is addressed by, so the id a client fetched with is
+    the id it gets back (the draw's descriptive ``tournament_id`` never becomes
+    an addressable handle — see ``api.uploads``).
     """
     return BracketResponse(
-        tournament_id=draw.tournament_id,
+        tournament_id=tournament_id if tournament_id is not None else draw.tournament_id,
         name=draw.name,
         surface=draw.surface,
         best_of=draw.best_of,
@@ -568,12 +595,172 @@ def _simulatable_entry(
     return entry
 
 
+def _unknown_upload(tournament_id: str) -> HTTPException:
+    """404 for an upload id that is not (or no longer) in the store.
+
+    The message names the ephemeral contract rather than pretending the id was
+    never valid: an id from before a restart, or one evicted by newer uploads,
+    is genuinely gone, and the fix is to upload again.
+    """
+    return HTTPException(
+        status_code=404,
+        detail={
+            "reason": "upload_not_found",
+            "message": (
+                f"No uploaded draw with id {tournament_id!r}. Uploaded draws are "
+                f"held in memory only and are cleared when the server restarts "
+                f"or when older uploads are evicted, so a shared link can stop "
+                f"working. Upload the draw again to get a new id."
+            ),
+            "tournament_id": tournament_id,
+        },
+    )
+
+
+def _upload_not_simulatable(uploaded: UploadedDraw) -> HTTPException:
+    """409 for an uploaded draw holding placeholder entrants.
+
+    The same refusal, and the same body shape, as :func:`_not_simulatable` — an
+    uploaded ``Qualifier`` slot is no more simulatable than a curated one.
+    """
+    placeholders = [slot for slot in uploaded.draw.bracket if slot.is_placeholder]
+    return HTTPException(
+        status_code=409,
+        detail={
+            "reason": "draw_not_simulatable",
+            "message": (
+                f"Uploaded draw {uploaded.upload_id!r} has {len(placeholders)} "
+                f"placeholder entrant(s) and cannot be simulated: a placeholder "
+                f"has no player id and no classifier history, so no match-win "
+                f"probability can be computed for it. Replace them with real "
+                f"entrants and upload again."
+            ),
+            "tournament_id": uploaded.upload_id,
+            "source": uploaded.upload_id,
+            "placeholder_slots": [
+                {"position": slot.position, "player": slot.player}
+                for slot in placeholders
+            ],
+        },
+    )
+
+
+def _extract_event_date(data: Any) -> tuple[date | None, bool]:
+    """Read an uploaded draw's optional ``event_date`` and derive is_forecast.
+
+    Returns ``(event_date, is_forecast)``. A draw with no ``event_date`` is
+    treated as historical (``(None, False)``) — the safe default, since claiming
+    a forecast we cannot support would be the dishonest direction. A future date
+    makes ``is_forecast`` true.
+
+    The field is read from the raw JSON here, not through ``parse_draw`` (which
+    ignores it as an unknown key), so adding it required no change to the draw
+    schema in ``sim/``.
+
+    Raises:
+        HTTPException: 422 if ``event_date`` is present but not a ``YYYY-MM-DD``
+            string — a malformed optional field is a client error worth naming,
+            not something to silently ignore.
+    """
+    if not isinstance(data, dict):
+        return None, False
+    raw = data.get(config.UPLOAD_EVENT_DATE_FIELD)
+    if raw is None:
+        return None, False
+    if not isinstance(raw, str):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "reason": "invalid_event_date",
+                "message": (
+                    f"{config.UPLOAD_EVENT_DATE_FIELD!r} must be a "
+                    f"'YYYY-MM-DD' string, got {type(raw).__name__}."
+                ),
+            },
+        )
+    try:
+        parsed = date.fromisoformat(raw)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "reason": "invalid_event_date",
+                "message": (
+                    f"{config.UPLOAD_EVENT_DATE_FIELD!r} must be a valid "
+                    f"'YYYY-MM-DD' date: {exc}."
+                ),
+            },
+        ) from exc
+    return parsed, parsed > date.today()
+
+
+@dataclass(frozen=True)
+class DrawDisclosure:
+    """Everything a storybook response discloses about the *draw* it ran.
+
+    Bundled so the one response builder serves both a curated draw and an
+    uploaded one without a pile of keyword arguments, and so the two concerns
+    stay distinct: ``is_forecast`` / ``classifier_limitation`` are about the
+    *model*'s knowledge (do the inputs postdate the event?), while
+    ``content_source`` / ``content_note`` are about the *draw*'s provenance (is
+    it a verified example or an unverified upload?). See ``api.schemas`` for the
+    canonical text of each.
+    """
+
+    source: str
+    is_forecast: bool
+    classifier_limitation: str
+    classifier_limitation_detail: str
+    content_source: str
+    content_note: str
+
+
+def _curated_disclosure(entry: TournamentEntry) -> DrawDisclosure:
+    """Disclosure for a git-committed example draw (historical, verified)."""
+    return DrawDisclosure(
+        source=entry.source,
+        is_forecast=IS_FORECAST,
+        classifier_limitation=CLASSIFIER_LIMITATION,
+        classifier_limitation_detail=CLASSIFIER_LIMITATION_DETAIL,
+        content_source=CONTENT_SOURCE_CURATED,
+        content_note=CONTENT_NOTE_CURATED,
+    )
+
+
+def _upload_disclosure(uploaded: UploadedDraw) -> DrawDisclosure:
+    """Disclosure for a user-submitted draw.
+
+    Two things differ from a curated draw, and they are independent. The
+    *model* limitation flips only when the draw is future-dated: a not-yet-played
+    event is a genuine forecast (``is_forecast=True``), an already-played one is
+    the same retrospective a curated draw would be. The *content* note is always
+    the upload note — unverified, and held in memory only.
+    """
+    if uploaded.is_forecast:
+        limitation = FORECAST_CLASSIFIER_LIMITATION
+        detail = FORECAST_CLASSIFIER_LIMITATION_DETAIL
+    else:
+        limitation = CLASSIFIER_LIMITATION
+        detail = CLASSIFIER_LIMITATION_DETAIL
+    return DrawDisclosure(
+        # The upload id is the addressable handle and the honest "source": there
+        # is no file. It names exactly the resource the numbers came from.
+        source=uploaded.upload_id,
+        is_forecast=uploaded.is_forecast,
+        classifier_limitation=limitation,
+        classifier_limitation_detail=detail,
+        content_source=CONTENT_SOURCE_UPLOAD,
+        content_note=CONTENT_NOTE_UPLOAD,
+    )
+
+
 def _storybook_response(
     result: StorybookResult,
     *,
-    entry: TournamentEntry,
+    disclosure: DrawDisclosure,
     context: ApiContext,
     adapter: str,
+    tournament_id: str | None = None,
 ) -> StorybookResponse:
     """Assemble the wire model from a finished :class:`StorybookResult`.
 
@@ -585,9 +772,13 @@ def _storybook_response(
     re-derived from the underlying ``BracketResult`` a second time. The CLI's
     text renderer (``render_storybook``) is deliberately **not** called: it is a
     different presentation of the same structure, and this endpoint returns JSON.
+
+    ``disclosure`` carries the draw-specific provenance (curated vs upload,
+    historical vs forecast); ``tournament_id`` overrides the response id for an
+    uploaded draw, exactly as in :func:`_bracket_response`.
     """
     return StorybookResponse(
-        tournament_id=result.tournament_id,
+        tournament_id=tournament_id if tournament_id is not None else result.tournament_id,
         name=result.name,
         surface=result.surface,
         best_of=result.best_of,
@@ -642,10 +833,12 @@ def _storybook_response(
             data_through_year=context.data_through_year,
             estimator_class=context.estimator_class,
             adapter=adapter,
-            is_forecast=IS_FORECAST,
-            classifier_limitation=CLASSIFIER_LIMITATION,
-            classifier_limitation_detail=CLASSIFIER_LIMITATION_DETAIL,
-            source=entry.source,
+            is_forecast=disclosure.is_forecast,
+            classifier_limitation=disclosure.classifier_limitation,
+            classifier_limitation_detail=disclosure.classifier_limitation_detail,
+            source=disclosure.source,
+            content_source=disclosure.content_source,
+            content_note=disclosure.content_note,
         ),
     )
 
@@ -655,6 +848,7 @@ def create_app(
     draws_dir: Path | str = config.DRAWS_DIR,
     cache_dir: Path | str = config.CACHE_DIR,
     classifier_factory: ClassifierFactory | None = None,
+    upload_store: UploadStore | None = None,
 ) -> FastAPI:
     """Build the FastAPI app.
 
@@ -681,6 +875,12 @@ def create_app(
             an endpoint; ``tests/test_classifier_adapter.py`` drives the *real*
             resolved factory end-to-end over a small engineered frame, so the
             stub does not stand in for the shipped adapter anywhere it matters.
+        upload_store: In-memory store backing ``POST /tournaments/upload`` and
+            the serving of uploaded draws. Defaults to ``None``, meaning "build a
+            fresh :class:`~api.uploads.UploadStore` capped at
+            ``config.API_UPLOAD_MAX_DRAWS``". Tests inject one with a small cap to
+            exercise eviction. Never persisted: a new app starts with an empty
+            store, which *is* the ephemeral behaviour uploaded draws promise.
 
     Returns:
         The configured app. Nothing is loaded, scanned or resolved until it
@@ -716,11 +916,25 @@ def create_app(
             app.state.classifier.name,
             config.SIM_CLI_RECONCILE_MODE,
         )
+        # In-memory store for uploaded draws (never persisted). A fresh one per
+        # app instance is what makes uploads ephemeral by construction: a restart
+        # is a new process, a new store, and every prior upload is forgotten.
+        # `is not None`, not `or`: an empty store is falsy (its __len__ is 0), so
+        # `upload_store or UploadStore()` would silently discard an injected
+        # empty store.
+        app.state.upload_store = (
+            upload_store if upload_store is not None else UploadStore()
+        )
+        logger.info(
+            "Upload store: capacity %d draw(s), in memory only (cleared on restart)",
+            app.state.upload_store.max_uploads,
+        )
         yield
         app.state.context = None
         app.state.registry = None
         app.state.cache_dir = None
         app.state.classifier = None
+        app.state.upload_store = None
 
     app = FastAPI(
         title=config.API_TITLE,
@@ -751,6 +965,28 @@ def create_app(
                         "endpoint runs a live bracket per request and is rate "
                         f"limited to {config.API_STORYBOOK_RATE_LIMIT} per IP. "
                         "Retry after the window, or precompute via /simulate."
+                    ),
+                },
+                headers={"Retry-After": str(retry_after)},
+            )
+
+    # Per-IP limiter for POST /tournaments/upload — same in-memory limiter and
+    # same honest scope as /storybook's. Uploads validate and name-resolve up to
+    # 128 entrants, so they get a tighter window than a GET.
+    upload_limiter = SlidingWindowRateLimiter(config.API_UPLOAD_RATE_LIMIT)
+
+    def upload_rate_limit(request: Request) -> None:
+        """Dependency: 429 when a client exceeds the /upload window."""
+        retry_after = upload_limiter.check(_client_key(request))
+        if retry_after is not None:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "reason": "rate_limited",
+                    "message": (
+                        "Too many uploads from this client. Uploading is rate "
+                        f"limited to {config.API_UPLOAD_RATE_LIMIT} per IP. Retry "
+                        "after the window."
                     ),
                 },
                 headers={"Retry-After": str(retry_after)},
@@ -911,6 +1147,147 @@ def create_app(
             ],
         )
 
+    @app.post(
+        "/tournaments/upload",
+        response_model=UploadResponse,
+        status_code=201,
+        tags=["tournaments"],
+        dependencies=[Depends(upload_rate_limit)],
+    )
+    async def tournament_upload(
+        request: Request,
+        context: ApiContext = Depends(get_context),
+        store: UploadStore = Depends(get_upload_store),
+    ) -> UploadResponse:
+        """Accept a draw JSON, validate it, and hold it in memory for simulation.
+
+        **Ephemeral by design.** The draw is stored in this process's memory only
+        (:mod:`api.uploads`), never on disk, because the deploy target has no
+        persistent disk — so it does not survive a restart, a cold-start wake or
+        a redeploy, and the response says as much (``ephemeral: true``,
+        ``content_note``). It is assigned a generated ``upload-…`` id in a
+        namespace separate from the curated draws, so it can never collide with
+        or shadow the git-committed, verified example draws.
+
+        **Validation is T2.1's, not a second parser.** The body goes straight to
+        :func:`sim.draw.parse_draw`, so an uploaded draw is held to exactly the
+        rules a curated one is, and a malformed one comes back as the same
+        accumulated problem list ``/bracket`` and ``/simulate`` already return —
+        every problem at once, so a hand-entered 128-draw is fixable in one pass.
+
+        Guards, in order:
+
+          * **Non-JSON content type → 415.** Only ``application/json`` is
+            accepted; a form post or a binary blob is refused before anything is
+            read.
+          * **Body over ``config.API_UPLOAD_MAX_BYTES`` → 413.** Enforced while
+            streaming, so an oversized upload is rejected without buffering the
+            whole thing — a 128-slot draw is tens of KB, the cap is 1 MiB.
+          * **Unparseable JSON → 422** (``reason: invalid_json``).
+          * **A bad ``event_date`` → 422** (``reason: invalid_event_date``).
+          * **A draw that fails validation → 422** (``reason: draw_invalid``)
+            with the validator's full ``problems`` list.
+
+        On success the draw is stored (evicting the oldest if the store is at
+        capacity) and a 201 acknowledges it with the id to simulate it by. Note
+        the aggregate Monte Carlo board (``/simulate``) is **not** available for
+        uploads — see :func:`tournament_simulation`; the live storybook is.
+        """
+        # 1. Content type: refuse anything that is not JSON up front.
+        media_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
+        if media_type != "application/json":
+            raise HTTPException(
+                status_code=415,
+                detail={
+                    "reason": "unsupported_media_type",
+                    "message": (
+                        "Upload a draw as application/json. Got "
+                        f"{media_type or 'no'} content type."
+                    ),
+                },
+            )
+
+        # 2. Size cap, enforced while streaming so an oversized body is rejected
+        #    without ever being fully buffered (Content-Length can lie or be
+        #    absent, so the stream length is what is trusted).
+        raw = bytearray()
+        async for chunk in request.stream():
+            raw.extend(chunk)
+            if len(raw) > config.API_UPLOAD_MAX_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail={
+                        "reason": "payload_too_large",
+                        "message": (
+                            "Uploaded draw exceeds the "
+                            f"{config.API_UPLOAD_MAX_BYTES}-byte limit. A draw is "
+                            "tens of KB; this is far larger."
+                        ),
+                    },
+                )
+
+        # 3. Parse JSON. RecursionError is caught alongside the ordinary decode
+        #    errors: deeply-nested JSON (e.g. thousands of open brackets, well
+        #    under the size cap) overflows the decoder's recursion and would
+        #    otherwise escape this handler as an uncaught 500 with a full stack
+        #    trace logged on every request — a cheap error/log-spam vector on a
+        #    public endpoint. It is malformed input like any other, so it earns
+        #    the same 422.
+        try:
+            data = json.loads(bytes(raw))
+        except (json.JSONDecodeError, UnicodeDecodeError, RecursionError) as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "reason": "invalid_json",
+                    "message": f"Request body is not valid JSON: {exc}.",
+                },
+            ) from exc
+
+        # 4. Optional event_date → is_forecast (422 on a malformed value).
+        event_date, is_forecast = _extract_event_date(data)
+
+        # 5. Validate the draw itself — T2.1's rules, T2.1's problem list.
+        try:
+            draw = parse_draw(data, context.skill_table, source="<uploaded draw>")
+        except DrawValidationError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "reason": "draw_invalid",
+                    "message": (
+                        f"Uploaded draw failed validation with "
+                        f"{len(exc.problems)} problem(s)."
+                    ),
+                    "source": exc.source,
+                    "problems": list(exc.problems),
+                },
+            ) from exc
+
+        # 6. Store (memory only) and acknowledge.
+        record = store.add(draw, is_forecast=is_forecast, event_date=event_date)
+        placeholder_count = sum(1 for slot in draw.bracket if slot.is_placeholder)
+        logger.info(
+            "Stored uploaded draw %s (%d slots, forecast=%s); store now holds %d",
+            record.upload_id,
+            draw.draw_size,
+            is_forecast,
+            len(store),
+        )
+        return UploadResponse(
+            tournament_id=record.upload_id,
+            name=draw.name,
+            surface=draw.surface,
+            best_of=draw.best_of,
+            final_set_tiebreak=draw.final_set_tiebreak,
+            draw_size=draw.draw_size,
+            is_simulatable=placeholder_count == 0,
+            placeholder_count=placeholder_count,
+            is_forecast=is_forecast,
+            ephemeral=True,
+            content_note=CONTENT_NOTE_UPLOAD,
+        )
+
     @app.get(
         "/tournaments/{tournament_id}/bracket",
         response_model=BracketResponse,
@@ -919,21 +1296,29 @@ def create_app(
     def tournament_bracket(
         tournament_id: Annotated[
             str,
-            PathParam(description="Id from ``GET /tournaments``."),
+            PathParam(description="Id from ``GET /tournaments`` or ``POST /tournaments/upload``."),
         ],
         registry: TournamentRegistry = Depends(get_registry),
+        store: UploadStore = Depends(get_upload_store),
     ) -> BracketResponse:
         """The resolved draw: positions, entrants, ids and seeds.
 
         The draw comes from :func:`sim.draw.load_draw` (T2.1) via the startup
         registry — this handler re-parses nothing and re-validates nothing, so
-        there is one draw parser in the codebase and one set of rules.
+        there is one draw parser in the codebase and one set of rules. An
+        **uploaded** draw (an ``upload-…`` id) is served the same way from the
+        in-memory store, so a client renders a user draw's bracket with no
+        special case.
 
-        Two failures, both deliberate:
+        Failures:
 
-          * **Unknown id → 404**, naming the ids that *are* registered (a draws
-            directory holds a handful of files, so listing them beats a bare
-            "not found" — the same courtesy ``cli/simulate_tournament`` extends).
+          * **Unknown upload id → 404** (``reason: upload_not_found``) — the id
+            is in the upload namespace but no longer held (evicted, or the server
+            restarted). The message says so.
+          * **Unknown registered id → 404**, naming the ids that *are* registered
+            (a draws directory holds a handful of files, so listing them beats a
+            bare "not found" — the same courtesy ``cli/simulate_tournament``
+            extends).
           * **A file that failed validation → 422**, with the
             :class:`~sim.draw.DrawValidationError` ``problems`` list verbatim
             rather than a generic message, so a hand-entered draw is fixable in
@@ -942,6 +1327,12 @@ def create_app(
             not the client's request, but nothing about the request can fix it
             and a 500 would suggest a transient fault rather than a bad file.
         """
+        if store.is_upload_id(tournament_id):
+            uploaded = store.get(tournament_id)
+            if uploaded is None:
+                raise _unknown_upload(tournament_id)
+            return _bracket_response(uploaded.draw, tournament_id=uploaded.upload_id)
+
         entry = registry.get(tournament_id)
         if entry is None:
             known = ", ".join(repr(known_id) for known_id in registry.ids())
@@ -976,6 +1367,7 @@ def create_app(
         ] = None,
         registry: TournamentRegistry = Depends(get_registry),
         cache_dir: Path = Depends(get_cache_dir),
+        store: UploadStore = Depends(get_upload_store),
     ) -> SimulationResponse:
         """Precomputed Monte Carlo title and round-survival probabilities.
 
@@ -1037,7 +1429,31 @@ def create_app(
         a 422 — same reasoning as an invalid draw file: it is the server's
         artefact, a 500 would imply a transient fault, and the fix is named in
         the message.
+
+        **Uploaded draws are not served here → 409.** The Monte Carlo board is
+        cache-only by architectural rule (never run 5,000 runs in a request), and
+        an uploaded draw has no cache: there is no persistent disk to precompute
+        one onto, so there is no honest way to produce this board for it. Uploaded
+        draws support the live storybook instead (``/storybook``), and the error
+        says so rather than 404-ing with a list of curated ids the caller cannot
+        use.
         """
+        if store.is_upload_id(tournament_id):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "reason": "monte_carlo_unavailable_for_upload",
+                    "message": (
+                        "Uploaded draws do not support the precomputed Monte "
+                        "Carlo board: it is cache-only and there is no persistent "
+                        "disk to precompute an upload onto. Use "
+                        f"/tournaments/{tournament_id}/storybook for a live run "
+                        "instead."
+                    ),
+                    "tournament_id": tournament_id,
+                },
+            )
+
         entry = _simulatable_entry(tournament_id, registry)
 
         path = cache_path_for(tournament_id, cache_dir)
@@ -1128,6 +1544,7 @@ def create_app(
         registry: TournamentRegistry = Depends(get_registry),
         context: ApiContext = Depends(get_context),
         classifier: ClassifierAdapter = Depends(get_classifier),
+        store: UploadStore = Depends(get_upload_store),
     ) -> StorybookResponse:
         """One tournament played out point by point, for one seed — live.
 
@@ -1175,15 +1592,46 @@ def create_app(
         422, placeholder entrants → 409. There is no 425 here — nothing is
         cached, so there is nothing to be missing.
 
+        **Uploaded draws run here too.** An ``upload-…`` id is served from the
+        in-memory store with the same live run and the same placeholder refusal;
+        the only differences are in ``metadata`` — an uploaded draw discloses
+        that it is user-submitted and unverified (``content_source``,
+        ``content_note``), and a future-dated one reads ``is_forecast: true``,
+        the one case in this project where that is honest. An upload id that is
+        no longer held (evicted, or the server restarted) is a 404
+        (``reason: upload_not_found``).
+
         **Rate limited** (``config.API_STORYBOOK_RATE_LIMIT``, per IP): this is
         the only endpoint that runs real per-request compute, so a client over
         the limit gets a 429. The limiter's store is in-memory and resets on
         restart — see the config constant for the honest scope of that.
         """
-        entry = _simulatable_entry(tournament_id, registry)
         if seed is None:
             seed = config.API_STORYBOOK_SEED
 
+        if store.is_upload_id(tournament_id):
+            uploaded = store.get(tournament_id)
+            if uploaded is None:
+                raise _unknown_upload(tournament_id)
+            if any(slot.is_placeholder for slot in uploaded.draw.bracket):
+                raise _upload_not_simulatable(uploaded)
+            result = storybook_run(
+                uploaded.draw,
+                context.skill_table,
+                classifier.call,
+                seed=seed,
+                mode=config.SIM_CLI_RECONCILE_MODE,
+                w=config.RECONCILE_BLEND_WEIGHT,
+            )
+            return _storybook_response(
+                result,
+                disclosure=_upload_disclosure(uploaded),
+                context=context,
+                adapter=classifier.name,
+                tournament_id=uploaded.upload_id,
+            )
+
+        entry = _simulatable_entry(tournament_id, registry)
         result = storybook_run(
             entry.draw,
             context.skill_table,
@@ -1194,7 +1642,10 @@ def create_app(
             w=config.RECONCILE_BLEND_WEIGHT,
         )
         return _storybook_response(
-            result, entry=entry, context=context, adapter=classifier.name
+            result,
+            disclosure=_curated_disclosure(entry),
+            context=context,
+            adapter=classifier.name,
         )
 
     return app

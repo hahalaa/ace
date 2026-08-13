@@ -69,6 +69,53 @@ export function describeError(error: unknown, tournamentId: string): PanelConten
     };
   }
 
+  // An uploaded draw that is no longer held: evicted, or the server restarted.
+  // Uploaded draws live in memory only, so a shared link can stop working.
+  if (hasReason(error, 'upload_not_found')) {
+    return {
+      kind: 'upload-not-found',
+      heading: 'This uploaded draw is no longer available',
+      message: error.detail.message,
+    };
+  }
+
+  // The aggregate title-odds board is cache-only and uploads have no cache, so
+  // an uploaded draw can only be played out as a live storybook.
+  if (hasReason(error, 'monte_carlo_unavailable_for_upload')) {
+    return {
+      kind: 'upload-no-odds',
+      heading: 'Title odds are not available for uploaded draws',
+      message: error.detail.message,
+    };
+  }
+
+  // An uploaded draw that failed validation: show the accumulated problem list,
+  // same as a curated draw file's 422, so a hand-entered draw is fixable at once.
+  if (hasReason(error, 'draw_invalid')) {
+    return {
+      kind: 'draw-invalid',
+      heading: 'This draw could not be uploaded',
+      message: error.detail.message,
+      problems: error.detail.problems,
+    };
+  }
+
+  // The other structured upload failures all carry a plain message from the
+  // server; show it verbatim rather than paraphrasing.
+  if (
+    hasReason(error, 'invalid_json') ||
+    hasReason(error, 'invalid_event_date') ||
+    hasReason(error, 'unsupported_media_type') ||
+    hasReason(error, 'payload_too_large') ||
+    hasReason(error, 'rate_limited')
+  ) {
+    return {
+      kind: error.detail.reason.replaceAll('_', '-'),
+      heading: 'This draw could not be uploaded',
+      message: error.detail.message,
+    };
+  }
+
   // A draw still holding `Qualifier`/`Bye` slots has no player_id to simulate.
   if (hasReason(error, 'draw_not_simulatable')) {
     return {

@@ -35,6 +35,10 @@ import type {
   SimulationResponse,
   StorybookResponse,
   TournamentListResponse,
+  UploadDrawInvalidDetail,
+  UploadNotFoundDetail,
+  UploadProblemDetail,
+  UploadResponse,
 } from './types';
 
 // --------------------------------------------------------------------------
@@ -121,6 +125,14 @@ interface DetailForReason {
   cache_missing: CacheMissingDetail;
   cache_unreadable: CacheProblemDetail;
   cache_stale: CacheProblemDetail;
+  upload_not_found: UploadNotFoundDetail;
+  draw_invalid: UploadDrawInvalidDetail;
+  unsupported_media_type: UploadProblemDetail;
+  payload_too_large: UploadProblemDetail;
+  invalid_json: UploadProblemDetail;
+  invalid_event_date: UploadProblemDetail;
+  monte_carlo_unavailable_for_upload: UploadProblemDetail;
+  rate_limited: UploadProblemDetail;
 }
 
 export function isApiError(error: unknown): error is ApiError {
@@ -215,25 +227,19 @@ export function buildUrl(path: string, params: QueryParams = {}): string {
 }
 
 /**
- * GET `path`, parse JSON, throw on anything that is not a 2xx.
+ * Send one request to `url`, parse JSON, throw on anything that is not a 2xx.
+ *
+ * Shared by {@link get} and {@link uploadDraw} so the error handling — network
+ * failure → {@link ApiNetworkError}, non-2xx → structured {@link ApiError} — is
+ * one implementation, not one per HTTP method.
  *
  * The return type is asserted, not validated: `T` mirrors an `extra="forbid"`
  * Pydantic model, so the server has already guaranteed the shape.
  */
-async function get<T>(
-  path: string,
-  params: QueryParams = {},
-  options: RequestOptions = {},
-): Promise<T> {
-  const url = buildUrl(path, params);
-
+async function request<T>(url: string, init: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(url, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-      signal: options.signal,
-    });
+    response = await fetch(url, init);
   } catch (cause) {
     throw new ApiNetworkError(url, cause);
   }
@@ -260,6 +266,26 @@ async function get<T>(
   }
 
   return body as T;
+}
+
+/**
+ * GET `path`, parse JSON, throw on anything that is not a 2xx.
+ *
+ * `async`, so a synchronous throw from `buildUrl` (a missing base URL →
+ * {@link ApiConfigError}) surfaces as a rejected promise, not a throw at the
+ * call site — every caller `await`s and expects to catch, never to try/catch
+ * the call itself.
+ */
+async function get<T>(
+  path: string,
+  params: QueryParams = {},
+  options: RequestOptions = {},
+): Promise<T> {
+  return request<T>(buildUrl(path, params), {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    signal: options.signal,
+  });
 }
 
 // --------------------------------------------------------------------------
@@ -369,4 +395,32 @@ export function getStorybook(
     { seed },
     options,
   );
+}
+
+/**
+ * `POST /tournaments/upload` — submit a draw JSON and get a generated id back.
+ *
+ * The `drawJson` string is sent verbatim as the request body, so the server
+ * runs its own validation on exactly what the user provided (a malformed file
+ * comes back as an {@link ApiError} whose `problems` list is the validator's).
+ * The returned `tournament_id` is an `upload-…` id usable with
+ * {@link getBracket} and {@link getStorybook}.
+ *
+ * Uploaded draws are **ephemeral**: held in the server's memory only, so a link
+ * to one can stop working after a restart. The caller should say so in the UI.
+ *
+ * @throws {ApiError} 415 non-JSON · 413 too large · 422 invalid JSON, bad
+ *   `event_date`, or `draw_invalid` (`error.problems` holds the validator's
+ *   list) · 429 rate limited.
+ */
+export async function uploadDraw(
+  drawJson: string,
+  options?: RequestOptions,
+): Promise<UploadResponse> {
+  return request<UploadResponse>(buildUrl('/tournaments/upload'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: drawJson,
+    signal: options?.signal,
+  });
 }

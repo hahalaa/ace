@@ -277,6 +277,56 @@ CLASSIFIER_LIMITATION_DETAIL = (
 # flip when the defect was fixed.)
 IS_FORECAST = False
 
+# --------------------------------------------------------------------------- #
+# Disclosure for a genuinely future-dated draw (draw upload feature).
+# --------------------------------------------------------------------------- #
+# The as-of-now-snapshot caveat above exists because every shipped draw already
+# happened. An *uploaded* draw whose declared event date is in the future is the
+# one case where that does not apply: none of its matches have been played, so
+# the snapshot is simply the latest available form rather than after-the-fact
+# knowledge. That draw's disclosure reads is_forecast=true and swaps in the
+# wording below. It is still not a confident prediction — the model's ceiling is
+# unchanged — but it is an honest forward projection, not a retrospective, and it
+# must not carry the "this already happened" sentence.
+FORECAST_CLASSIFIER_LIMITATION = (
+    "A model projection for an event that has not been played. Treat it as an "
+    "estimate, not a confident prediction."
+)
+
+FORECAST_CLASSIFIER_LIMITATION_DETAIL = (
+    "The classifier is fed a fully populated feature row: all 27 features, "
+    "including recent form, computed from the pipeline's own leakage-safe match "
+    "history. Because this draw's event date is in the future, none of its "
+    "matches have happened yet, so those inputs — rankings, surface records, "
+    "head-to-heads and recent form — are the latest available form rather than "
+    "knowledge from after the event. This is a genuine forward projection. It is "
+    "still only as good as the model behind it: match outcomes are noisy, an "
+    "as-of-now snapshot cannot see an injury or a late withdrawal, and the "
+    "numbers should be read as an estimate rather than a settled forecast."
+)
+
+# --------------------------------------------------------------------------- #
+# Content-authenticity note (draw upload feature).
+# --------------------------------------------------------------------------- #
+# A DISTINCT concern from is_forecast/classifier_limitation, deliberately not
+# folded into them: those describe what the *model* knows; this describes where
+# the *draw* came from. A curated draw in data/draws/ is git-committed and
+# checked against real historical records; an uploaded draw is neither, and it
+# lives in this process's memory only, so it can vanish on a restart. Both facts
+# belong in the disclosure a reader sees, and neither is about the classifier.
+CONTENT_SOURCE_CURATED = "curated"
+CONTENT_SOURCE_UPLOAD = "user_upload"
+
+CONTENT_NOTE_CURATED = (
+    "Curated example draw, verified against the real event's records."
+)
+
+CONTENT_NOTE_UPLOAD = (
+    "User-submitted draw. It has not been checked against any official record, "
+    "and it is held in memory only, so it may be cleared when the server "
+    "restarts. Save anything you want to keep."
+)
+
 
 class ModelDisclosure(BaseModel):
     """What produced a published probability, and what its limits are.
@@ -487,6 +537,26 @@ class StorybookMetadata(ModelDisclosure):
         "``?seed=`` on the same URL replays this exact tournament. (Not to be "
         "confused with a player's tournament seed in ``StorybookPlayerRun.seed``.)"
     )
+    # ------------------------------------------------------------------ #
+    # Where the DRAW came from — added by the draw upload feature.
+    # ------------------------------------------------------------------ #
+    # A concern separate from the inherited is_forecast/classifier_limitation
+    # (which are about the model's knowledge). These say whether the draw itself
+    # is a curated, verified example or user-submitted and unverified. Required
+    # here (not on the shared base) because ``/storybook`` is always built live
+    # by the handler, so every response can set them — unlike the cached
+    # ``/simulate`` format, whose on-disk files predate these fields and must not
+    # gain a required key. ``/simulate`` never serves an uploaded draw anyway.
+    content_source: str = Field(
+        description="``curated`` for a git-committed example draw verified "
+        "against the real event, or ``user_upload`` for a draw a visitor "
+        "submitted. Distinct from ``is_forecast``, which is about the model."
+    )
+    content_note: str = Field(
+        description="Plain-language note on the draw's provenance — for an "
+        "upload, that it is unverified and held in memory only. Render it "
+        "alongside the model disclosure, not in place of it."
+    )
 
 
 class StorybookMatch(BaseModel):
@@ -609,4 +679,58 @@ class StorybookResponse(BaseModel):
     metadata: StorybookMetadata = Field(
         description="Provenance: the seed that replays this story, the "
         "reconciliation mode/weight, and the model's known limitation. Required."
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Draw upload (POST /tournaments/upload)
+# --------------------------------------------------------------------------- #
+class UploadResponse(BaseModel):
+    """Acknowledgement that an uploaded draw was accepted and stored.
+
+    Returned by ``POST /tournaments/upload`` on success. It carries the
+    generated, namespaced ``tournament_id`` the caller then uses to fetch the
+    bracket (``/tournaments/{id}/bracket``) or run a live storybook
+    (``/tournaments/{id}/storybook``) — **not** the draw's own ``tournament_id``,
+    which stays purely descriptive so uploads can never collide with the curated
+    draws.
+
+    It is deliberately honest about two things the caller must know up front: the
+    draw is **ephemeral** (memory only, cleared on restart — ``ephemeral`` is
+    always true and ``content_note`` says so in words), and whether it can be
+    simulated at all (a draw with ``Qualifier`` slots loads and lists but cannot
+    be run, exactly as a curated one cannot).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    tournament_id: str = Field(
+        description="The generated upload id to address this draw by "
+        "(``upload-…``). Use it for ``/bracket`` and ``/storybook``."
+    )
+    name: str = Field(description="The draw's human-readable event name.")
+    surface: str = Field(description="``Hard``, ``Clay`` or ``Grass``.")
+    best_of: int = Field(description="3 or 5.")
+    final_set_tiebreak: str = Field(description="Deciding-set rule.")
+    draw_size: int = Field(description="Number of slots in the bracket.")
+    is_simulatable: bool = Field(
+        description="False when the draw still holds placeholder entrants "
+        "(``Qualifier``/``Bye``); such a draw lists and shows its bracket but "
+        "cannot be simulated."
+    )
+    placeholder_count: int = Field(
+        description="How many slots are placeholders — ``0`` for a simulatable "
+        "draw. Non-zero explains why ``is_simulatable`` is false."
+    )
+    is_forecast: bool = Field(
+        description="True when the draw's declared ``event_date`` is in the "
+        "future, so a simulation is a genuine forward projection."
+    )
+    ephemeral: bool = Field(
+        description="Always true: uploaded draws are held in memory only and are "
+        "lost on a server restart. Surfaced so the client can warn the user.",
+    )
+    content_note: str = Field(
+        description="Plain-language note that this draw is user-submitted, "
+        "unverified and temporary. Show it near the upload result."
     )

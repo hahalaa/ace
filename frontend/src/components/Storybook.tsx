@@ -218,6 +218,17 @@ export default function Storybook({ tournamentId }: StorybookProps) {
         <>
           <Champion story={story} />
           <Disclosure metadata={story.metadata} />
+          {/* Provenance of the draw itself, distinct from the model disclosure
+              above. An uploaded draw is user-submitted, unverified and held in
+              memory only — the uploader saw this on the upload form, and anyone
+              who opens a shared link to this run needs to see it too, not just
+              at upload time. Curated draws (`content_source === 'curated'`)
+              carry no such note. */}
+          {story.metadata.content_source === 'user_upload' && (
+            <p className={styles.contentNote} data-content-source="user_upload">
+              {story.metadata.content_note}
+            </p>
+          )}
         </>
       )}
 
