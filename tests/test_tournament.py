@@ -813,6 +813,49 @@ def test_full_example_draw_loads_and_simulates_end_to_end():
         ]
 
 
+def test_ausopen_2026_full_draw_loads_and_simulates_end_to_end():
+    """Smoke test for ``ausopen_2026_atp_full.json`` (draw-addendum).
+
+    The second real, placeholder-free 128-draw shipped: the 2026 Australian Open
+    men's singles, reconstructed from the vendored round-by-round results the
+    same way ``example_usopen_2024_full.json`` was. Proves the file resolves
+    against skills built from real vendored data and runs to a champion in both
+    modes. Like its sibling above, the classifier is the usual stub — this
+    checks the draw, not the model.
+    """
+    df = loader.load_atp_data(config.START_YEAR, config.END_YEAR)
+    table = serve.build_skill_table(preprocess.preprocess_data(df))
+
+    draw = load_draw(config.DRAWS_DIR / "ausopen_2026_atp_full.json", table)
+
+    assert draw.draw_size == len(draw.bracket) == 128
+    assert draw.surface == "Hard" and draw.best_of == 5
+    assert draw.final_set_tiebreak == "10pt_at_6_6"
+    # A real, completed draw: no placeholder slots, every entrant resolved.
+    assert not any(slot.is_placeholder for slot in draw.bracket)
+    assert all(slot.player_id is not None for slot in draw.bracket)
+    assert len({slot.player for slot in draw.bracket}) == 128
+    # Canonical seed-doubling labelling: seed 1 -> position 1, seed 2 -> 65, etc.
+    position_of = {slot.player: slot.position for slot in draw.bracket}
+    seed_at = {seed: name for name, seed in draw.seeds.items()}
+    assert position_of[seed_at[1]] == 1
+    assert position_of[seed_at[2]] == 65
+
+    for outcome_only in (False, True):
+        result = simulate_bracket(
+            draw,
+            table,
+            CountingClassifier(),
+            np.random.default_rng(2026),
+            outcome_only=outcome_only,
+        )
+        assert len(result.matches) == 127
+        assert result.champion in draw.bracket
+        assert [r.label for r in result.rounds] == [
+            "R128", "R64", "R32", "R16", "QF", "SF", "F",
+        ]
+
+
 # ---------------------------------------------------------------------------
 # T2.3 — Monte Carlo runner + aggregation
 # ---------------------------------------------------------------------------
