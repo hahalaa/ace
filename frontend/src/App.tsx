@@ -125,8 +125,8 @@ function App() {
               focusable="false"
             >
               <circle className="ballBody" cx="12" cy="12" r="10.5" />
-              <path className="ballSeam" d="M7 3.9 C 8.33 8, 8.33 16, 7 20.1" />
-              <path className="ballSeam" d="M17 3.9 C 15.67 8, 15.67 16, 17 20.1" />
+              <path className="ballSeam" d="M7 3.9 C 9.5 8, 9.5 16, 7 20.1" />
+              <path className="ballSeam" d="M17 3.9 C 14.5 8, 14.5 16, 17 20.1" />
             </svg>
           </a>
         </div>
