@@ -1,0 +1,168 @@
+/*
+ * The landing screen. Two cards over an editorial hero. Tokens from
+ * src/index.css; the accent (--ball) is spent only on the featured card and the
+ * call-to-action, so the single-match path reads as the primary one.
+ */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.75rem, 4vw, 3rem);
+}
+
+.hero {
+  max-width: 46ch;
+}
+
+.heroTitle {
+  margin: 0 0 0.6rem;
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+.heroLede {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--ink-mid);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--gap);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: clamp(1.4rem, 3vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  text-decoration: none;
+  transition:
+    border-color 0.18s ease,
+    translate 0.18s ease;
+}
+
+/* Whole-card links (the featured card, and any card that is itself an <a>). */
+a.card:hover {
+  border-color: var(--ink-dim);
+  translate: 0 -2px;
+}
+
+a.card:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 3px;
+}
+
+.featured {
+  border-color: var(--ball-line);
+  background: var(--ball-soft);
+}
+
+.cardKicker {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.featured .cardKicker {
+  color: var(--ball);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.cardBody {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ink-mid);
+}
+
+.cardLinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.4rem;
+  margin-top: 0.4rem;
+}
+
+.cardCta {
+  align-self: flex-start;
+  margin-top: 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 2px solid var(--ball);
+  padding-bottom: 0.15rem;
+}
+
+.cardLinks .cardCta {
+  margin-top: 0;
+}
+
+.cardCta:hover {
+  color: var(--ball);
+}
+
+.cardCtaSoft {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.15rem;
+}
+
+.cardCtaSoft:hover {
+  color: var(--ink);
+  border-color: var(--ink-dim);
+}
+
+.cardCta:focus-visible,
+.cardCtaSoft:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 3px;
+}
+
+.demoLink {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink-mid);
+}
+
+.demoLink a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--ball-line);
+}
+
+.demoLink a:hover {
+  text-decoration-color: var(--ball);
+}
+
+.demoLink a:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 3px;
+  border-radius: 1px;
+}

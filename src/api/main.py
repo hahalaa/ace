@@ -72,12 +72,18 @@ from api.schemas import (
     FORECAST_CLASSIFIER_LIMITATION,
     FORECAST_CLASSIFIER_LIMITATION_DETAIL,
     IS_FORECAST,
+    MATCH_CLASSIFIER_LIMITATION,
+    MATCH_CLASSIFIER_LIMITATION_DETAIL,
     BracketResponse,
     BracketSlot,
     HealthResponse,
     InvalidDraw,
+    MatchMetadata,
+    MatchSimulateRequest,
+    MatchSimulateResponse,
     PlayerSearchResponse,
     PlayerSummary,
+    SetScore,
     SimulationResponse,
     StorybookChampion,
     StorybookMatch,
@@ -86,15 +92,17 @@ from api.schemas import (
     StorybookResponse,
     StorybookRound,
     SurfaceSkill,
+    TotalGamesSummary,
     TournamentListResponse,
     TournamentSummary,
     UploadResponse,
 )
 from api.uploads import UploadedDraw, UploadStore
-from common.names import NameIndex, resolve_name
+from common.names import NameIndex, NameMatch, resolve_name
 from features.serve import SkillTable
 from sim.draw import Draw, DrawValidationError, parse_draw
 from sim.reconcile import ClassifierProb
+from sim.single_match import SingleMatchResult, simulate_single_match
 from sim.tournament import StorybookResult, storybook_run
 
 logger = logging.getLogger(__name__)
@@ -843,6 +851,105 @@ def _storybook_response(
     )
 
 
+def _resolve_match_player(query: str, index: NameIndex) -> str:
+    """Resolve one single-match player query to a canonical display name.
+
+    Uses the same shared resolver as ``/players`` (``common.names.resolve_name``),
+    then reduces its three outcomes to the one a *simulation* needs — a single,
+    unambiguous name — rather than the list a search returns. The canonical name
+    (not the raw query) is what the classifier's name-keyed feature lookup needs,
+    so this is where a fragment like ``"alcaraz"`` becomes ``"Carlos Alcaraz"``.
+
+    Raises:
+        HTTPException: 422 ``player_not_found`` when nothing resolves, or 422
+            ``player_ambiguous`` (carrying the candidate list) when several do.
+            The model refuses to score a player it has no history for, so an
+            unresolved name is a request error, not a silent default.
+    """
+    match: NameMatch | None = resolve_name(query, index)
+    if match is None:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "reason": "player_not_found",
+                "message": (
+                    f"No player matches {query!r}. Pick a player from the "
+                    f"suggestions, or try a fuller name."
+                ),
+                "query": query,
+            },
+        )
+    if match.is_ambiguous:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "reason": "player_ambiguous",
+                "message": (
+                    f"{query!r} matches {len(match.candidates)} players. Pick one."
+                ),
+                "query": query,
+                "candidates": list(match.candidates),
+            },
+        )
+    return match.name
+
+
+def _match_response(
+    result: SingleMatchResult, context: ApiContext, adapter: str
+) -> MatchSimulateResponse:
+    """Assemble the wire model from a finished :class:`SingleMatchResult`.
+
+    Presentation over already-built data, the same pattern as
+    :func:`_storybook_response`: every number is read off the aggregate the
+    simulator returned, and the required :class:`ModelDisclosure` fields are
+    filled with the single-match wording (a hypothetical matchup is neither a
+    played draw nor a scheduled event, so ``is_forecast`` is ``false`` and the
+    limitation copy is the match-specific one).
+    """
+    return MatchSimulateResponse(
+        player_a=result.player_a,
+        player_b=result.player_b,
+        surface=result.surface,
+        best_of=result.best_of,
+        final_set_rule=result.final_set_rule,
+        win_prob_a=result.win_prob_a,
+        win_prob_b=result.win_prob_b,
+        p_clf=result.p_clf,
+        analytic_win_prob_a=result.analytic_win_prob_a,
+        set_scores=[
+            SetScore(
+                sets_a=outcome.sets_a,
+                sets_b=outcome.sets_b,
+                count=outcome.count,
+                prob=outcome.prob,
+            )
+            for outcome in result.set_scores
+        ],
+        total_games=TotalGamesSummary(
+            mean=result.total_games.mean,
+            std=result.total_games.std,
+            minimum=result.total_games.minimum,
+            maximum=result.total_games.maximum,
+            distribution=result.total_games.distribution,
+        ),
+        metadata=MatchMetadata(
+            mode=result.mode,
+            w=result.w,
+            data_through_year=context.data_through_year,
+            estimator_class=context.estimator_class,
+            adapter=adapter,
+            is_forecast=False,
+            classifier_limitation=MATCH_CLASSIFIER_LIMITATION,
+            classifier_limitation_detail=MATCH_CLASSIFIER_LIMITATION_DETAIL,
+            # No draw file backs a single match; name the run, honestly, rather
+            # than borrow a filename it never had.
+            source="single-match simulation",
+            runs=result.n_runs,
+            seed=result.seed,
+        ),
+    )
+
+
 def create_app(
     context_factory: ContextFactory = build_api_context,
     draws_dir: Path | str = config.DRAWS_DIR,
@@ -986,6 +1093,31 @@ def create_app(
                     "message": (
                         "Too many uploads from this client. Uploading is rate "
                         f"limited to {config.API_UPLOAD_RATE_LIMIT} per IP. Retry "
+                        "after the window."
+                    ),
+                },
+                headers={"Retry-After": str(retry_after)},
+            )
+
+    # Per-IP limiter for POST /match/simulate. Same in-memory limiter and same
+    # honest scope as /storybook's — this is the second endpoint that runs real
+    # per-request compute (a live single-match Monte Carlo). More generous than
+    # /storybook because a single match is ~5x cheaper and is the featured path a
+    # user re-runs on every tweak. See config.API_MATCH_RATE_LIMIT.
+    match_limiter = SlidingWindowRateLimiter(config.API_MATCH_RATE_LIMIT)
+
+    def match_rate_limit(request: Request) -> None:
+        """Dependency: 429 when a client exceeds the /match/simulate window."""
+        retry_after = match_limiter.check(_client_key(request))
+        if retry_after is not None:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "reason": "rate_limited",
+                    "message": (
+                        "Too many match simulations from this client. This "
+                        "endpoint runs a live Monte Carlo per request and is rate "
+                        f"limited to {config.API_MATCH_RATE_LIMIT} per IP. Retry "
                         "after the window."
                     ),
                 },
@@ -1647,6 +1779,104 @@ def create_app(
             context=context,
             adapter=classifier.name,
         )
+
+    @app.post(
+        "/match/simulate",
+        response_model=MatchSimulateResponse,
+        tags=["match"],
+        dependencies=[Depends(match_rate_limit)],
+    )
+    def match_simulate(
+        body: MatchSimulateRequest,
+        context: ApiContext = Depends(get_context),
+        classifier: ClassifierAdapter = Depends(get_classifier),
+    ) -> MatchSimulateResponse:
+        """Simulate one matchup live and report the betting-relevant outputs.
+
+        **This one runs a live Monte Carlo, and that is a deliberate, bounded
+        exception to T3.3's cache-only rule, not a violation of it.** T3.3 forbids
+        a live *aggregate* because a 128-draw board is 5,000 brackets x 127
+        matches. A single match is a different cost class: there is one matchup,
+        so the classifier is priced once and the serve shift solved once, and
+        each of ``config.API_MATCH_SIM_RUNS`` runs is only a point-by-point
+        scoreline draw. Measured ~0.24 s for 3,000 runs — cheaper than one live
+        ``/storybook`` bracket. The reasoning is recorded in
+        ``ace-04-current-state.md``'s seam tracking so "why does a single match
+        run live when ``/simulate`` does not" has a durable answer.
+
+        **What it returns**, all from one seeded pass over the matchup
+        (``sim.single_match``): the match win probability for each player, the
+        distribution over final set scores (e.g. how often 3-0 / 3-1 / 3-2 in a
+        best-of-5), and a total-games (over/under) summary. Hold/break rates are
+        deliberately **not** here — a simulated set records only game counts, not
+        which games were holds versus breaks, so surfacing them would need new
+        instrumentation in ``sim/match.py``; that is a follow-up, not this
+        endpoint's scope.
+
+        **Determinism is the contract.** Same players, surface, format and seed
+        give a byte-identical body, so a shared single-match link is
+        reproducible. ``metadata.seed`` echoes whatever ran (the caller's, or the
+        server default), so any response can be turned into an explicit URL.
+
+        **Players must be known to the model.** Each name is resolved through the
+        skill table's name index (the resolver ``/players`` uses). An unknown or
+        ambiguous name is a 422 (``player_not_found`` / ``player_ambiguous``),
+        never a silent default — the model refuses to score a player it has no
+        history for, which is why the UI restricts selection to players it knows.
+
+        **Reconciliation mode is ``config.SIM_CLI_RECONCILE_MODE`` (``blend``)**,
+        the same value ``/simulate`` and ``/storybook`` publish under, so all
+        three endpoints report one model. ``metadata`` carries the shared
+        :class:`~api.schemas.ModelDisclosure` block plus this run's ``runs`` and
+        ``seed``; ``is_forecast`` is ``false`` and the limitation text is the
+        single-match wording (this is a model estimate of a hypothetical matchup,
+        not a betting recommendation).
+
+        **Rate limited** (``config.API_MATCH_RATE_LIMIT``, per IP): a client over
+        the window gets a 429. The limiter's store is in-memory and resets on
+        restart — see the config constant for the honest scope of that.
+        """
+        seed = body.seed if body.seed is not None else config.MC_SEED
+        if seed > config.API_MATCH_SEED_MAX:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "reason": "seed_out_of_range",
+                    "message": (
+                        f"seed must be between 0 and {config.API_MATCH_SEED_MAX}."
+                    ),
+                },
+            )
+        final_set_rule = body.final_set_rule or config.SIM_CLI_FINAL_SET_RULE
+
+        index = context.skill_table.name_index
+        player_a = _resolve_match_player(body.player_a, index)
+        player_b = _resolve_match_player(body.player_b, index)
+
+        try:
+            result = simulate_single_match(
+                player_a,
+                player_b,
+                body.surface,
+                context.skill_table,
+                classifier.call,
+                best_of=body.best_of,
+                final_set_rule=final_set_rule,
+                n_runs=config.API_MATCH_SIM_RUNS,
+                seed=seed,
+                mode=config.SIM_CLI_RECONCILE_MODE,
+                w=config.RECONCILE_BLEND_WEIGHT,
+            )
+        except ValueError as exc:
+            # Reaches here only if a name resolved in the skill table but has no
+            # classifier-visible history (skill table and match frame disagreeing)
+            # — a rare wiring case, surfaced honestly rather than defaulted.
+            raise HTTPException(
+                status_code=422,
+                detail={"reason": "player_not_simulatable", "message": str(exc)},
+            ) from exc
+
+        return _match_response(result, context, classifier.name)
 
     return app
 

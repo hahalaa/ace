@@ -1,0 +1,414 @@
+/*
+ * The single-match view. Tokens from src/index.css. The accent (--ball) marks
+ * the win-probability fill and the primary action; everything else stays
+ * monochrome so the one number that matters carries the colour.
+ */
+
+.matchSim {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.intro {
+  max-width: 52ch;
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.6rem, 4vw, 2.3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.lede {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ink-mid);
+}
+
+/* --- Controls ------------------------------------------------------------ */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: clamp(1.1rem, 3vw, 1.6rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.players {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  gap: 0.75rem 1rem;
+}
+
+.versus {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  padding-bottom: 0.6rem;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+}
+
+.optionField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.optionLabel,
+.pickerLabel {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.select,
+.pickerInput {
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--bg-sink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.65rem;
+  min-height: 2.5rem;
+}
+
+.select:focus-visible,
+.pickerInput:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 1px;
+}
+
+/* --- Player picker (combobox) -------------------------------------------- */
+.picker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pickerInput {
+  width: 100%;
+}
+
+.pickerList {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.28);
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.pickerOption {
+  padding: 0.5rem 0.6rem;
+  border-radius: 2px;
+  font-size: 0.92rem;
+  color: var(--ink-mid);
+  cursor: pointer;
+}
+
+.pickerOption[data-active='true'] {
+  background: var(--ball-soft);
+  color: var(--ink);
+}
+
+.pickerHint {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-dim);
+}
+
+/* --- Primary / secondary actions ----------------------------------------- */
+.primary {
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ball-ink);
+  background: var(--ball);
+  border: 1px solid var(--ball);
+  border-radius: var(--radius);
+  padding: 0.55rem 1.1rem;
+  min-height: 2.5rem;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary:not(:disabled):hover {
+  opacity: 0.9;
+}
+
+.secondary {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+}
+
+.secondary:hover {
+  border-color: var(--ink-dim);
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 2px;
+}
+
+.resultActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.seedTag {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
+}
+
+.copy {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-mid);
+}
+
+.copyUrl {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink);
+  word-break: break-all;
+  user-select: all;
+}
+
+/* --- Results ------------------------------------------------------------- */
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.matchup {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.winProb {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.winRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.winName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink-mid);
+}
+
+.winRow[data-favourite='true'] .winName {
+  color: var(--ink);
+}
+
+.winValue {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.winBar {
+  position: relative;
+  height: 0.85rem;
+  border-radius: 999px;
+  background: var(--bg-sink);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.winFill {
+  display: block;
+  height: 100%;
+  background: var(--ball);
+  transition: width 0.3s ease;
+}
+
+/* --- Breakdowns ---------------------------------------------------------- */
+.breakdowns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--gap);
+}
+
+.breakdown {
+  padding: clamp(1rem, 2.5vw, 1.4rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.breakdownHead {
+  margin: 0 0 0.9rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.setTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.setTable th,
+.setTable td {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.setTable thead th {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  font-weight: 500;
+}
+
+.scoreCell {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.winnerCell {
+  color: var(--ink-mid);
+}
+
+.numCol {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.miniBarWrap {
+  display: inline-block;
+  width: 3.5rem;
+  height: 0.4rem;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  background: var(--bg-sink);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.miniBar {
+  display: block;
+  height: 100%;
+  background: var(--ball);
+}
+
+.totalLine {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+}
+
+.totalMean {
+  font-family: var(--mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.totalUnit {
+  font-size: 0.85rem;
+  color: var(--ink-dim);
+}
+
+.totalSpread {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--ink-mid);
+}
+
+.totalSpread strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Footnote ------------------------------------------------------------ */
+.footnote {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  line-height: 1.7;
+  color: var(--ink-dim);
+}
+
+@media (max-width: 34rem) {
+  .players {
+    grid-template-columns: 1fr;
+  }
+
+  .versus {
+    padding-bottom: 0;
+    justify-self: start;
+  }
+}

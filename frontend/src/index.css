@@ -169,6 +169,13 @@ body {
   letter-spacing: -0.04em;
   line-height: 1;
   color: var(--ink);
+  text-decoration: none;
+}
+
+.wordmark:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 
 /* The ball: the accent tied to the one real thing it stands for. A single
@@ -240,6 +247,56 @@ body {
 }
 
 .viewNav a:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 4px;
+  border-radius: 1px;
+}
+
+/* --------------------------------------------------------------------------
+ * Tournament sub-nav: the second tier, shown only inside the tournament
+ * branch. A quieter row than the masthead — it switches view within a draw,
+ * not the branch. Sits just under the masthead.
+ * ------------------------------------------------------------------------ */
+.tournamentNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  margin: -1rem 0 clamp(1.25rem, 3vw, 2rem);
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.tournamentNav a {
+  position: relative;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  text-decoration: none;
+  padding-bottom: 0.3rem;
+  transition: color 0.18s ease;
+}
+
+.tournamentNav a:hover {
+  color: var(--ink);
+}
+
+.tournamentNav a[aria-current='page'] {
+  color: var(--ink);
+}
+
+.tournamentNav a[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--ball);
+}
+
+.tournamentNav a:focus-visible {
   outline: 2px solid var(--ball);
   outline-offset: 4px;
   border-radius: 1px;

@@ -356,6 +356,72 @@ export interface UploadResponse {
 }
 
 // --------------------------------------------------------------------------
+// POST /match/simulate (single-match live simulation)
+// --------------------------------------------------------------------------
+
+/** `api.schemas.MatchSimulateRequest` — the body POSTed to `/match/simulate`. */
+export interface MatchSimulateRequest {
+  /** First player (index 0); `win_prob_a` is P(player A wins). A name `/players` returned. */
+  player_a: string;
+  player_b: string;
+  surface: Surface;
+  best_of: BestOf;
+  /** Deciding-set rule. Omit for the server default. */
+  final_set_rule?: FinalSetTiebreak;
+  /** RNG seed. Omit for the server default; `metadata.seed` echoes what ran. */
+  seed?: number;
+}
+
+/** `api.schemas.SetScore` — one final set tally and how often it occurred. Oriented A/B. */
+export interface SetScore {
+  sets_a: number;
+  sets_b: number;
+  count: number;
+  /** `count / metadata.runs`. */
+  prob: number;
+}
+
+/** `api.schemas.TotalGamesSummary` — the total-games (over/under) distribution. */
+export interface TotalGamesSummary {
+  mean: number;
+  /** Population standard deviation. */
+  std: number;
+  minimum: number;
+  maximum: number;
+  /** `[total_games, count]` pairs, ascending — the full histogram. */
+  distribution: [number, number][];
+}
+
+/** `api.schemas.MatchMetadata` — disclosure plus this live run's provenance. */
+export interface MatchMetadata extends ModelDisclosure {
+  /** Simulations behind the distributions. */
+  runs: number;
+  /** Base **RNG** seed that reproduces the aggregate. */
+  seed: number;
+}
+
+/** `api.schemas.MatchSimulateResponse`. */
+export interface MatchSimulateResponse {
+  player_a: string;
+  player_b: string;
+  surface: Surface;
+  best_of: BestOf;
+  final_set_rule: FinalSetTiebreak;
+  /** Sampled P(player A wins). */
+  win_prob_a: number;
+  /** Sampled P(player B wins). `= 1 - win_prob_a`. */
+  win_prob_b: number;
+  /** The classifier's P(A wins) before reconciliation. */
+  p_clf: number;
+  /** The exact composed P(A wins) behind the sampled figure. */
+  analytic_win_prob_a: number;
+  /** Distribution over final set tallies, most decisive first. */
+  set_scores: SetScore[];
+  total_games: TotalGamesSummary;
+  metadata: MatchMetadata;
+}
+
+// --------------------------------------------------------------------------
 // Error bodies
 // --------------------------------------------------------------------------
 // These are not Pydantic response models — they are what FastAPI serialises
@@ -468,7 +534,22 @@ export type ApiErrorDetail =
   | CacheProblemDetail
   | UploadNotFoundDetail
   | UploadDrawInvalidDetail
-  | UploadProblemDetail;
+  | UploadProblemDetail
+  | MatchPlayerProblemDetail;
+
+/**
+ * 422 — a single-match player query that did not resolve to one player.
+ *
+ * `player_not_found` carries no candidates; `player_ambiguous` carries the list
+ * so the UI can offer them. `seed_out_of_range` is the seed cap.
+ */
+export interface MatchPlayerProblemDetail {
+  reason: 'player_not_found' | 'player_ambiguous' | 'player_not_simulatable';
+  message: string;
+  query?: string;
+  /** Present on `player_ambiguous`. */
+  candidates?: string[];
+}
 
 /** The `reason` codes the API attaches to a structured error body. */
 export type ApiErrorReason =
@@ -483,4 +564,8 @@ export type ApiErrorReason =
   | 'invalid_json'
   | 'invalid_event_date'
   | 'monte_carlo_unavailable_for_upload'
-  | 'rate_limited';
+  | 'rate_limited'
+  | 'player_not_found'
+  | 'player_ambiguous'
+  | 'player_not_simulatable'
+  | 'seed_out_of_range';

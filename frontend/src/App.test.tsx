@@ -1,29 +1,35 @@
 // @vitest-environment jsdom
 /**
- * The shell's two axes, both read from the query string.
+ * The shell's dispatch, both axes read from the query string.
  *
  * **These are deep-link tests, not navigation tests.** `App` reads
  * `window.location.search` during render and holds no state, so the thing worth
  * pinning is that a *fresh load* of a URL lands on the right screen — which is
- * what a shared link does, and what a `?view=`-ignoring regression would break
- * invisibly. Each case rewrites the URL with `history.replaceState` and mounts
- * the component from scratch, exactly as a page load would.
+ * what a shared link does. Each case rewrites the URL with `history.replaceState`
+ * and mounts the component from scratch, exactly as a page load would.
  *
- * Which screen mounted is asserted from the **screen itself** — its own controls
- * or its loading status — not only from the nav's `aria-current`: a mutation
- * that hardcoded the view while still styling the nav correctly has to fail on
- * something the user actually sees.
+ * The restructure this suite guards: the app now lands on a **dashboard**, not a
+ * bracket, and the nav is two tiers — a primary branch row (home / single match /
+ * tournament) plus a secondary view row that appears only inside the tournament
+ * branch. Which screen mounted is asserted from the screen's own markup, not only
+ * from the nav, so a mutation that styled the nav right while rendering the wrong
+ * screen still fails.
  *
- * `getBracket`/`getSimulate`/`getStorybook` are stubbed with promises that never
- * settle: the mounted screen is identifiable without any of them resolving, and
- * no component's data path is under test here.
+ * The client is fully stubbed with promises that never settle: the mounted
+ * screen is identifiable without any of them resolving.
  */
 
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App';
-import { getBracket, getSimulate, getStorybook } from './api/client';
+import {
+  getBracket,
+  getSimulate,
+  getStorybook,
+  searchPlayers,
+  simulateMatch,
+} from './api/client';
 
 vi.mock('./api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./api/client')>();
@@ -33,12 +39,15 @@ vi.mock('./api/client', async (importOriginal) => {
     getSimulate: vi.fn(),
     getStorybook: vi.fn(),
     searchPlayers: vi.fn(),
+    simulateMatch: vi.fn(),
   };
 });
 
 const getBracketMock = vi.mocked(getBracket);
 const getSimulateMock = vi.mocked(getSimulate);
 const getStorybookMock = vi.mocked(getStorybook);
+const searchPlayersMock = vi.mocked(searchPlayers);
+const simulateMatchMock = vi.mocked(simulateMatch);
 
 afterEach(() => {
   cleanup();
@@ -46,25 +55,29 @@ afterEach(() => {
   window.history.replaceState({}, '', '/');
 });
 
-const DEFAULT_ID = 'usopen_2024_atp_full';
+const DEFAULT_ID = 'ausopen_2026_atp_full';
 
 /** Load `url` from scratch, as a browser would, and mount the shell. */
 function loadUrl(url: string) {
   getBracketMock.mockReturnValue(new Promise(() => {}));
   getSimulateMock.mockReturnValue(new Promise(() => {}));
   getStorybookMock.mockReturnValue(new Promise(() => {}));
+  searchPlayersMock.mockReturnValue(new Promise(() => {}));
+  simulateMatchMock.mockReturnValue(new Promise(() => {}));
   window.history.replaceState({}, '', url);
   return render(<App />);
 }
 
-/**
- * Which screen actually mounted, read off the screen's own markup.
- *
- * The storybook screen is identified by its run control rather than by a status,
- * because it renders the bracket underneath — so its loading status is the
- * bracket's, and checking that first would report `bracket` for both.
- */
-function mountedScreen(): 'bracket' | 'odds' | 'storybook' {
+type Screen = 'dashboard' | 'match' | 'bracket' | 'odds' | 'storybook' | 'upload';
+
+/** Which screen actually mounted, read off the screen's own markup. */
+function mountedScreen(): Screen {
+  if (document.querySelector('[data-card="match"]') !== null) return 'dashboard';
+  if (document.querySelector('section[aria-label="Single match simulation"]') !== null) {
+    return 'match';
+  }
+  if (document.querySelector('section[aria-label="Upload a draw"]') !== null) return 'upload';
+  // Storybook renders a run control above the bracket it draws over.
   if (document.querySelector('[data-action="simulate"], [data-action="rerun"]') !== null) {
     return 'storybook';
   }
@@ -74,88 +87,125 @@ function mountedScreen(): 'bracket' | 'odds' | 'storybook' {
   throw new Error(`No screen identifiable from status: ${status}`);
 }
 
-/** The nav link marked as the current page. */
-function currentNavLink(): string {
+/** The primary nav link marked as the current page. */
+function currentPrimary(): string {
   return (
-    document.querySelector('nav[aria-label="View"] a[aria-current="page"]')?.textContent?.trim() ??
-    ''
+    document
+      .querySelector('nav[aria-label="Sections"] a[aria-current="page"]')
+      ?.textContent?.trim() ?? ''
   );
 }
 
-describe('?view= deep-linking', () => {
-  it('loads the odds board directly from ?view=odds', () => {
-    loadUrl('/?view=odds');
+const tournamentNav = () => document.querySelector('nav[aria-label="Tournament view"]');
 
-    expect(mountedScreen()).toBe('odds');
-    expect(currentNavLink()).toBe('Title odds');
-    expect(getSimulateMock).toHaveBeenCalledTimes(1);
-    expect(getBracketMock).not.toHaveBeenCalled();
-  });
-
-  it('loads the bracket directly from ?view=bracket', () => {
-    loadUrl('/?view=bracket');
-
-    expect(mountedScreen()).toBe('bracket');
-    expect(currentNavLink()).toBe('Bracket');
-    expect(getBracketMock).toHaveBeenCalledTimes(1);
-    expect(getSimulateMock).not.toHaveBeenCalled();
-  });
-
-  it('defaults to the bracket when the URL names no view', () => {
+// --------------------------------------------------------------------------
+// The landing is the dashboard, not a bracket.
+// --------------------------------------------------------------------------
+describe('landing', () => {
+  it('opens on the dashboard when the URL names no view, loading no draw', () => {
     loadUrl('/');
 
-    expect(mountedScreen()).toBe('bracket');
-    expect(currentNavLink()).toBe('Bracket');
-  });
-
-  it('loads the storybook screen directly from ?view=storybook', () => {
-    // T4.4's third value, and the one a shared link carries. It must reach its
-    // own screen — the two-way `?:` this dispatch replaced sent it to the odds
-    // board, which is what "unknown view" used to mean here.
-    loadUrl('/?view=storybook');
-
-    expect(mountedScreen()).toBe('storybook');
-    expect(currentNavLink()).toBe('Storybook');
+    expect(mountedScreen()).toBe('dashboard');
+    expect(currentPrimary()).toBe('Home');
+    // The whole point of the restructure: nothing is fetched on landing.
+    expect(getBracketMock).not.toHaveBeenCalled();
     expect(getSimulateMock).not.toHaveBeenCalled();
+    expect(getStorybookMock).not.toHaveBeenCalled();
   });
 
-  it('falls back to the bracket for a view value it does not know', () => {
-    // Exactly the value a mistyped or half-landed link would leave behind. An
-    // unknown view must not render blank.
+  it('falls back to the dashboard for a view value it does not know', () => {
     loadUrl('/?view=nonsense');
 
-    expect(mountedScreen()).toBe('bracket');
-    expect(currentNavLink()).toBe('Bracket');
-    expect(screen.getAllByRole('link')).toHaveLength(4);
+    expect(mountedScreen()).toBe('dashboard');
+    expect(currentPrimary()).toBe('Home');
   });
 
-  it('marks exactly one nav link as the current page', () => {
-    loadUrl('/?view=odds');
-
-    expect(document.querySelectorAll('nav[aria-label="View"] a[aria-current="page"]')).toHaveLength(
-      1,
-    );
+  it('shows no tournament sub-nav outside the tournament branch', () => {
+    loadUrl('/');
+    expect(tournamentNav()).toBeNull();
   });
 });
 
-describe('?tournament= and ?view= are independent axes', () => {
-  it('carries a non-default id into the odds board', () => {
-    loadUrl('/?tournament=example_usopen_2026_atp&view=odds');
+// --------------------------------------------------------------------------
+// The single-match view — the featured branch.
+// --------------------------------------------------------------------------
+describe('single match', () => {
+  it('loads the single-match view from ?view=match without fetching', () => {
+    loadUrl('/?view=match');
 
-    expect(mountedScreen()).toBe('odds');
-    expect(getSimulateMock.mock.calls[0][0]).toBe('example_usopen_2026_atp');
+    expect(mountedScreen()).toBe('match');
+    expect(currentPrimary()).toBe('Single match');
+    // A bare match URL only pre-fills the form; it does not simulate.
+    expect(simulateMatchMock).not.toHaveBeenCalled();
+    expect(tournamentNav()).toBeNull();
   });
 
-  it('falls back to the default id when only a view is named', () => {
+  it('replays a complete match URL by firing one simulation', () => {
+    loadUrl('/?view=match&a=Carlos%20Alcaraz&b=Jannik%20Sinner&surface=Clay&bo=5&seed=7');
+
+    expect(mountedScreen()).toBe('match');
+    expect(simulateMatchMock).toHaveBeenCalledTimes(1);
+    expect(simulateMatchMock.mock.calls[0][0]).toMatchObject({
+      player_a: 'Carlos Alcaraz',
+      player_b: 'Jannik Sinner',
+      surface: 'Clay',
+      best_of: 5,
+      seed: 7,
+    });
+  });
+});
+
+// --------------------------------------------------------------------------
+// The tournament branch — every existing view stays reachable.
+// --------------------------------------------------------------------------
+describe('tournament branch', () => {
+  it('loads the bracket from ?view=bracket and shows the sub-nav', () => {
+    loadUrl('/?view=bracket');
+
+    expect(mountedScreen()).toBe('bracket');
+    expect(currentPrimary()).toBe('Tournament');
+    expect(tournamentNav()).not.toBeNull();
+    expect(getBracketMock).toHaveBeenCalledTimes(1);
+    expect(getBracketMock.mock.calls[0][0]).toBe(DEFAULT_ID);
+  });
+
+  it('loads the odds board from ?view=odds', () => {
     loadUrl('/?view=odds');
 
+    expect(mountedScreen()).toBe('odds');
+    expect(getSimulateMock).toHaveBeenCalledTimes(1);
     expect(getSimulateMock.mock.calls[0][0]).toBe(DEFAULT_ID);
   });
 
-  it('keeps the current tournament in every nav href, so switching view keeps the draw', () => {
-    loadUrl('/?tournament=example_usopen_2026_atp&view=bracket');
+  it('loads the storybook screen from ?view=storybook', () => {
+    loadUrl('/?view=storybook');
 
-    const hrefs = screen.getAllByRole('link').map((a) => a.getAttribute('href'));
+    expect(mountedScreen()).toBe('storybook');
+    expect(getSimulateMock).not.toHaveBeenCalled();
+  });
+
+  it('loads the upload screen from ?view=upload', () => {
+    loadUrl('/?view=upload');
+
+    expect(mountedScreen()).toBe('upload');
+    expect(currentPrimary()).toBe('Tournament');
+  });
+
+  it('marks the active sub-view, and only it, in the sub-nav', () => {
+    loadUrl('/?view=odds');
+
+    const current = tournamentNav()?.querySelectorAll('a[aria-current="page"]');
+    expect(current).toHaveLength(1);
+    expect(current?.[0].textContent?.trim()).toBe('Title odds');
+  });
+
+  it('carries a non-default id into the odds board and the sub-nav', () => {
+    loadUrl('/?tournament=example_usopen_2026_atp&view=odds');
+
+    expect(getSimulateMock.mock.calls[0][0]).toBe('example_usopen_2026_atp');
+    const hrefs = Array.from(tournamentNav()?.querySelectorAll('a') ?? []).map((a) =>
+      a.getAttribute('href'),
+    );
     expect(hrefs).toEqual([
       '?tournament=example_usopen_2026_atp&view=bracket',
       '?tournament=example_usopen_2026_atp&view=odds',
@@ -166,7 +216,42 @@ describe('?tournament= and ?view= are independent axes', () => {
 
   it('treats a whitespace-only id as absent rather than requesting it', () => {
     loadUrl('/?tournament=%20%20&view=odds');
-
     expect(getSimulateMock.mock.calls[0][0]).toBe(DEFAULT_ID);
+  });
+});
+
+// --------------------------------------------------------------------------
+// The primary nav.
+// --------------------------------------------------------------------------
+describe('primary nav', () => {
+  it('offers exactly the three branches, and the wordmark home link', () => {
+    loadUrl('/');
+
+    const primary = Array.from(
+      document.querySelectorAll('nav[aria-label="Sections"] a'),
+    ).map((a) => a.textContent?.trim());
+    expect(primary).toEqual(['Home', 'Single match', 'Tournament']);
+    // The wordmark also returns home.
+    expect(document.querySelector('a[aria-label="Ace home"]')).not.toBeNull();
+  });
+
+  it('marks exactly one primary branch as current', () => {
+    loadUrl('/?view=storybook');
+
+    expect(
+      document.querySelectorAll('nav[aria-label="Sections"] a[aria-current="page"]'),
+    ).toHaveLength(1);
+    expect(currentPrimary()).toBe('Tournament');
+  });
+
+  it("points the Tournament branch at the current draw's bracket", () => {
+    loadUrl('/?tournament=example_usopen_2026_atp&view=upload');
+
+    const tournamentLink = Array.from(
+      document.querySelectorAll('nav[aria-label="Sections"] a'),
+    ).find((a) => a.textContent?.trim() === 'Tournament');
+    expect(tournamentLink?.getAttribute('href')).toBe(
+      '?tournament=example_usopen_2026_atp&view=bracket',
+    );
   });
 });

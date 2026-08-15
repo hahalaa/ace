@@ -138,7 +138,7 @@ from fastapi.testclient import TestClient
 import api.main as m
 with TestClient(m.app) as c:
     print(c.get('/health').json())
-    print(c.get('/tournaments/usopen_2024_atp_full/simulate?top=3').status_code)"
+    print(c.get('/tournaments/ausopen_2026_atp_full/simulate?top=3').status_code)"
 ```
 
 ---
@@ -182,7 +182,7 @@ python scripts/update_and_cache.py --no-refresh --force             # re-simulat
 python scripts/update_and_cache.py --summary-json summary.json
 ```
 
-`--draw` takes a **`tournament_id`**, which is the field inside the draw JSON and not always the filename stem. The two shipped today are `usopen_2024_atp_full` (in `example_usopen_2024_full.json`) and `example_usopen_2026_atp` (in `example_usopen_2026.json`, currently unsimulatable, since it still holds placeholder entrants). Passing an unknown id fails with the registry's own list of what *is* addressable.
+`--draw` takes a **`tournament_id`**, which is the field inside the draw JSON and not always the filename stem. Three are shipped today: `ausopen_2026_atp_full` (in `ausopen_2026_atp_full.json`, the default precomputed draw) and `usopen_2024_atp_full` (in `example_usopen_2024_full.json`) are both simulatable, while `example_usopen_2026_atp` (in `example_usopen_2026.json`) is currently unsimulatable, since it still holds placeholder entrants. Passing an unknown id fails with the registry's own list of what *is* addressable.
 
 ### What it does not do
 

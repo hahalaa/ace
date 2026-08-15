@@ -30,6 +30,9 @@ import type {
   CacheMissingDetail,
   CacheProblemDetail,
   HealthResponse,
+  MatchPlayerProblemDetail,
+  MatchSimulateRequest,
+  MatchSimulateResponse,
   NotSimulatableDetail,
   PlayerSearchResponse,
   SimulationResponse,
@@ -133,6 +136,10 @@ interface DetailForReason {
   invalid_event_date: UploadProblemDetail;
   monte_carlo_unavailable_for_upload: UploadProblemDetail;
   rate_limited: UploadProblemDetail;
+  player_not_found: MatchPlayerProblemDetail;
+  player_ambiguous: MatchPlayerProblemDetail;
+  player_not_simulatable: MatchPlayerProblemDetail;
+  seed_out_of_range: { reason: 'seed_out_of_range'; message: string };
 }
 
 export function isApiError(error: unknown): error is ApiError {
@@ -421,6 +428,34 @@ export async function uploadDraw(
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: drawJson,
+    signal: options?.signal,
+  });
+}
+
+/**
+ * `POST /match/simulate` — one matchup simulated live, aggregated.
+ *
+ * The featured single-match path. Unlike `/simulate` (cached), this runs a live
+ * Monte Carlo for exactly one match, which the server budgets deliberately (a
+ * single match is a different cost class than a 128-draw board). Same players,
+ * surface, format and `seed` → a byte-identical body, so a single-match link is
+ * reproducible.
+ *
+ * Players are resolved server-side through the same name index as
+ * {@link searchPlayers}; an unknown or ambiguous name is a 422
+ * (`player_not_found` / `player_ambiguous`), so pass a name the search returned.
+ *
+ * @throws {ApiError} 422 unknown/ambiguous player, bad surface/format/seed · 429
+ *   rate limited.
+ */
+export async function simulateMatch(
+  body: MatchSimulateRequest,
+  options?: RequestOptions,
+): Promise<MatchSimulateResponse> {
+  return request<MatchSimulateResponse>(buildUrl('/match/simulate'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body),
     signal: options?.signal,
   });
 }

@@ -19,6 +19,7 @@ conventions established here for the rest of Phase 3 to follow:
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -733,4 +734,147 @@ class UploadResponse(BaseModel):
     content_note: str = Field(
         description="Plain-language note that this draw is user-submitted, "
         "unverified and temporary. Show it near the upload result."
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Single-match live simulation (POST /match/simulate)
+# --------------------------------------------------------------------------- #
+# The single-match view runs a live Monte Carlo for one matchup (see
+# sim/single_match.py and config.API_MATCH_SIM_RUNS for why that is affordable
+# live). Its disclosure reuses ModelDisclosure so the frontend renders it with
+# the same Disclosure component as /simulate and /storybook — one caveat contract
+# for everything this app publishes. The text below is single-match-specific: a
+# hypothetical matchup did not happen, so the "this draw already happened"
+# retrospective wording (CLASSIFIER_LIMITATION) does not fit it.
+MATCH_CLASSIFIER_LIMITATION = (
+    "A model estimate for a hypothetical matchup, not a betting tip."
+)
+
+MATCH_CLASSIFIER_LIMITATION_DETAIL = (
+    "The numbers come from simulating this matchup a few thousand times with a "
+    "model built from past match results. Player rankings, surface records, "
+    "head-to-heads and recent form are a snapshot of the latest available data, "
+    "so the estimate reflects how the two players look now rather than on any "
+    "particular match day. Match results are noisy, and the model cannot see "
+    "injuries, motivation or the conditions on the day. Read the win probability "
+    "and the score breakdowns as a rough guide to how the matchup might play out, "
+    "not as a prediction of a real result and not as betting advice."
+)
+
+
+class MatchSimulateRequest(BaseModel):
+    """The body of ``POST /match/simulate``: two players, a surface, a format.
+
+    Players are display names the server resolves through the skill table's name
+    index (the same resolver ``/players`` uses). An unknown or ambiguous name is
+    a 422, not a silent default: the model refuses to score a player it has no
+    history for, so the UI restricts selection to players it knows.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_a: str = Field(
+        min_length=1, description="First player's display name (index 0; the "
+        "win probability is P(player A wins))."
+    )
+    player_b: str = Field(min_length=1, description="Second player's display name.")
+    surface: Literal["Hard", "Clay", "Grass"] = Field(
+        description="Court surface. One of ``config.VALID_SURFACES``."
+    )
+    best_of: Literal[3, 5] = Field(description="Sets to win: 3 or 5.")
+    final_set_rule: Literal["7pt_at_6_6", "10pt_at_6_6", "advantage"] | None = Field(
+        default=None,
+        description="Deciding-set rule. Omit for the server default "
+        "(``config.SIM_CLI_FINAL_SET_RULE``).",
+    )
+    seed: int | None = Field(
+        default=None,
+        ge=0,
+        description="RNG seed. The same seed replays the same aggregate exactly, "
+        "so a shared single-match link is reproducible. Omit for the server "
+        "default; ``metadata.seed`` echoes whatever ran.",
+    )
+
+
+class SetScore(BaseModel):
+    """One final set tally and how often it occurred across the simulations.
+
+    Oriented to A/B (not winner/loser), so ``3-1`` and ``1-3`` are distinct rows.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    sets_a: int = Field(description="Sets player A won in the final scoreline.")
+    sets_b: int = Field(description="Sets player B won.")
+    count: int = Field(description="Simulations that ended on this set tally.")
+    prob: float = Field(description="``count / runs``.")
+
+
+class TotalGamesSummary(BaseModel):
+    """The total-games (over/under) distribution across every simulation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mean: float = Field(description="Mean total games played (both players, all sets).")
+    std: float = Field(description="Standard deviation of the total (population).")
+    minimum: int = Field(description="Fewest total games seen.")
+    maximum: int = Field(description="Most total games seen.")
+    distribution: list[tuple[int, int]] = Field(
+        description="``(total_games, count)`` pairs, ascending — the full "
+        "histogram, so a client can draw the spread rather than only the mean."
+    )
+
+
+class MatchMetadata(ModelDisclosure):
+    """Provenance of a live single-match run — what produced these numbers.
+
+    :class:`ModelDisclosure` (so the frontend renders one disclosure everywhere)
+    plus the two facts a live aggregate has: how many simulations are behind the
+    distributions, and the base seed that reproduces them. ``is_forecast`` is
+    ``false`` and ``classifier_limitation`` carries the single-match wording: a
+    hypothetical matchup is neither a played event nor a scheduled one.
+    """
+
+    runs: int = Field(description="Number of match simulations behind the counts.")
+    seed: int = Field(
+        description="Base RNG seed. Re-running with this seed, runs, players, "
+        "surface and format reproduces the aggregate exactly."
+    )
+
+
+class MatchSimulateResponse(BaseModel):
+    """The single-match view's payload: win probability, set scores, total games.
+
+    All three distributions come from one live Monte Carlo pass over the matchup
+    (``sim.single_match.simulate_single_match``). ``analytic_win_prob_a`` is the
+    exact composed match-win probability behind the sampled ``win_prob_a`` — they
+    agree to sampling error and it is carried as a determinism/quality check.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_a: str = Field(description="First player (index 0).")
+    player_b: str = Field(description="Second player.")
+    surface: str = Field(description="``Hard``, ``Clay`` or ``Grass``.")
+    best_of: int = Field(description="3 or 5.")
+    final_set_rule: str = Field(description="Deciding-set rule that was used.")
+    win_prob_a: float = Field(description="Sampled P(player A wins).")
+    win_prob_b: float = Field(description="Sampled P(player B wins). ``= 1 - win_prob_a``.")
+    p_clf: float = Field(
+        description="The classifier's P(A wins) before reconciliation, for "
+        "transparency."
+    )
+    analytic_win_prob_a: float = Field(
+        description="The exact composed P(A wins) behind the sampled figure "
+        "(agrees with ``win_prob_a`` to sampling error)."
+    )
+    set_scores: list[SetScore] = Field(
+        description="Distribution over final set tallies, most decisive first."
+    )
+    total_games: TotalGamesSummary = Field(
+        description="Total-games (over/under) summary across the simulations."
+    )
+    metadata: MatchMetadata = Field(
+        description="What produced these numbers, plus the required disclosure."
     )

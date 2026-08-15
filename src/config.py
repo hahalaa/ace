@@ -279,6 +279,36 @@ API_STORYBOOK_SEED_MAX = 2**32 - 1
 # Format: "<int>/<second|minute|hour|day>", parsed by api/main._parse_rate.
 API_STORYBOOK_RATE_LIMIT = "12/minute"
 
+# ---- Single-match live simulation (POST /match/simulate) ----
+# The single-match view (the app's featured path) runs a live Monte Carlo for one
+# matchup: reconcile once, then draw this many point-by-point scorelines. This is
+# a DELIBERATE, bounded exception to T3.3's "aggregate MC is cache-only" rule,
+# which exists for the 128-draw case (5,000 x 127 matches). A single match is a
+# different cost class: one matchup means the classifier is priced once and the
+# serve shift solved once, so a run is only a scoreline draw (~0.08 ms). See
+# sim/single_match.py and ace-04-current-state.md's seam tracking.
+#
+# 3,000 runs is chosen for convergence, not cost. A match win probability is a
+# binomial proportion, so its standard error at the widest point (p=0.5) is
+# sqrt(0.25/3000) ~= 0.009 — under one point — and the three best-of-5 set-score
+# buckets converge to about the same precision. Doubling the runs would halve
+# nothing a reader could perceive while doubling the ~0.24 s cost, so this is the
+# knee of the curve, not a ceiling. The whole pass stays cheaper than one live
+# /storybook bracket, which is what keeps the endpoint inside its CPU budget.
+API_MATCH_SIM_RUNS = 3000
+# Largest accepted ?seed=/seed for a single-match run — same rationale and same
+# bound as API_STORYBOOK_SEED_MAX (keeps a shared URL short; does not constrain
+# reproducibility).
+API_MATCH_SEED_MAX = 2**32 - 1
+# Per-IP rate limit on POST /match/simulate, the same in-memory sliding-window
+# limiter (and the SAME honest-scope caveat) as API_STORYBOOK_RATE_LIMIT: it is
+# resource-exhaustion hygiene against one looping client, not robust abuse
+# prevention. More generous than /storybook's 12/minute because a single match is
+# roughly 5x cheaper to run and it is the featured path a user re-runs on every
+# tweak of the players/surface/format — but still bounded so a script cannot spin
+# it without limit.
+API_MATCH_RATE_LIMIT = "20/minute"
+
 # ---- Draw upload (POST /tournaments/upload) ----
 # A visitor can POST a draw JSON matching the same schema the shipped example
 # draws use and then simulate it live. Everything about the feature is shaped by

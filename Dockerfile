@@ -134,11 +134,11 @@ FROM deps AS artefacts
 
 WORKDIR /build
 
-# Which draw to precompute, and how hard. The shipped 128-slot 2024 US Open is
-# the only simulatable draw in data/draws/ — example_usopen_2026.json is the
-# placeholder illustration and monte_carlo refuses it by design (T2.2), so
+# Which draw to precompute, and how hard. The shipped 128-slot 2026 Australian
+# Open is the default simulatable draw in data/draws/ — example_usopen_2026.json
+# is the placeholder illustration and monte_carlo refuses it by design (T2.2), so
 # precomputing it is not a thing that can succeed.
-ARG PRECOMPUTE_DRAW=usopen_2024_atp_full
+ARG PRECOMPUTE_DRAW=ausopen_2026_atp_full
 ARG PRECOMPUTE_RUNS=5000
 ARG PRECOMPUTE_SEED=0
 

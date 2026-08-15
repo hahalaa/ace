@@ -439,7 +439,35 @@ def reconciled_prob(
     )
 
 
-def simulate_reconciled_match(
+@dataclass(frozen=True)
+class ReconciledServe:
+    """The serve-adjusted point-win probabilities that reproduce the reconciled
+    match-win target, plus the intermediate quantities worth surfacing.
+
+    :func:`solve_reconciled_serve_probs` returns this so a caller can either drive
+    the scoreline simulator (with ``pA_adj``/``pB_adj``) or report the model
+    numbers behind it (``p_clf``, ``p_point``, ``target``) without re-deriving
+    them. ``simulate_reconciled_match`` uses only the adjusted probabilities; the
+    single-match aggregator (``sim/single_match.py``) also reports the rest.
+
+    Attributes:
+        pA_adj: A's serve-point-win probability after the ``δ`` shift, in
+            ``[P_MIN, P_MAX]``.
+        pB_adj: B's, likewise.
+        p_clf: The classifier's ``P(A beats B)``.
+        p_point: The point model's analytic ``P(A beats B)`` (``0.0`` when
+            ``mode`` is ``classifier_anchor``, where it is unused).
+        target: The reconciled match-win probability the shift reproduces.
+    """
+
+    pA_adj: float
+    pB_adj: float
+    p_clf: float
+    p_point: float
+    target: float
+
+
+def solve_reconciled_serve_probs(
     player_a: str,
     player_b: str,
     surface: str,
@@ -447,47 +475,33 @@ def simulate_reconciled_match(
     final_set_rule: str,
     skill_table: "SkillTable",
     classifier: ClassifierProb,
-    rng: np.random.Generator,
     mode: str = config.RECONCILE_MODE,
     w: float = config.RECONCILE_BLEND_WEIGHT,
-    first_server: int | None = None,
-) -> MatchResult:
-    """Simulate one reconciled match — the entry point Phase 2 calls.
+) -> ReconciledServe:
+    """Reconcile the two models and solve the serve shift reproducing the target.
 
-    Resolves both names to ids **once** (the single name/id join), reads the
-    id-keyed point-win probabilities, obtains ``P_clf`` from the name-keyed
-    classifier, reconciles them per ``mode``, solves the serve shift ``δ`` that
-    reproduces the reconciled probability, and simulates the actual scoreline with
-    the adjusted probabilities. Player A is index ``0`` in the returned
-    :class:`~sim.match.MatchResult`, so ``P(winner == 0)`` matches the reconciled
-    probability over many runs.
+    This is steps 1–4 of :func:`simulate_reconciled_match`, factored out so a
+    caller that simulates the **same** matchup many times (the single-match
+    aggregator) solves ``δ`` **once** rather than re-solving it — a ~3 ms bisection
+    — on every scoreline draw. It makes no RNG draws and simulates nothing; it is
+    pure model composition. :func:`simulate_reconciled_match` calls it and then
+    plays out one scoreline; the extraction is behaviour-preserving.
 
     Args:
         player_a, player_b: Display names (name-keyed side of the seam).
         surface: One of ``config.SURFACE_MU`` (``"Hard"``/``"Clay"``/``"Grass"``).
         best_of: ``3`` or ``5``.
-        final_set_rule: Deciding-set rule for :func:`~sim.match.simulate_match_bo3`
-            / ``_bo5``.
+        final_set_rule: Deciding-set rule.
         skill_table: The id-keyed serve/return :class:`~features.serve.SkillTable`.
-        classifier: A :class:`ClassifierProb` returning ``P(A beats B)`` from names
-            + surface.
-        rng: A ``numpy`` ``Generator`` (never the global ``np.random``); also draws
-            the opening server when ``first_server`` is ``None``.
+        classifier: A :class:`ClassifierProb` returning ``P(A beats B)``.
         mode, w: Reconciliation mode / blend weight (default from ``config``).
-        first_server: Index (``0`` = A, ``1`` = B) of the player serving the first
-            game, or ``None`` (the default) to draw it from ``rng`` — the original
-            T1.8 behaviour, unchanged for every existing caller. T2.2's bracket
-            simulation passes an explicit value because a tournament needs a
-            *deterministic serve-first convention* per match (see
-            ``sim/tournament.py``), which a per-match coin flip cannot express.
 
     Returns:
-        A :class:`~sim.match.MatchResult` for the simulated match.
+        A :class:`ReconciledServe`.
 
     Raises:
         ValueError: If either name fails to resolve (fail loudly — no silent
-            fallback), the surface is unknown, ``best_of`` is not 3/5, or
-            ``first_server`` is neither ``0``, ``1`` nor ``None``.
+            fallback) or the surface is unknown.
     """
     # 1. Name → id, exactly once each. Fail loudly rather than let a bad name
     #    become a KeyError or a silent default-profile (wrong-player) result.
@@ -530,8 +544,72 @@ def simulate_reconciled_match(
     # solve_delta keeps these inside [P_MIN, P_MAX]; clamp defensively regardless.
     pA_adj = min(max(pA + delta, config.P_MIN), config.P_MAX)
     pB_adj = min(max(pB - delta, config.P_MIN), config.P_MAX)
+    return ReconciledServe(
+        pA_adj=pA_adj, pB_adj=pB_adj, p_clf=p_clf, p_point=p_point, target=target
+    )
 
-    # 5. Simulate the real scoreline (serve continuity honoured by the sim layer).
+
+def simulate_reconciled_match(
+    player_a: str,
+    player_b: str,
+    surface: str,
+    best_of: int,
+    final_set_rule: str,
+    skill_table: "SkillTable",
+    classifier: ClassifierProb,
+    rng: np.random.Generator,
+    mode: str = config.RECONCILE_MODE,
+    w: float = config.RECONCILE_BLEND_WEIGHT,
+    first_server: int | None = None,
+) -> MatchResult:
+    """Simulate one reconciled match — the entry point Phase 2 calls.
+
+    Resolves both names to ids **once** (the single name/id join), reads the
+    id-keyed point-win probabilities, obtains ``P_clf`` from the name-keyed
+    classifier, reconciles them per ``mode``, solves the serve shift ``δ`` that
+    reproduces the reconciled probability, and simulates the actual scoreline with
+    the adjusted probabilities. Player A is index ``0`` in the returned
+    :class:`~sim.match.MatchResult`, so ``P(winner == 0)`` matches the reconciled
+    probability over many runs.
+
+    The reconciliation half (name join → point probs → ``P_clf`` → solve ``δ``) is
+    :func:`solve_reconciled_serve_probs`; this function adds only the scoreline
+    draw on top of it.
+
+    Args:
+        player_a, player_b: Display names (name-keyed side of the seam).
+        surface: One of ``config.SURFACE_MU`` (``"Hard"``/``"Clay"``/``"Grass"``).
+        best_of: ``3`` or ``5``.
+        final_set_rule: Deciding-set rule for :func:`~sim.match.simulate_match_bo3`
+            / ``_bo5``.
+        skill_table: The id-keyed serve/return :class:`~features.serve.SkillTable`.
+        classifier: A :class:`ClassifierProb` returning ``P(A beats B)`` from names
+            + surface.
+        rng: A ``numpy`` ``Generator`` (never the global ``np.random``); also draws
+            the opening server when ``first_server`` is ``None``.
+        mode, w: Reconciliation mode / blend weight (default from ``config``).
+        first_server: Index (``0`` = A, ``1`` = B) of the player serving the first
+            game, or ``None`` (the default) to draw it from ``rng`` — the original
+            T1.8 behaviour, unchanged for every existing caller. T2.2's bracket
+            simulation passes an explicit value because a tournament needs a
+            *deterministic serve-first convention* per match (see
+            ``sim/tournament.py``), which a per-match coin flip cannot express.
+
+    Returns:
+        A :class:`~sim.match.MatchResult` for the simulated match.
+
+    Raises:
+        ValueError: If either name fails to resolve (fail loudly — no silent
+            fallback), the surface is unknown, ``best_of`` is not 3/5, or
+            ``first_server`` is neither ``0``, ``1`` nor ``None``.
+    """
+    reconciled = solve_reconciled_serve_probs(
+        player_a, player_b, surface, best_of, final_set_rule, skill_table, classifier,
+        mode, w,
+    )
+    pA_adj, pB_adj = reconciled.pA_adj, reconciled.pB_adj
+
+    # Simulate the real scoreline (serve continuity honoured by the sim layer).
     #    The opening server is drawn from the same threaded RNG unless the caller
     #    pinned one; only the None branch consumes a draw, so existing callers'
     #    random streams are byte-identical to before this parameter existed.

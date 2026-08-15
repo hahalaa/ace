@@ -1,52 +1,64 @@
 /**
- * App shell — deliberately thin, and only as much of one as the shipped
- * components need to be reachable.
+ * App shell — a stateless dispatcher over the query string.
  *
- * Both axes come from the query string rather than React state, so the shell
- * holds no state at all, every view is deep-linkable, and the pattern that
- * already picks the tournament also picks the screen:
+ * Both axes come from `window.location.search`, so the shell holds no state,
+ * every screen is deep-linkable, and a shared link lands where it says. The URL
+ * model is unchanged from earlier phases (`?view=`, `?tournament=`, `?seed=`) and
+ * extended for the single-match view, which carries its own players/surface/
+ * format/seed params (see `./components/match`).
  *
- *   /                                       → the 128-player 2024 US Open bracket
- *   /?tournament=example_usopen_2026_atp    → the 8-slot draw, placeholders and all
- *   /?view=odds                             → that draw's title-probability board
- *   /?view=storybook&seed=42                → one played-out run, replayable by link
+ *   /                                    → the dashboard (no draw is loaded)
+ *   /?view=match&a=…&b=…&surface=…&bo=…   → one simulated matchup
+ *   /?tournament=…&view=bracket          → a draw's bracket
+ *   /?tournament=…&view=odds             → its title-odds board
+ *   /?tournament=…&view=storybook&seed=… → one played-out run, replayable by link
  *
- * **The dispatch is a real switch over `View`, not a ternary.** T4.3 shipped two
- * screens and a `?:`; T4.4 makes three, and the switch is what makes a fourth a
- * *compile* error rather than a silent fall-through to the bracket — the
- * function's return type is `ReactElement`, so a `View` with no `case` fails to
- * return. The `VIEWS` tuple stays the single list: it defines the type, guards
- * the URL value, and orders the nav.
+ * **The landing is the dashboard, not a bracket.** The app used to open straight
+ * onto the US Open draw; it now opens on a choice — single match, or a full
+ * tournament. Single match is the featured path.
  *
- * Still not a tournament browser: a draw picker appears in no ticket's scope
- * yet. Switching views is a link, so it costs a reload — acceptable for a
- * three-screen app, and the alternative (routing) is machinery no ticket has
- * asked for. The nav deliberately carries only `tournament` and `view`: the
- * `seed` axis belongs to the storybook screen, which writes it into the URL
- * itself once a run exists.
+ * **The nav is two tiers.** The primary row picks the *branch* (home, single
+ * match, tournament); a secondary row appears inside the tournament branch to
+ * pick the *view* (bracket, title odds, storybook, upload). Both are a `switch`
+ * over the `View` union returning `ReactElement`, so adding a view without a
+ * case is a compile error rather than a blank screen.
  */
 
 import type { ReactElement } from 'react';
 
 import Bracket from './components/Bracket';
+import Dashboard from './components/Dashboard';
+import MatchSim from './components/MatchSim';
 import Storybook from './components/Storybook';
 import ThemeToggle from './components/ThemeToggle';
 import TitleOdds from './components/TitleOdds';
 import Upload from './components/Upload';
 
-/** Shown when the URL names no tournament. Any id from `/tournaments` works. */
-const DEFAULT_TOURNAMENT_ID = 'usopen_2024_atp_full';
+/** The tournament shown when the URL names none — the current showcase draw. */
+const DEFAULT_TOURNAMENT_ID = 'ausopen_2026_atp_full';
 
-const VIEWS = ['bracket', 'odds', 'storybook', 'upload'] as const;
+const VIEWS = ['dashboard', 'match', 'bracket', 'odds', 'storybook', 'upload'] as const;
 type View = (typeof VIEWS)[number];
 
-/** Nav wording per view, in `VIEWS` order. */
-const VIEW_LABELS: Record<View, string> = {
+/** The sub-views that live under the tournament branch, in nav order. */
+const TOURNAMENT_VIEWS = ['bracket', 'odds', 'storybook', 'upload'] as const;
+type TournamentView = (typeof TOURNAMENT_VIEWS)[number];
+
+const TOURNAMENT_LABELS: Record<TournamentView, string> = {
   bracket: 'Bracket',
   odds: 'Title odds',
   storybook: 'Storybook',
   upload: 'Upload',
 };
+
+/** Which primary branch a view belongs to. */
+type Branch = 'home' | 'match' | 'tournament';
+
+function branchOf(view: View): Branch {
+  if (view === 'dashboard') return 'home';
+  if (view === 'match') return 'match';
+  return 'tournament';
+}
 
 function isView(value: string): value is View {
   return (VIEWS as readonly string[]).includes(value);
@@ -55,6 +67,11 @@ function isView(value: string): value is View {
 /** The screen a view names. Exhaustive by construction — see the docstring. */
 function screenFor(view: View, tournamentId: string): ReactElement {
   switch (view) {
+    case 'dashboard':
+      return <Dashboard tournamentId={tournamentId} />;
+    case 'match':
+      // The one screen that reads no tournament axis: it reads its own params.
+      return <MatchSim />;
     case 'bracket':
       return <Bracket tournamentId={tournamentId} />;
     case 'odds':
@@ -62,9 +79,6 @@ function screenFor(view: View, tournamentId: string): ReactElement {
     case 'storybook':
       return <Storybook tournamentId={tournamentId} />;
     case 'upload':
-      // The one screen with no tournament axis: it creates ids rather than
-      // reading one. The nav still carries `tournament` in its href (harmless,
-      // and keeps every link built the same way); Upload ignores it.
       return <Upload />;
   }
 }
@@ -73,38 +87,63 @@ function App() {
   const params = new URLSearchParams(window.location.search);
   const tournamentId = params.get('tournament')?.trim() || DEFAULT_TOURNAMENT_ID;
   const requestedView = params.get('view')?.trim() ?? '';
-  const view: View = isView(requestedView) ? requestedView : 'bracket';
+  const view: View = isView(requestedView) ? requestedView : 'dashboard';
+  const branch = branchOf(view);
 
-  const href = (target: View) =>
+  // Primary branch links. Home and single match carry no tournament; the
+  // tournament branch enters at the bracket and keeps the current draw.
+  const primary: { key: Branch; label: string; href: string }[] = [
+    { key: 'home', label: 'Home', href: '?view=dashboard' },
+    { key: 'match', label: 'Single match', href: '?view=match' },
+    {
+      key: 'tournament',
+      label: 'Tournament',
+      href: `?tournament=${encodeURIComponent(tournamentId)}&view=bracket`,
+    },
+  ];
+
+  const tournamentHref = (target: TournamentView) =>
     `?tournament=${encodeURIComponent(tournamentId)}&view=${target}`;
 
   return (
     <main>
-      {/* Masthead. The wordmark is deliberately not a link — App.test pins the
-          shell at exactly three anchors, the three views — so it is plain text
-          with a single accent dot standing in for the ball. */}
       <header className="masthead">
         <div className="brand">
-          <p className="wordmark">
+          {/* The wordmark returns home. A single accent dot stands in for the ball. */}
+          <a className="wordmark" href="?view=dashboard" aria-label="Ace home">
             Ace<span className="ballMark" aria-hidden="true" />
-          </p>
+          </a>
           <span className="brandTag">Grand Slam simulator</span>
         </div>
         <div className="mastheadEnd">
-          <nav className="viewNav" aria-label="View">
-            {VIEWS.map((target) => (
+          <nav className="viewNav" aria-label="Sections">
+            {primary.map((item) => (
               <a
-                key={target}
-                href={href(target)}
-                aria-current={view === target ? 'page' : undefined}
+                key={item.key}
+                href={item.href}
+                aria-current={branch === item.key ? 'page' : undefined}
               >
-                {VIEW_LABELS[target]}
+                {item.label}
               </a>
             ))}
           </nav>
           <ThemeToggle />
         </div>
       </header>
+
+      {branch === 'tournament' && (
+        <nav className="tournamentNav" aria-label="Tournament view">
+          {TOURNAMENT_VIEWS.map((target) => (
+            <a
+              key={target}
+              href={tournamentHref(target)}
+              aria-current={view === target ? 'page' : undefined}
+            >
+              {TOURNAMENT_LABELS[target]}
+            </a>
+          ))}
+        </nav>
+      )}
 
       {screenFor(view, tournamentId)}
     </main>

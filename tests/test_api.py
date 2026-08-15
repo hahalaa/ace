@@ -363,6 +363,7 @@ def test_every_route_declares_a_response_model():
     assert {r.path for r in routes} == {
         "/health",
         "/players",
+        "/match/simulate",
         "/tournaments",
         "/tournaments/upload",
         "/tournaments/{tournament_id}/bracket",
