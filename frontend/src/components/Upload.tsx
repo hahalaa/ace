@@ -28,35 +28,32 @@ import ErrorPanel from './ErrorPanel';
 import styles from './upload.module.css';
 
 /**
- * A complete, valid eight-slot draw, copied verbatim from the "Minimal worked
- * example" in `data/draws/DRAW_SCHEMA.md`. It is the schema reference's own
- * example, reused rather than re-authored, so this snippet cannot drift from the
- * document a test keeps honest against the validator.
+ * A complete, valid eight-slot draw, copied verbatim from
+ * `data/draws/example_usopen_2026.json` — the sample draw shipped with the repo.
  */
 const SCHEMA_EXAMPLE = `{
-  "note": "Toy 8-slot illustration of the draw schema — not a real event.",
-  "tournament_id": "toy_open_2026",
-  "name": "Toy Open 2026: Men's Singles (8-slot example)",
+  "note": "A sample draw showing valid upload JSON.",
+  "tournament_id": "example_usopen_2026_atp",
+  "name": "US Open 2026: Men's Singles (sample)",
   "surface": "Hard",
   "best_of": 5,
   "final_set_tiebreak": "10pt_at_6_6",
-  "event_date": "2026-06-01",
   "draw_size": 8,
   "seeds": {
-    "Carlos Alcaraz": 1,
-    "Jannik Sinner": 2,
-    "Alexander Zverev": 3,
-    "Novak Djokovic": 4
+    "Jannik Sinner": 1,
+    "Carlos Alcaraz": 2,
+    "Daniil Medvedev": 3,
+    "Casper Ruud": 4
   },
   "bracket": [
-    { "position": 1, "player": "Carlos Alcaraz" },
-    { "position": 2, "player": "Taylor Fritz" },
-    { "position": 3, "player": "Alexander Zverev" },
+    { "position": 1, "player": "Jannik Sinner" },
+    { "position": 2, "player": "Qualifier" },
+    { "position": 3, "player": "Taylor Fritz" },
     { "position": 4, "player": "Casper Ruud" },
-    { "position": 5, "player": "Novak Djokovic" },
-    { "position": 6, "player": "Qualifier" },
-    { "position": 7, "player": "Daniil Medvedev" },
-    { "position": 8, "player": "Jannik Sinner" }
+    { "position": 5, "player": "Daniil Medvedev" },
+    { "position": 6, "player": "Qualifier/Lucky Loser" },
+    { "position": 7, "player": "Andrey Rublev" },
+    { "position": 8, "player": "Carlos Alcaraz" }
   ]
 }`;
 
