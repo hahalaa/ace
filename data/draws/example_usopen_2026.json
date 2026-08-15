@@ -1,7 +1,7 @@
 {
-  "note": "TOY EXAMPLE — an 8-slot illustration of the draw schema, not the real 128-player US Open draw. The entrants are genuine ATP players (so the names resolve against the skill table), but the bracket, seeding and placeholders are made up for documentation and tests. Replace with a real 128-slot draw before simulating an actual event.",
+  "note": "A sample draw showing valid upload JSON.",
   "tournament_id": "example_usopen_2026_atp",
-  "name": "US Open 2026: Men's Singles (toy 8-slot example)",
+  "name": "US Open 2026: Men's Singles (sample)",
   "surface": "Hard",
   "best_of": 5,
   "final_set_tiebreak": "10pt_at_6_6",

@@ -1,6 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
   <rect width="48" height="48" rx="10" fill="#0a0a0b"/>
   <circle cx="24" cy="24" r="15" fill="#d8ff3d"/>
-  <path d="M11 12 Q26 24 11 36" fill="none" stroke="#0a0a0b" stroke-width="2.4" stroke-linecap="round"/>
-  <path d="M37 12 Q22 24 37 36" fill="none" stroke="#0a0a0b" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- Same two-seam geometry as the masthead .ballMark, scaled to r=15: two
+       arcs, one opening to each side, bulging toward the centre but leaving a
+       clear gap between them, the way a real ball's seams read head-on.
+       Near-black seams on the optic-yellow ball (the brand's dark register;
+       favicons don't follow the page theme). -->
+  <path d="M16.9 12.4 C 22.6 18.3, 22.6 29.7, 16.9 35.6" fill="none" stroke="#0a0a0b" stroke-width="2.7" stroke-linecap="round"/>
+  <path d="M31.1 12.4 C 25.4 18.3, 25.4 29.7, 31.1 35.6" fill="none" stroke="#0a0a0b" stroke-width="2.7" stroke-linecap="round"/>
 </svg>

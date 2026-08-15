@@ -109,9 +109,25 @@ function App() {
     <main>
       <header className="masthead">
         <div className="brand">
-          {/* The wordmark returns home. A single accent dot stands in for the ball. */}
+          {/* The wordmark returns home. A seamed tennis ball stands in for the
+             accent — two seams, one opening to each side, bulging toward the
+             centre but leaving a clear gap between them, the way a real ball's
+             seams read head-on. Endpoints tuck inside the rim so the round caps
+             don't poke past the edge. Fill/seam are theme tokens (see .ballMark
+             in index.css): --ball for the body, --ball-ink for the seam, the one
+             colour guaranteed to contrast on the ball in either theme. */}
           <a className="wordmark" href="?view=dashboard" aria-label="Ace home">
-            Ace<span className="ballMark" aria-hidden="true" />
+            Ace
+            <svg
+              className="ballMark"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <circle className="ballBody" cx="12" cy="12" r="10.5" />
+              <path className="ballSeam" d="M7 3.9 C 11 8, 11 16, 7 20.1" />
+              <path className="ballSeam" d="M17 3.9 C 13 8, 13 16, 17 20.1" />
+            </svg>
           </a>
         </div>
         <div className="mastheadEnd">
