@@ -241,7 +241,7 @@ General:
 1. Workflow permissions. The job declares `contents: write` and
    `pull-requests: write` itself, which is enough if the repo default is
    read-only.
-2. ✅ **"Allow GitHub Actions to create and approve pull requests"**. Without
+2. **"Allow GitHub Actions to create and approve pull requests"**. Without
    it `gh pr create` fails with a 403 *even though the token has
    `pull-requests: write`*.
 

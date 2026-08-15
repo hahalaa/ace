@@ -37,7 +37,7 @@ services:
       dockerfile: Dockerfile
       target: frontend
       args:
-        # ⚠️ BUILD ARG, NOT `environment:`. Vite inlines this into the bundle
+        # BUILD ARG, NOT `environment:`. Vite inlines this into the bundle
         # at build time and the minifier constant-folds the lookup away, so the
         # value is frozen when the image is built. An `environment:` entry here
         # would be silently ignored, and `docker compose up` cannot repoint an

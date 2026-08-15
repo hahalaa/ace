@@ -15,7 +15,7 @@ def interactive_prediction_loop(model, data, surf_hist, h2h_hist):
     the winner using the provided model and historical stats.
     """
     print("\n" + "="*40)
-    print(" 🎾  TENNIS MATCH PREDICTOR  🎾")
+    print("TENNIS MATCH PREDICTOR")
     print("="*40)
     print("Type 'exit' to quit. Use Ctrl+C to stop safely.\n")
 
@@ -29,7 +29,7 @@ def interactive_prediction_loop(model, data, surf_hist, h2h_hist):
             
             p1 = resolve_player_name(p1_input, all_players)
             if p1 is None:
-                print(f"❌ Player '{p1_input}' not found. Please try again.\n")
+                print(f"Player '{p1_input}' not found. Please try again.\n")
                 continue
             if p1 != p1_input:
                 print(f"   -> Deduced: {p1}")
@@ -39,7 +39,7 @@ def interactive_prediction_loop(model, data, surf_hist, h2h_hist):
 
             p2 = resolve_player_name(p2_input, all_players)
             if p2 is None:
-                print(f"❌ Player '{p2_input}' not found. Please try again.\n")
+                print(f"Player '{p2_input}' not found. Please try again.\n")
                 continue
             if p2 != p2_input:
                 print(f"   -> Deduced: {p2}")
@@ -48,14 +48,14 @@ def interactive_prediction_loop(model, data, surf_hist, h2h_hist):
             surf = validate_surface(surf_input)
 
             if surf is None:
-                print("❌ Invalid surface. Choose Hard, Clay, or Grass.\n")
+                print("Invalid surface. Choose Hard, Clay, or Grass.\n")
                 continue
 
             p1_stats = get_latest(p1, data)
             p2_stats = get_latest(p2, data)
 
             if not p1_stats[0] or not p2_stats[0]:
-                print(f"❌ Error: Player not found in database.\n")
+                print(f"Error: Player not found in database.\n")
                 continue
                 
             p1_rank, p1_age = p1_stats
@@ -81,13 +81,13 @@ def interactive_prediction_loop(model, data, surf_hist, h2h_hist):
             display_matchup(p1, p2, surf, p1_rank, p2_rank, p1_age, p2_age, p1_pct, p2_pct, p1_w, p1_t, p2_w, p2_t, h2h_msg, prob)
 
         except KeyboardInterrupt:
-            print("\n\n👋 Exiting. Thank you!")
+            print("\n\nExiting. Thank you!")
             sys.exit()
         except EOFError:
             # Closed/empty stdin (piped input, redirected file, Ctrl-D). Without
             # this, input() raises EOFError every iteration, the broad handler
             # below swallows it, and the loop spins forever. Leave cleanly.
-            print("\n👋 Input closed. Exiting.")
+            print("\nInput closed. Exiting.")
             break
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -184,7 +184,7 @@ def display_matchup(
     p1_age: float, p2_age: float, p1_pct: float, p2_pct: float,
     p1_w: int, p1_t: int, p2_w: int, p2_t: int, h2h_msg: str, prob: float
 ) -> None:
-    print(f"\n📊 MATCHUP STATS: {surf} Court")
+    print(f"\nMATCHUP STATS: {surf} Court")
     print(f"{'':<20} {p1:<20} {p2:<20}")
     print(f"{'Rank':<20} #{int(p1_rank):<19} #{int(p2_rank):<19}")
     print(f"{'Age':<20} {p1_age:.1f}y{'':<18} {p2_age:.1f}y")
@@ -192,9 +192,9 @@ def display_matchup(
     print(f"{'Head-to-Head':<20} {h2h_msg}")
     print("-" * 60)
     if prob > config.DEFAULT_WIN_PCT:
-        print(f"🏆 WINNER PREDICTION: {p1} ({prob:.1%} confidence)")
+        print(f"WINNER PREDICTION: {p1} ({prob:.1%} confidence)")
     else:
-        print(f"🏆 WINNER PREDICTION: {p2} ({1-prob:.1%} confidence)")
+        print(f"WINNER PREDICTION: {p2} ({1-prob:.1%} confidence)")
     print("-" * 60 + "\n")
 
 def build_feature_row(
@@ -210,7 +210,7 @@ def build_feature_row(
     Build a single-row DataFrame matching MODEL_FEATURES order.
     Fills missing rolling features with defaults (neutral form).
 
-    ⚠️ Display only, and the *only* remaining caller is the REPL above. The
+    Display only, and the *only* remaining caller is the REPL above. The
     rolling-form defaults below flatten the prediction toward 50/50
     (ace-04-current-state.md §7 seam 7). Anything that simulates from P_clf now
     builds its row with common.classifier_adapter.build_feature_row, which

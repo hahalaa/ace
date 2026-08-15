@@ -1,7 +1,7 @@
 # Build-context exclusions (T5.1). One context (the repo root) feeds both the
 # API and the frontend stages of Dockerfile, so this file covers both.
 #
-# Two entries below are load-bearing rather than cosmetic — see the ⚠️ blocks.
+# Two entries below are load-bearing rather than cosmetic — see the flagged blocks.
 
 # ---- VCS, tooling, editor ---------------------------------------------------
 .git
@@ -26,7 +26,7 @@ env/
 frontend/node_modules/
 frontend/dist/
 
-# ⚠️ frontend/.env — THE ENTRY MOST WORTH KEEPING.
+# frontend/.env — THE ENTRY MOST WORTH KEEPING.
 # It is gitignored, so it is in no checkout, but it is on every developer
 # machine and holds http://localhost:8000. `vite build` reads .env files, not
 # only `vite dev` (T4.5 verified both directions), so a `COPY frontend/ .` that
@@ -38,7 +38,7 @@ frontend/.env
 frontend/.env.*
 
 # ---- Generated artefacts the build REGENERATES, and must not inherit --------
-# ⚠️ outputs/ and data/cache/ are the two runtime-required, gitignored files
+# outputs/ and data/cache/ are the two runtime-required, gitignored files
 # (see the Dockerfile header). Excluding them is what makes every build behave
 # like a clean checkout: a developer machine holding a trained model and a
 # precomputed cache cannot leak them into the image and hide the fact that the

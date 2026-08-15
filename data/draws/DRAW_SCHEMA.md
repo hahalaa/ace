@@ -30,14 +30,14 @@ A draw file is a single JSON object. These eight fields are **required**
 
 | Field | Type | Required | Constraint (enforced by `parse_draw`) |
 |---|---|:---:|---|
-| `tournament_id` | string | ✅ | Non-empty (after trimming). Stable machine id for the event, e.g. `"ausopen_2026_atp_full"`. |
-| `name` | string | ✅ | Non-empty. Human-readable event name. |
-| `surface` | string | ✅ | One of `config.VALID_SURFACES`: **`"Clay"`, `"Grass"`, `"Hard"`**. Exact case. |
-| `best_of` | integer | ✅ | One of `config.VALID_BEST_OF`: **`3` or `5`**. A JSON `true`/`false` is *not* accepted (bools are rejected even though Python treats them as ints). |
-| `final_set_tiebreak` | string | ✅ | One of `config.VALID_FINAL_SET_TIEBREAKS`: **`"7pt_at_6_6"`, `"10pt_at_6_6"`, `"advantage"`**. Derived from the match layer's `FINAL_SET_TB_TARGET`, so it can't drift from what `sim/match.py` actually plays. |
-| `draw_size` | integer | ✅ | One of `config.VALID_DRAW_SIZES`: **`8`, `16`, `32`, `64`, `128`** (a power of two, so the bracket halves cleanly each round). |
-| `seeds` | object | ✅ | Map of entrant **name → seed number**. Each value a **positive integer** (`≥ 1`). Every seeded name **must appear in `bracket`**. May be empty (`{}`). Only seeded players are listed. |
-| `bracket` | array | ✅ | List of **slot objects** (next section). Its length **must equal `draw_size`**, and its `position`s must be exactly the contiguous range `1..draw_size` — no gaps, no duplicates, none out of range. |
+| `tournament_id` | string | Yes | Non-empty (after trimming). Stable machine id for the event, e.g. `"ausopen_2026_atp_full"`. |
+| `name` | string | Yes | Non-empty. Human-readable event name. |
+| `surface` | string | Yes | One of `config.VALID_SURFACES`: **`"Clay"`, `"Grass"`, `"Hard"`**. Exact case. |
+| `best_of` | integer | Yes | One of `config.VALID_BEST_OF`: **`3` or `5`**. A JSON `true`/`false` is *not* accepted (bools are rejected even though Python treats them as ints). |
+| `final_set_tiebreak` | string | Yes | One of `config.VALID_FINAL_SET_TIEBREAKS`: **`"7pt_at_6_6"`, `"10pt_at_6_6"`, `"advantage"`**. Derived from the match layer's `FINAL_SET_TB_TARGET`, so it can't drift from what `sim/match.py` actually plays. |
+| `draw_size` | integer | Yes | One of `config.VALID_DRAW_SIZES`: **`8`, `16`, `32`, `64`, `128`** (a power of two, so the bracket halves cleanly each round). |
+| `seeds` | object | Yes | Map of entrant **name → seed number**. Each value a **positive integer** (`≥ 1`). Every seeded name **must appear in `bracket`**. May be empty (`{}`). Only seeded players are listed. |
+| `bracket` | array | Yes | List of **slot objects** (next section). Its length **must equal `draw_size`**, and its `position`s must be exactly the contiguous range `1..draw_size` — no gaps, no duplicates, none out of range. |
 
 ### `final_set_tiebreak` values, in plain terms
 
@@ -59,8 +59,8 @@ Each entry in `bracket` is a JSON object. You author **two** fields; the loader
 
 | Field | Type | Required | Constraint |
 |---|---|:---:|---|
-| `position` | integer | ✅ | 1-based slot number. Slots `2k-1` and `2k` meet in round 1 (positions 1 v 2, 3 v 4, …). Across the bracket the set of positions must be exactly `1..draw_size`. |
-| `player` | string | ✅ | Non-empty (after trimming). A real player's **display name** (resolved to a skill-table `player_id`) **or** a placeholder token (see below). Unknown keys inside a slot are ignored. |
+| `position` | integer | Yes | 1-based slot number. Slots `2k-1` and `2k` meet in round 1 (positions 1 v 2, 3 v 4, …). Across the bracket the set of positions must be exactly `1..draw_size`. |
+| `player` | string | Yes | Non-empty (after trimming). A real player's **display name** (resolved to a skill-table `player_id`) **or** a placeholder token (see below). Unknown keys inside a slot are ignored. |
 
 **The loader derives (read-only, on the `DrawSlot` dataclass — never in JSON):**
 
@@ -82,7 +82,7 @@ needed). The recognised tokens are `config.DRAW_PLACEHOLDER_ENTRANTS`, compared
 A `/`-joined entrant (`"Qualifier/Lucky Loser"`) counts as a placeholder **only
 when every part is** a placeholder token.
 
-> ⚠️ **A draw containing any placeholder cannot be simulated.**
+> **A draw containing any placeholder cannot be simulated.**
 > `simulate_bracket` (T2.2) refuses it, because a placeholder slot has no
 > `player_id` and no classifier-visible history, so no reconciled match-win
 > probability exists for it. A fully-simulable draw — like

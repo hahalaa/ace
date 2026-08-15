@@ -667,7 +667,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         print("!" * 74)
     else:
-        print("\nAll hard-tolerance metrics within band. ✓")
+        print("\nAll hard-tolerance metrics within band.")
 
     return 1 if hard_fail else 0
 

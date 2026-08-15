@@ -232,7 +232,7 @@ def compute_rolling_features(df: pd.DataFrame) -> pd.DataFrame:
     - recent_sets_won_avg_N
     - recent_sets_lost_avg_N
     """
-    print("   ⏳ Computing rolling features...")
+    print("   Computing rolling features...")
 
     # 1. One row per player per match, sorted so the windows are chronological.
     player_df = build_player_match_frame(df)

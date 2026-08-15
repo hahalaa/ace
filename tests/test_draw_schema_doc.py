@@ -12,11 +12,16 @@ accepts and the doc omits (or a value the doc invents) is caught.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import config
 
 SCHEMA_DOC = config.DRAWS_DIR / "DRAW_SCHEMA.md"
+
+# The uploader UI embeds a copy of the doc's worked example (see the module note
+# below). This is the path to that copy; the equality test keeps the two honest.
+UPLOAD_COMPONENT = Path("frontend/src/components/Upload.tsx")
 
 
 def _doc_text() -> str:
@@ -67,3 +72,26 @@ def test_required_fields_are_documented() -> None:
     text = _doc_text()
     for field in REQUIRED_FIELDS:
         assert f"`{field}`" in text, field
+
+
+def test_upload_ui_schema_example_matches_doc_worked_example() -> None:
+    """The uploader's inline ``SCHEMA_EXAMPLE`` must be byte-identical to the
+    doc's "Minimal worked example". The component claims in a comment that it is
+    "copied verbatim" and "cannot drift" — this asserts that directly rather than
+    trusting the comment, so editing one copy without the other fails the suite.
+    """
+    doc = _doc_text()
+    start = doc.index("Minimal worked example")
+    doc_match = re.search(r"```json\n(.*?)\n```", doc[start:], re.S)
+    assert doc_match, "no ```json worked example found under 'Minimal worked example'"
+    doc_example = doc_match.group(1)
+
+    component = UPLOAD_COMPONENT.read_text(encoding="utf-8")
+    ui_match = re.search(r"const SCHEMA_EXAMPLE = `(.*?)`;", component, re.S)
+    assert ui_match, f"no SCHEMA_EXAMPLE template literal found in {UPLOAD_COMPONENT}"
+    ui_example = ui_match.group(1)
+
+    assert ui_example == doc_example, (
+        "Upload.tsx SCHEMA_EXAMPLE has drifted from DRAW_SCHEMA.md's worked "
+        "example; re-copy one to match the other."
+    )

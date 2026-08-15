@@ -21,7 +21,7 @@ def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict, serve.Skil
         - skill_table: the id-keyed serve/return SkillTable (T1.1), a latest
           snapshot over all rows (used by the point-based simulator, Phase 1+)
     """
-    print("⚙️  Engineering features...")
+    print("Engineering features...")
 
     df = df.copy()
     df["tourney_date"] = pd.to_datetime(df["tourney_date"], format="%Y%m%d", errors="coerce")

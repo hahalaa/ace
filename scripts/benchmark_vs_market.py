@@ -642,7 +642,7 @@ def format_report(
     if not join.matched.empty:
         add(f"  Mean overround   : {join.matched['overround'].mean():.4f}")
     add("")
-    add("  ⚠️  READ THE GAP AS A LOWER BOUND — the model's side is the flattered one.")
+    add("  READ THE GAP AS A LOWER BOUND — the model's side is the flattered one.")
     add(f"      model/train.py picks the best of four estimators by accuracy on")
     add(f"      TEST_YEAR ({config.TEST_YEAR}) itself — the very season scored above. The model's")
     add("      number therefore carries a model-selection advantage on this data that")
@@ -719,7 +719,7 @@ def run_benchmark(
     if classifier is None:
         pinned = reconcile.load_pinned_classifier()
         print(
-            f"📌 Pinned classifier: {pinned.estimator_class} "
+            f"Pinned classifier: {pinned.estimator_class} "
             f"({pinned.n_features_in} features) from {pinned.path}"
         )
         classifier = pinned.estimator
@@ -788,7 +788,7 @@ def main(argv: list[str] | None = None) -> int:
             snapshot_path=args.snapshot, book=args.book, top_unresolved=args.top_unresolved
         )
     except (FileNotFoundError, ValueError, KeyError, RuntimeError) as exc:
-        print(f"❌ {exc}")
+        print(f"{exc}")
         return 1
 
     print()

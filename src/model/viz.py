@@ -13,7 +13,7 @@ def plot_feature_importance(model: Any) -> None:
     Plot and display feature importance and save it to a PNG file.
     """
     if not hasattr(model, "feature_importances_"):
-        print("⚠️ Selected model does not support feature importance.")
+        print("Selected model does not support feature importance.")
         return
 
     importances = model.feature_importances_
@@ -29,5 +29,5 @@ def plot_feature_importance(model: Any) -> None:
     plt.savefig(config.FEATURE_IMPORTANCE_PLOT)
     plt.close()
     
-    print("\n📊 Feature Importance Ranking:")
+    print("\nFeature Importance Ranking:")
     print(df_imp.to_string(index=False))

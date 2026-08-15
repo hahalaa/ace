@@ -206,7 +206,7 @@ def run_refresh(years: list[int], raw_dir: Path) -> None:
             + f" ({len(missing)} of {len(years)} years). Nothing was retrained "
             "and no cache was regenerated — the vendored data on disk may be "
             "partially updated, so it is deliberately not committed. See the "
-            "per-year ✗ lines above for each failure."
+            "per-year failure lines above for each failure."
         )
 
 
@@ -297,7 +297,7 @@ def verify_raw_data(
             + "\n".join(f"     - {problem}" for problem in problems)
             + "\n   Nothing was retrained and no cache was regenerated."
         )
-    _log(f"   ✓ verified {len(years)} year file(s): schema, dates, row counts")
+    _log(f"   verified {len(years)} year file(s): schema, dates, row counts")
 
 
 def count_rows(raw_dir: Path, years: list[int]) -> dict[int, int]:
@@ -434,7 +434,7 @@ def precompute_draws(
     failed: list[str] = []
 
     for target in targets:
-        _log(f"\n▶ precomputing {target} ({runs:,} runs, seed {seed})")
+        _log(f"\nprecomputing {target} ({runs:,} runs, seed {seed})")
         argv = [
             "--draw", target,
             "--runs", str(runs),
@@ -445,13 +445,13 @@ def precompute_draws(
         try:
             code = precompute_sim.main(argv)
         except Exception as err:  # noqa: BLE001 — one draw must not kill the rest
-            _log(f"❌ {target}: {type(err).__name__}: {err}")
+            _log(f"{target}: {type(err).__name__}: {err}")
             failed.append(target)
             continue
         if code == 0:
             succeeded.append(target)
         else:
-            _log(f"❌ {target}: precompute_sim exited {code}")
+            _log(f"{target}: precompute_sim exited {code}")
             failed.append(target)
 
     return succeeded, failed
@@ -513,11 +513,11 @@ def orchestrate(args: argparse.Namespace) -> RunSummary:
 
     if summary.data_changed:
         _log(
-            "   ✓ vendored data changed in "
+            "   vendored data changed in "
             + ", ".join(str(y) for y in summary.changed_years)
         )
     else:
-        _log("   ✓ vendored data is byte-identical to what was already on disk")
+        _log("   vendored data is byte-identical to what was already on disk")
 
     # Nothing new upstream ⇒ retraining and re-simulating would burn ~5 minutes
     # to produce numbers that differ only in `generated_at`. Stop, successfully.
@@ -553,7 +553,7 @@ def orchestrate(args: argparse.Namespace) -> RunSummary:
             summary.message = str(err)
             return summary
         summary.retrained = True
-        _log(f"   ✓ persisted estimator: {summary.estimator_class}")
+        _log(f"   persisted estimator: {summary.estimator_class}")
 
     # ---- Phase 4: precompute. ------------------------------------------------
     _log("\n═══ Phase 4/4 — precomputing the simulation cache")
@@ -570,7 +570,7 @@ def orchestrate(args: argparse.Namespace) -> RunSummary:
             )
             return summary
         for entry in skipped:
-            _log(f"   ⏭  skipping {entry}")
+            _log(f"   skipping {entry}")
     summary.targets = targets
     summary.skipped = skipped
 
@@ -671,10 +671,10 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
     if args.start > args.end:
-        print(f"❌ --start {args.start} is after --end {args.end}.")
+        print(f"--start {args.start} is after --end {args.end}.")
         return 1
     if args.runs < 1:
-        print(f"❌ --runs must be at least 1, got {args.runs}.")
+        print(f"--runs must be at least 1, got {args.runs}.")
         return 1
 
     summary = orchestrate(args)
@@ -682,9 +682,9 @@ def main(argv: list[str] | None = None) -> int:
 
     _log("\n" + "─" * 70)
     if summary.ok:
-        _log(f"✅ {summary.message}")
+        _log(f"{summary.message}")
     else:
-        _log(f"❌ FAILED after the {summary.stopped_after} phase:\n   {summary.message}")
+        _log(f"FAILED after the {summary.stopped_after} phase:\n   {summary.message}")
     _log(
         f"   refreshed={summary.refreshed} data_changed={summary.data_changed} "
         f"retrained={summary.retrained} "

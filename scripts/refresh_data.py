@@ -65,7 +65,7 @@ def fetch_manifest() -> dict[str, str]:
         payload = json.loads(fetch_url(MANIFEST_URL).decode("utf-8"))
         return {entry["name"]: entry["url"] for entry in payload.get("files", [])}
     except (urllib.error.URLError, ValueError, KeyError, TypeError) as err:
-        print(f"⚠️  Could not fetch manifest ({err}); falling back to direct URLs")
+        print(f"Could not fetch manifest ({err}); falling back to direct URLs")
         return {}
 
 
@@ -102,7 +102,7 @@ def refresh(start_year: int, end_year: int, raw_dir: Path = RAW_DATA_DIR) -> dic
     Returns:
         A ``{year: path}`` map of the years that were successfully written.
     """
-    print(f"⬇️  Refreshing TML-Database match data for {start_year}–{end_year}...")
+    print(f"Refreshing TML-Database match data for {start_year}–{end_year}...")
     manifest = fetch_manifest()
 
     written: dict[int, Path] = {}
@@ -110,19 +110,19 @@ def refresh(start_year: int, end_year: int, raw_dir: Path = RAW_DATA_DIR) -> dic
         try:
             dest = download_year(year, raw_dir, manifest)
             size = dest.stat().st_size
-            print(f"   ✓ {year}: {size:,} bytes -> {dest}")
+            print(f"   {year}: {size:,} bytes -> {dest}")
             written[year] = dest
         except Exception as err:  # noqa: BLE001 — continue on any single-year failure
-            print(f"   ✗ Failed to refresh {year}: {err}")
+            print(f"   Failed to refresh {year}: {err}")
 
-    print(f"\n✅ Refreshed {len(written)}/{end_year - start_year + 1} years into {raw_dir}")
+    print(f"\nRefreshed {len(written)}/{end_year - start_year + 1} years into {raw_dir}")
     # Self-contained on purpose: this is the terms notice, printed to whoever
     # just downloaded the data, and it must not depend on any file they may not
     # have. It pointed at `docs/ace-02-data-schema.md` until the 2026-08-09
     # audit — a path that is not distributed, so the notice resolved to nothing.
     # The wording below is the operative-terms summary from that research.
     print(
-        "ℹ️  Data source: Tennismylife TML-Database (stats.tennismylife.org),\n"
+        "Data source: Tennismylife TML-Database (stats.tennismylife.org),\n"
         "   offered in partnership with CanalTenis (canaltenis.com).\n"
         "   TML-Database ships no formal licence file; the binding terms are its\n"
         "   own repository notice: the data is for educational, analytical and\n"

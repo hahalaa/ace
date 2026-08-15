@@ -45,20 +45,37 @@
   border-radius: var(--radius);
   background: var(--bg-raise);
   text-decoration: none;
+  cursor: pointer;
   transition:
     border-color 0.18s ease,
     translate 0.18s ease;
 }
 
-/* Whole-card links (the featured card, and any card that is itself an <a>). */
-a.card:hover {
+/* Both cards are activatable controls in the toolbar, so both get the same
+   rest, hover and keyboard-focus treatment. */
+.card:hover {
   border-color: var(--ink-dim);
   translate: 0 -2px;
 }
 
-a.card:focus-visible {
+/* The keyboard-focus state reads as the app's gold/green highlight — the same
+   ball-coloured ring the rest of the app uses for :focus-visible — not a
+   generic browser outline, and it lights the card's border to match. */
+.card:focus-visible {
   outline: 2px solid var(--ball);
   outline-offset: 3px;
+  border-color: var(--ball-line);
+}
+
+/* Motion is decorative; honour a reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: border-color 0.18s ease;
+  }
+
+  .card:hover {
+    translate: none;
+  }
 }
 
 .featured {

@@ -98,7 +98,7 @@ MODES = ("montecarlo", "storybook")
 # internal design notes to look anything up in. It carried an
 # "(ace-04-current-state.md §7)" citation until the 2026-08-09 audit.
 ADAPTER_CAVEAT = (
-    "ℹ️  Not a forecast. This draw already happened, so the model is scoring a "
+    "Not a forecast. This draw already happened, so the model is scoring a "
     "result it could have seen. These probabilities come from an as-of-now "
     "snapshot of the loaded data (rankings, surface records, head-to-heads and "
     "recent form as they stand at the end of the vendored seasons), fused with "
@@ -153,18 +153,18 @@ def load_tournament_draw(path: str | Path, skill_table) -> DrawLoad:
         hint = f" Available draws: {available}" if available else ""
         return DrawLoad(
             None,
-            f"❌ Draw file not found: {path}\n"
+            f"Draw file not found: {path}\n"
             f"   Draw files are JSON, conventionally under {config.DRAWS_DIR}/.{hint}",
         )
     except IsADirectoryError:
         return DrawLoad(
-            None, f"❌ {path} is a directory, not a draw file."
+            None, f"{path} is a directory, not a draw file."
         )
     except DrawValidationError as exc:
         problems = "\n".join(f"     - {problem}" for problem in exc.problems)
         return DrawLoad(
             None,
-            f"❌ Invalid draw file: {exc.source}\n"
+            f"Invalid draw file: {exc.source}\n"
             f"   {len(exc.problems)} problem(s) found:\n{problems}",
         )
 
@@ -383,7 +383,7 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
     if args.mode == "storybook" and args.runs is not None:
-        print("ℹ️  --runs is ignored in storybook mode (it plays exactly one bracket).")
+        print("--runs is ignored in storybook mode (it plays exactly one bracket).")
     n_runs = config.MC_RUNS if args.runs is None else args.runs
 
     # Fail on an obviously bad path *before* paying for the pipeline: build_context
@@ -408,7 +408,7 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         # Chiefly the placeholder-entrant refusal (T2.2), which names every
         # offending slot — worth showing in full, not as a traceback.
-        print(f"❌ {exc}")
+        print(f"{exc}")
         return 1
     return 0
 

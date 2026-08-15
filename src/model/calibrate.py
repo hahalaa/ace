@@ -205,7 +205,7 @@ def run_calibration(classifier=None, save_path=config.CALIBRATION_PLOT):
     if classifier is None:
         pinned = reconcile.load_pinned_classifier()
         print(
-            f"📌 Pinned classifier: {pinned.estimator_class} "
+            f"Pinned classifier: {pinned.estimator_class} "
             f"({pinned.n_features_in} features) from {pinned.path}"
         )
         classifier = pinned.estimator
@@ -219,7 +219,7 @@ def run_calibration(classifier=None, save_path=config.CALIBRATION_PLOT):
     result = compute_calibration(probs, y, config.CALIBRATION_BINS)
     plot_calibration(result, brier, save_path)
 
-    print(f"🎯 Brier score on TEST_YEAR {config.TEST_YEAR}: {brier:.4f} "
+    print(f"Brier score on TEST_YEAR {config.TEST_YEAR}: {brier:.4f} "
           f"(n={y.size}, {len(result.bin_count)} populated bins)")
     print(f"   [Saved {save_path}]")
     return brier, result

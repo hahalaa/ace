@@ -35,7 +35,7 @@ def load_atp_data(start_year: int, end_year: int) -> pd.DataFrame:
             ``scripts/refresh_data.py`` instead.
     """
     yearly_dfs = []
-    print(f"📂 Loading vendored ATP data from {start_year} to {end_year}...")
+    print(f"Loading vendored ATP data from {start_year} to {end_year}...")
 
     for year in range(start_year, end_year + 1):
         path = config.RAW_DATA_DIR / RAW_FILENAME.format(year=year)
@@ -50,7 +50,7 @@ def load_atp_data(start_year: int, end_year: int) -> pd.DataFrame:
         df = pd.read_csv(path, on_bad_lines="skip")
         df["year"] = year
         yearly_dfs.append(df)
-        print(f"   ✓ Loaded {year}: {len(df)} matches")
+        print(f"   Loaded {year}: {len(df)} matches")
 
     combined = pd.concat(yearly_dfs, ignore_index=True)
 

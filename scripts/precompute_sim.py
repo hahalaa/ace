@@ -308,7 +308,7 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
     if args.runs < 1:
-        print(f"❌ --runs must be at least 1, got {args.runs}.")
+        print(f"--runs must be at least 1, got {args.runs}.")
         return 1
 
     print("Loading data, skill table and classifier…")
@@ -318,13 +318,13 @@ def main(argv: list[str] | None = None) -> int:
 
     entry = registry.get(args.draw)
     if entry is None:
-        print(f"❌ No tournament with id {args.draw!r}.")
+        print(f"No tournament with id {args.draw!r}.")
         print(_known_ids_message(registry))
         return 1
     if entry.draw is None:
         problems = "\n".join(f"     - {problem}" for problem in entry.problems)
         print(
-            f"❌ Draw file {entry.source} failed validation with "
+            f"Draw file {entry.source} failed validation with "
             f"{len(entry.problems)} problem(s):\n{problems}"
         )
         return 1
@@ -349,7 +349,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     except ValueError as exc:
         # Chiefly T2.2's placeholder refusal, which names every offending slot.
-        print(f"❌ {exc}")
+        print(f"{exc}")
         return 1
 
     payload = build_payload(
@@ -361,12 +361,12 @@ def main(argv: list[str] | None = None) -> int:
     path = write_cache(payload, args.cache_dir)
 
     champion = payload.players[0]
-    print(f"✅ Wrote {path}")
+    print(f"Wrote {path}")
     print(
         f"   {payload.count} entrants · {payload.metadata.runs:,} runs · "
         f"favourite: {champion.player} ({champion.p_title:.1%})"
     )
-    print(f"ℹ️  {payload.metadata.classifier_limitation}")
+    print(f"{payload.metadata.classifier_limitation}")
     return 0
 
 

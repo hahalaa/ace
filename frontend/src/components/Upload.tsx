@@ -27,6 +27,39 @@ import type { UploadResponse } from '../api/types';
 import ErrorPanel from './ErrorPanel';
 import styles from './upload.module.css';
 
+/**
+ * A complete, valid eight-slot draw, copied verbatim from the "Minimal worked
+ * example" in `data/draws/DRAW_SCHEMA.md`. It is the schema reference's own
+ * example, reused rather than re-authored, so this snippet cannot drift from the
+ * document a test keeps honest against the validator.
+ */
+const SCHEMA_EXAMPLE = `{
+  "note": "Toy 8-slot illustration of the draw schema — not a real event.",
+  "tournament_id": "toy_open_2026",
+  "name": "Toy Open 2026: Men's Singles (8-slot example)",
+  "surface": "Hard",
+  "best_of": 5,
+  "final_set_tiebreak": "10pt_at_6_6",
+  "event_date": "2026-06-01",
+  "draw_size": 8,
+  "seeds": {
+    "Carlos Alcaraz": 1,
+    "Jannik Sinner": 2,
+    "Alexander Zverev": 3,
+    "Novak Djokovic": 4
+  },
+  "bracket": [
+    { "position": 1, "player": "Carlos Alcaraz" },
+    { "position": 2, "player": "Taylor Fritz" },
+    { "position": 3, "player": "Alexander Zverev" },
+    { "position": 4, "player": "Casper Ruud" },
+    { "position": 5, "player": "Novak Djokovic" },
+    { "position": 6, "player": "Qualifier" },
+    { "position": 7, "player": "Daniil Medvedev" },
+    { "position": 8, "player": "Jannik Sinner" }
+  ]
+}`;
+
 type State =
   | { status: 'idle' }
   | { status: 'uploading' }
@@ -93,6 +126,19 @@ export default function Upload() {
         link you share may stop working later, so save any results you want to keep. Uploads are
         not checked against any official record.
       </p>
+
+      <details className={styles.schema}>
+        <summary>See a valid draw file</summary>
+        <div className={styles.schemaBody}>
+          <p className={styles.schemaLede}>
+            Here is a complete eight-slot draw in the format the uploader expects. The full
+            field-by-field reference lives in <code>data/draws/DRAW_SCHEMA.md</code>.
+          </p>
+          <pre className={styles.schemaCode}>
+            <code>{SCHEMA_EXAMPLE}</code>
+          </pre>
+        </div>
+      </details>
 
       {state.status !== 'done' && (
         <label

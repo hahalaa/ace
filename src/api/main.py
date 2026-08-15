@@ -207,7 +207,7 @@ def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
 # signatures). Applied as a route *dependency*, so it reads the client IP without
 # touching the handler's own signature.
 #
-# ⚠️ HONEST SCOPE — repeated verbatim from config.API_STORYBOOK_RATE_LIMIT
+# HONEST SCOPE — repeated verbatim from config.API_STORYBOOK_RATE_LIMIT
 # because it is the whole point: the window counts live in this process's memory
 # only. Render's free tier cold-starts and restarts routinely and every restart
 # wipes the counters; a multi-replica deployment gives each replica its own. So
@@ -243,7 +243,7 @@ def _client_key(request: Request) -> str:
          request (a client-sent value is discarded, not appended), so it is not
          client-spoofable in the deployed topology. Preferred when present.
       2. First hop of ``X-Forwarded-For`` — the fallback for a deployment without
-         Cloudflare in front. ⚠️ This one *is* client-supplied and spoofable: an
+         Cloudflare in front. This one *is* client-supplied and spoofable: an
          attacker can rotate it to dodge the limit. Acceptable because the limit
          is hygiene, not a security control, and gates no authorization decision.
       3. The socket peer — direct local dev, no proxy at all.

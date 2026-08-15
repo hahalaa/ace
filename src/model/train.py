@@ -39,7 +39,7 @@ def train_and_evaluate(df: pd.DataFrame) -> Any:
     Train multiple models and evaluate on the test year.
     Returns the best-performing model based on test accuracy.
     """
-    print("🧠 Training models...")
+    print("Training models...")
 
     train_mask, test_mask = year_split_masks(df)
 

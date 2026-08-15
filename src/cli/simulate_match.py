@@ -222,7 +222,7 @@ def resolve_display_name(query: str, index: NameIndex) -> NameResolution:
     if match is None:
         return NameResolution(
             None,
-            f"❌ Player '{query}' not found. "
+            f"Player '{query}' not found. "
             f"Try a fuller name (e.g. 'Carlos Alcaraz') or a surname.",
         )
     if match.is_ambiguous:
@@ -241,7 +241,7 @@ def resolve_display_name(query: str, index: NameIndex) -> NameResolution:
 # what remains worth stating is that it hands the winner entirely to the
 # classifier and leaves the point model only the scoreline.
 ANCHOR_MODE_CAVEAT = (
-    "ℹ️  classifier_anchor: the classifier alone decides the winner; the point "
+    "classifier_anchor: the classifier alone decides the winner; the point "
     "model only shapes the scoreline. Use blend to let both speak."
 )
 
@@ -388,7 +388,7 @@ def print_simulation(sim: MatchSimulation) -> None:
         sim.win_prob_a,
     )
     loser = sim.player_b if sim.winner == sim.player_a else sim.player_a
-    print(f"🎾 SIMULATED MATCH (best of {sim.best_of}, {sim.final_set_rule})")
+    print(f"SIMULATED MATCH (best of {sim.best_of}, {sim.final_set_rule})")
     print(f"   {sim.winner} def. {loser}  {winner_first_scoreline(sim.result)}")
     print(
         f"   {sim.player_a} wins {sim.win_prob_a:.1%} of {sim.n_sims:,} simulations "
@@ -461,7 +461,7 @@ def main(argv: list[str] | None = None) -> int:
 
     surface = interactive.validate_surface(args.surface)
     if surface is None:
-        print(f"❌ Invalid surface '{args.surface}'. Choose Hard, Clay, or Grass.")
+        print(f"Invalid surface '{args.surface}'. Choose Hard, Clay, or Grass.")
         return 2
 
     ctx = build_context()
@@ -477,7 +477,7 @@ def main(argv: list[str] | None = None) -> int:
             except EOFError:
                 # Closed/empty stdin — leave cleanly rather than crash (the
                 # pre-existing REPL defect in ace-04-current-state.md §8).
-                print("\n👋 Input closed. Exiting.")
+                print("\nInput closed. Exiting.")
                 return 1
         resolution = resolve_display_name(query, index)
         if resolution.name is None:
@@ -500,7 +500,7 @@ def main(argv: list[str] | None = None) -> int:
             reconcile_mode=args.reconcile_mode,
         )
     except ValueError as exc:
-        print(f"❌ {exc}")
+        print(f"{exc}")
         return 1
 
     print_simulation(sim)

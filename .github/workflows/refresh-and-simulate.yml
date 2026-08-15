@@ -27,7 +27,7 @@
 # Settings → Actions → General → Workflow permissions:
 #   1. "Read and write permissions" (or leave it read-only and rely on the
 #      job-level `permissions:` block below, which is what is used here).
-#   2. ✅ "Allow GitHub Actions to create and approve pull requests" — WITHOUT
+#   2. "Allow GitHub Actions to create and approve pull requests" — WITHOUT
 #      IT `gh pr create` FAILS with a 403 even though the token has
 #      `pull-requests: write`. See DEPLOYING.md.
 # Note also that GitHub disables scheduled workflows after 60 days with no

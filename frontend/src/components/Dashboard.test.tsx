@@ -7,12 +7,15 @@
  * card is the featured one, and every link carries URL state the shell can read.
  */
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import Dashboard from './Dashboard';
 
 afterEach(cleanup);
+
+const matchCard = () => document.querySelector('[data-card="match"]') as HTMLElement;
+const tournamentCard = () => document.querySelector('[data-card="tournament"]') as HTMLElement;
 
 describe('Dashboard', () => {
   it('offers a single-match path and a tournament path', () => {
@@ -53,5 +56,51 @@ describe('Dashboard', () => {
     render(<Dashboard tournamentId="ausopen_2026_atp_full" />);
     // The featured card carries the "Featured" kicker.
     expect(screen.getByText('Featured')).toBeTruthy();
+  });
+
+  it('groups the two cards as a toolbar, each an accessibly-named control', () => {
+    render(<Dashboard tournamentId="ausopen_2026_atp_full" />);
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Ways to start' });
+    expect(toolbar).not.toBeNull();
+    // Both cards are activatable controls with an accessible name.
+    expect(matchCard().getAttribute('aria-label')).toBe('Simulate a single match');
+    expect(tournamentCard().getAttribute('role')).toBe('link');
+    expect(tournamentCard().getAttribute('aria-label')).toContain('Run a full draw');
+  });
+
+  it('starts with only the featured card in the tab order (roving tabindex)', () => {
+    render(<Dashboard tournamentId="ausopen_2026_atp_full" />);
+
+    expect(matchCard().tabIndex).toBe(0);
+    expect(tournamentCard().tabIndex).toBe(-1);
+  });
+
+  it('moves focus and the tab stop between cards with the arrow keys', () => {
+    render(<Dashboard tournamentId="ausopen_2026_atp_full" />);
+
+    matchCard().focus();
+    fireEvent.keyDown(matchCard(), { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(tournamentCard());
+    expect(tournamentCard().tabIndex).toBe(0);
+    expect(matchCard().tabIndex).toBe(-1);
+
+    fireEvent.keyDown(tournamentCard(), { key: 'ArrowLeft' });
+    expect(document.activeElement).toBe(matchCard());
+    expect(matchCard().tabIndex).toBe(0);
+    expect(tournamentCard().tabIndex).toBe(-1);
+  });
+
+  it('keeps the tournament card its own inner links, independently addressable', () => {
+    render(<Dashboard tournamentId="ausopen_2026_atp_full" />);
+
+    // The card's primary action is the example bracket; its two inner links stay
+    // reachable and carry their own destinations.
+    expect(document.querySelector('[data-link="example"]')?.getAttribute('href')).toBe(
+      '?tournament=ausopen_2026_atp_full&view=bracket',
+    );
+    expect(document.querySelector('[data-link="upload"]')?.getAttribute('href')).toBe(
+      '?view=upload',
+    );
   });
 });

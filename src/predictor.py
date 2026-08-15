@@ -30,14 +30,14 @@ def main() -> None:
     
     # 3. Model Training / Loading
     if config.MODEL_PATH.exists():
-        print(f"📂 Loading trained model from {config.MODEL_PATH}...")
+        print(f"Loading trained model from {config.MODEL_PATH}...")
         rf_model = joblib.load(config.MODEL_PATH)
     else:
         rf_model = train.train_and_evaluate(final_df)
         import os
         os.makedirs(config.OUTPUT_DIR, exist_ok=True)
         joblib.dump(rf_model, config.MODEL_PATH)
-        print(f"💾 Model saved to {config.MODEL_PATH}")
+        print(f"Model saved to {config.MODEL_PATH}")
 
     # 4. Visualization & Interaction
     viz.plot_feature_importance(rf_model)

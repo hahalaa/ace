@@ -113,7 +113,6 @@ function App() {
           <a className="wordmark" href="?view=dashboard" aria-label="Ace home">
             Ace<span className="ballMark" aria-hidden="true" />
           </a>
-          <span className="brandTag">Grand Slam simulator</span>
         </div>
         <div className="mastheadEnd">
           <nav className="viewNav" aria-label="Sections">

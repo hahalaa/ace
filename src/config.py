@@ -264,7 +264,7 @@ API_STORYBOOK_SEED_MAX = 2**32 - 1
 # site-wide one — /health, /players, /bracket and the cached /simulate stay
 # unthrottled.
 #
-# ⚠️ HONEST SCOPE: the limiter's store is a plain in-memory sliding window
+# HONEST SCOPE: the limiter's store is a plain in-memory sliding window
 # (api/main.SlidingWindowRateLimiter), so its counters live only in the process.
 # On Render's free tier the instance cold-starts and restarts routinely, and
 # every restart resets the counters to zero; a horizontally-scaled deployment

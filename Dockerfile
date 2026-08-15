@@ -179,7 +179,7 @@ FROM node:22-alpine AS frontend-builder
 
 WORKDIR /app
 
-# ⚠️ VITE_API_BASE_URL IS A BUILD ARG, AND CAN ONLY EVER BE ONE.
+# VITE_API_BASE_URL IS A BUILD ARG, AND CAN ONLY EVER BE ONE.
 # Vite inlines it into the bundle at build time and the minifier constant-folds
 # the lookup away entirely — `import.meta.env` and the string
 # "VITE_API_BASE_URL" appear NOWHERE in dist/ (T4.5 verified this against a
