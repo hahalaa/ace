@@ -1,11 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
   <rect width="48" height="48" rx="10" fill="#0a0a0b"/>
   <circle cx="24" cy="24" r="15" fill="#d8ff3d"/>
-  <!-- Same two-seam geometry as the masthead .ballMark, scaled to r=15: two
-       arcs, one opening to each side, bulging toward the centre but leaving a
-       clear gap between them, the way a real ball's seams read head-on.
+  <!-- Same two-seam geometry as the masthead .ballMark: two arcs, one opening to
+       each side, bulging toward the centre but leaving a clear gap between them,
+       the way a real ball's seams read head-on. The gap is widened relative to a
+       straight scale of the masthead seams because the favicon ball fills only
+       ~62% of its canvas (vs ~87% in the masthead), so an identical ball-relative
+       gap would read too small at tab size; this makes the *perceived* gap match.
        Near-black seams on the optic-yellow ball (the brand's dark register;
        favicons don't follow the page theme). -->
-  <path d="M16.9 12.4 C 20.4 18.3, 20.4 29.7, 16.9 35.6" fill="none" stroke="#0a0a0b" stroke-width="2.7" stroke-linecap="round"/>
-  <path d="M31.1 12.4 C 27.6 18.3, 27.6 29.7, 31.1 35.6" fill="none" stroke="#0a0a0b" stroke-width="2.7" stroke-linecap="round"/>
+  <path d="M16.9 12.4 C 18.0 18.3, 18.0 29.7, 16.9 35.6" fill="none" stroke="#0a0a0b" stroke-width="2.7" stroke-linecap="round"/>
+  <path d="M31.1 12.4 C 30.0 18.3, 30.0 29.7, 31.1 35.6" fill="none" stroke="#0a0a0b" stroke-width="2.7" stroke-linecap="round"/>
 </svg>
