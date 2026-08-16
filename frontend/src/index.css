@@ -57,17 +57,21 @@
     Arial, sans-serif;
   --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 
-  /* One rhythm, referenced everywhere so spacing stays on a grid. `--gap` is
-     kept as the historical alias for the 1.5rem step so nothing that reads it
-     has to change; the named scale is what new work reaches for. */
-  --space-3xs: 0.25rem;
-  --space-2xs: 0.5rem;
-  --space-xs: 0.75rem;
-  --space-sm: 1rem;
-  --space-md: 1.5rem;
-  --space-lg: 2.25rem;
-  --space-xl: 3.5rem;
-  --gap: var(--space-md);
+  /* One rhythm step, referenced widely so spacing stays on a grid. A fuller
+     named scale (--space-3xs … --space-xl) was drafted in this pass but nothing
+     adopted it — components space themselves with `--gap`, local rems and
+     `clamp()` — so it is left out rather than shipped as dead tokens. Reintroduce
+     it as a set only alongside the work that actually migrates onto it. */
+  --gap: 1.5rem;
+
+  /* A deliberate two-step radius scale, applied by the role of the surface, not
+     ad hoc: `--radius` (tight) is for small controls and dense, repeated cells —
+     inputs, buttons, the theme toggle, and the bracket's match cards, of which a
+     128 draw shows dozens at once and a soft corner would read as bloat.
+     `--radius-lg` (soft) is for the large standalone panels a screen is built
+     around — the dashboard cards, the odds table, the match/breakdown blocks,
+     the upload dropzone and result. matchSim uses both on purpose: its panel is
+     `--radius-lg`, the inputs inside it `--radius`. */
   --radius: 4px;
   --radius-lg: 10px;
 
@@ -86,6 +90,21 @@
   --dur-2: 0.26s;
   --dur-3: 0.5s;
   --dur-reveal: 0.7s;
+
+  /*
+   * Shared-keyframe handle. `@keyframes rise` (below) is the one entrance
+   * primitive every screen reuses, but it is defined here in a *global* (non-
+   * module) stylesheet while the screens that play it live in `.module.css`
+   * files. CSS Modules scopes each module in isolation and rewrites a bare
+   * `animation: rise` into a hashed, per-file local name (`_rise_ab12_1`) that
+   * never matches this global definition — so the animation silently no-ops.
+   * `:global(rise)` in a value is the documented escape hatch, but this Vite/
+   * rolldown PostCSS parser rejects it ("Double colon"). Publishing the name as
+   * a token sidesteps the whole problem: CSS Modules never localises the inside
+   * of a `var()`, so `animation: var(--kf-rise) …` in any module resolves to the
+   * single shared keyframe. One definition, referenced consistently everywhere.
+   */
+  --kf-rise: rise;
 
   /*
    * Elevation. A tinted shadow — carrying the ground's own near-black, never a

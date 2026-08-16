@@ -11,21 +11,22 @@
 }
 
 /* The screen leads itself in, section by section: the hero, then the two
-   cards, then the demo line. Uses the global `rise` primitive from index.css;
-   off entirely for anyone who asked for less motion. */
+   cards, then the demo line. Uses the shared `rise` keyframe via the
+   `--kf-rise` token (see index.css); off entirely for anyone who asked for
+   less motion. */
 @media (prefers-reduced-motion: no-preference) {
   .hero {
-    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
     animation-delay: 0.06s;
   }
 
   .cards {
-    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
     animation-delay: 0.13s;
   }
 
   .demoLink {
-    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
     animation-delay: 0.2s;
   }
 }

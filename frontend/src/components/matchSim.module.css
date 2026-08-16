@@ -12,20 +12,21 @@
 
 /* Lead the screen in: the intro, then the controls. The results block stages
    itself when it arrives (below), so it is not delayed against a load it was
-   not part of. Global `rise` primitive; off under reduced motion. */
+   not part of. Shared `rise` keyframe via `--kf-rise`; off under reduced
+   motion. */
 @media (prefers-reduced-motion: no-preference) {
   .intro {
-    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
     animation-delay: 0.06s;
   }
 
   .controls {
-    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
     animation-delay: 0.13s;
   }
 
   .results {
-    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
   }
 }
 

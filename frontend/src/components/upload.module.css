@@ -19,15 +19,16 @@
 
 /* Lead the screen in: intro, then the drop zone. The standing ephemerality
    note and the result are left un-delayed so the honesty copy is never held
-   back behind the flow. Global `rise`, off under reduced motion. */
+   back behind the flow. Shared `rise` via `--kf-rise`, off under reduced
+   motion. */
 @media (prefers-reduced-motion: no-preference) {
   .intro {
-    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
     animation-delay: 0.06s;
   }
 
   .dropzone {
-    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
     animation-delay: 0.13s;
   }
 }

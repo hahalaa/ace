@@ -138,7 +138,7 @@
    motion. Capped at the seven columns a 128 draw has. */
 @media (prefers-reduced-motion: no-preference) {
   .round {
-    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
   }
 
   .round:nth-child(1) {
