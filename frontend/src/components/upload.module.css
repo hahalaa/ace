@@ -17,6 +17,21 @@
   min-width: 0;
 }
 
+/* Lead the screen in: intro, then the drop zone. The standing ephemerality
+   note and the result are left un-delayed so the honesty copy is never held
+   back behind the flow. Global `rise`, off under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .intro {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.06s;
+  }
+
+  .dropzone {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.13s;
+  }
+}
+
 .intro {
   margin: 0;
   line-height: 1.55;
@@ -34,12 +49,19 @@
   gap: 0.5rem;
   padding: 2.5rem 1.5rem;
   border: 1px dashed var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--bg-raise);
   color: var(--ink-mid);
   cursor: pointer;
   text-align: center;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out);
+}
+
+.dropzone:hover {
+  box-shadow: var(--shadow-1);
 }
 
 .dropzone:hover,
@@ -105,7 +127,7 @@
   text-transform: uppercase;
   color: var(--ink-dim);
   list-style: none;
-  transition: color 0.18s ease;
+  transition: color var(--dur-1) var(--ease-out);
 }
 
 .schema > summary::-webkit-details-marker {
@@ -166,8 +188,9 @@
 .result {
   padding: 1.25rem 1.5rem;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--bg-raise);
+  box-shadow: var(--shadow-1);
 }
 
 .resultHeading {
@@ -223,6 +246,10 @@
   cursor: pointer;
   color: var(--ink);
   background: var(--bg-raise);
+  transition:
+    border-color var(--dur-1) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    translate var(--dur-1) var(--ease-spring);
 }
 
 .actionPrimary {
@@ -234,6 +261,14 @@
 .actionPrimary:hover,
 .actionSecondary:hover {
   border-color: var(--ink-mid);
+  box-shadow: var(--shadow-1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .actionPrimary:active,
+  .actionSecondary:active {
+    translate: 0 1px;
+  }
 }
 
 .reset {
@@ -248,6 +283,7 @@
   color: var(--ink-mid);
   cursor: pointer;
   padding: 0;
+  transition: color var(--dur-1) var(--ease-out);
 }
 
 .reset:hover {

@@ -85,13 +85,21 @@
   color: var(--ink-mid);
   cursor: pointer;
   transition:
-    border-color 0.18s ease,
-    color 0.18s ease;
+    border-color var(--dur-1) var(--ease-out),
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out),
+    translate var(--dur-1) var(--ease-spring);
 }
 
 .railButton:hover {
   border-color: var(--ink-dim);
   color: var(--ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .railButton:active {
+    translate: 0 1px;
+  }
 }
 
 .railButton[aria-pressed='true'] {
@@ -123,6 +131,37 @@
   flex-direction: column;
   flex: 0 0 auto;
   min-width: 234px;
+}
+
+/* The columns arrive left to right, the way a draw is read. A transform-only
+   fade, so it never touches the board's scroll width; off under reduced
+   motion. Capped at the seven columns a 128 draw has. */
+@media (prefers-reduced-motion: no-preference) {
+  .round {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+  }
+
+  .round:nth-child(1) {
+    animation-delay: 0.02s;
+  }
+  .round:nth-child(2) {
+    animation-delay: 0.07s;
+  }
+  .round:nth-child(3) {
+    animation-delay: 0.12s;
+  }
+  .round:nth-child(4) {
+    animation-delay: 0.17s;
+  }
+  .round:nth-child(5) {
+    animation-delay: 0.22s;
+  }
+  .round:nth-child(6) {
+    animation-delay: 0.27s;
+  }
+  .round:nth-child(n + 7) {
+    animation-delay: 0.32s;
+  }
 }
 
 .roundHeading {
@@ -169,11 +208,14 @@
   border-radius: var(--radius);
   background: var(--bg-raise);
   overflow: hidden;
-  transition: border-color 0.18s ease;
+  transition:
+    border-color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out);
 }
 
 .card:hover {
   border-color: var(--ink-dim);
+  box-shadow: var(--shadow-1);
 }
 
 .entrant {
@@ -249,6 +291,23 @@
   bottom: 0;
   width: 2px;
   background: var(--ball);
+}
+
+/* The tick draws itself down the winning side when a run resolves. */
+@media (prefers-reduced-motion: no-preference) {
+  .entrant[data-result='won']::before {
+    transform-origin: top;
+    animation: tickIn var(--dur-3) var(--ease-spring) both;
+  }
+
+  @keyframes tickIn {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
 }
 
 .entrant[data-result='won'] .name {

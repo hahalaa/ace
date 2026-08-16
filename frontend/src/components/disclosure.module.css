@@ -51,7 +51,7 @@
   text-transform: uppercase;
   color: var(--ink-dim);
   list-style: none;
-  transition: color 0.18s ease;
+  transition: color var(--dur-1) var(--ease-out);
 }
 
 .limitation > summary::-webkit-details-marker {

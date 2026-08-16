@@ -18,6 +18,20 @@
   min-width: 0;
 }
 
+/* Lead the board in: the heading, then the table. Global `rise`, off under
+   reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .head {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.06s;
+  }
+
+  .tableWrap {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.13s;
+  }
+}
+
 .head {
   display: flex;
   flex-direction: column;
@@ -50,8 +64,9 @@
   overflow-x: auto;
   scrollbar-gutter: stable;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--bg-raise);
+  box-shadow: var(--shadow-1);
 }
 
 .table {
@@ -74,6 +89,12 @@
   padding: 0.6rem 1rem;
   white-space: nowrap;
   border-bottom: 1px solid var(--line-soft);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .table tbody td {
+    transition: background-color var(--dur-1) var(--ease-out);
+  }
 }
 
 .table thead th {

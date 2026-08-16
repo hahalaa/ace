@@ -33,6 +33,13 @@
   gap: 1rem;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .toolbar {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.06s;
+  }
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -51,13 +58,17 @@
   border: 1px solid transparent;
   cursor: pointer;
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease;
+    background-color var(--dur-1) var(--ease-out),
+    border-color var(--dur-1) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    color var(--dur-1) var(--ease-out),
+    translate var(--dur-1) var(--ease-spring);
 }
 
 /* The primary action is the live one — running the simulation — so it carries
-   the accent as a filled control. */
+   the accent as a filled control. Its hover brightens the fill with a filter
+   rather than a second hardcoded colour, so it stays correct in both themes
+   (optic-yellow in the dark register, trophy-gold in the light one). */
 .primary {
   color: var(--ball-ink);
   background: var(--ball);
@@ -65,7 +76,15 @@
 }
 
 .primary:hover {
-  background: #e6ff6b;
+  filter: brightness(1.08);
+  box-shadow: var(--shadow-1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .primary:not(:disabled):active,
+  .secondary:not(:disabled):active {
+    translate: 0 1px;
+  }
 }
 
 .secondary {
@@ -168,20 +187,57 @@
   color: var(--ink-mid);
 }
 
-/* Cinematic, singular, and off by default for anyone who asked for less. */
+/* Cinematic, singular, and off by default for anyone who asked for less.
+ *
+ * The reveal is now staged: the rule-lined panel opens first, then the label,
+ * the champion's name (rising a touch further and settling from just under
+ * full size — the one place in the app that earns a scale), and finally the
+ * meta and scoreline. It is still one considered moment, not a parade; the
+ * spring is the shared `--ease-spring`. */
 @media (prefers-reduced-motion: no-preference) {
   .champion {
-    animation: reveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: reveal var(--dur-reveal) var(--ease-spring) both;
+  }
+
+  .championLabel {
+    animation: reveal var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.12s;
+  }
+
+  .championName {
+    animation: championIn 0.8s var(--ease-spring) both;
+    animation-delay: 0.18s;
+  }
+
+  .championMeta {
+    animation: reveal var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.32s;
+  }
+
+  .championFinal {
+    animation: reveal var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.4s;
   }
 
   @keyframes reveal {
     from {
       opacity: 0;
-      transform: translateY(0.75rem);
+      transform: translateY(0.7rem);
     }
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  @keyframes championIn {
+    from {
+      opacity: 0;
+      transform: translateY(1rem) scale(0.965);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
   }
 }

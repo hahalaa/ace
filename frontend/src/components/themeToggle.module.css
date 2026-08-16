@@ -26,8 +26,23 @@
 @media (prefers-reduced-motion: no-preference) {
   .toggle {
     transition:
-      color 0.18s ease,
-      border-color 0.18s ease;
+      color var(--dur-1) var(--ease-out),
+      border-color var(--dur-1) var(--ease-out),
+      translate var(--dur-1) var(--ease-spring);
+  }
+
+  .toggle:active {
+    translate: 0 1px;
+  }
+
+  /* The glyph gives a small turn when reached — a wink toward the day/night
+     switch it stands for. */
+  .toggle svg {
+    transition: transform var(--dur-3) var(--ease-spring);
+  }
+
+  .toggle:hover svg {
+    transform: rotate(-18deg);
   }
 }
 

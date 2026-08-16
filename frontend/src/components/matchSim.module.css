@@ -10,6 +10,25 @@
   gap: clamp(1.25rem, 3vw, 1.75rem);
 }
 
+/* Lead the screen in: the intro, then the controls. The results block stages
+   itself when it arrives (below), so it is not delayed against a load it was
+   not part of. Global `rise` primitive; off under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .intro {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.06s;
+  }
+
+  .controls {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.13s;
+  }
+
+  .results {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+  }
+}
+
 .intro {
   max-width: 52ch;
 }
@@ -36,8 +55,9 @@
   gap: 1.1rem;
   padding: clamp(1.1rem, 3vw, 1.6rem);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--bg-raise);
+  box-shadow: var(--shadow-1);
 }
 
 .players {
@@ -88,6 +108,12 @@
   border-radius: var(--radius);
   padding: 0.5rem 0.65rem;
   min-height: 2.5rem;
+  transition: border-color var(--dur-1) var(--ease-out);
+}
+
+.select:hover,
+.pickerInput:hover {
+  border-color: var(--ink-dim);
 }
 
 .select:focus-visible,
@@ -120,7 +146,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--bg-raise);
-  box-shadow: 0 12px 28px rgb(0 0 0 / 0.28);
+  box-shadow: var(--shadow-2);
   max-height: 16rem;
   overflow-y: auto;
 }
@@ -131,6 +157,9 @@
   font-size: 0.92rem;
   color: var(--ink-mid);
   cursor: pointer;
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
 }
 
 .pickerOption[data-active='true'] {
@@ -157,7 +186,10 @@
   padding: 0.55rem 1.1rem;
   min-height: 2.5rem;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition:
+    opacity var(--dur-1) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    translate var(--dur-1) var(--ease-spring);
 }
 
 .primary:disabled {
@@ -166,7 +198,15 @@
 }
 
 .primary:not(:disabled):hover {
-  opacity: 0.9;
+  opacity: 0.92;
+  box-shadow: var(--shadow-1);
+}
+
+/* A small physical press — the button gives under the click, then settles. */
+@media (prefers-reduced-motion: no-preference) {
+  .primary:not(:disabled):active {
+    translate: 0 1px;
+  }
 }
 
 .secondary {
@@ -178,10 +218,20 @@
   border-radius: var(--radius);
   padding: 0.45rem 0.9rem;
   cursor: pointer;
+  transition:
+    border-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out),
+    translate var(--dur-1) var(--ease-spring);
 }
 
 .secondary:hover {
   border-color: var(--ink-dim);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .secondary:active {
+    translate: 0 1px;
+  }
 }
 
 .primary:focus-visible,
@@ -278,7 +328,27 @@
   display: block;
   height: 100%;
   background: var(--ball);
-  transition: width 0.3s ease;
+  transition: width var(--dur-3) var(--ease-spring);
+}
+
+/* The result's headline number: the fill grows from the left on arrival rather
+   than snapping to width, so the odds read as being drawn. The React-set inline
+   width is untouched — this scales the already-sized fill, so the final state
+   is identical. `transition: width` above still carries any later change. */
+@media (prefers-reduced-motion: no-preference) {
+  .winFill {
+    transform-origin: left;
+    animation: growX var(--dur-reveal) var(--ease-spring) both;
+  }
+
+  @keyframes growX {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
 }
 
 /* --- Breakdowns ---------------------------------------------------------- */
@@ -291,8 +361,9 @@
 .breakdown {
   padding: clamp(1rem, 2.5vw, 1.4rem);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--bg-raise);
+  box-shadow: var(--shadow-1);
 }
 
 .breakdownHead {

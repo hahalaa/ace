@@ -10,6 +10,26 @@
   gap: clamp(1.75rem, 4vw, 3rem);
 }
 
+/* The screen leads itself in, section by section: the hero, then the two
+   cards, then the demo line. Uses the global `rise` primitive from index.css;
+   off entirely for anyone who asked for less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.06s;
+  }
+
+  .cards {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.13s;
+  }
+
+  .demoLink {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.2s;
+  }
+}
+
 .hero {
   max-width: 46ch;
 }
@@ -42,20 +62,30 @@
   gap: 0.6rem;
   padding: clamp(1.4rem, 3vw, 2rem);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--bg-raise);
+  box-shadow: var(--shadow-1);
   text-decoration: none;
   cursor: pointer;
   transition:
-    border-color 0.18s ease,
-    translate 0.18s ease;
+    border-color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    translate var(--dur-2) var(--ease-spring);
 }
 
 /* Both cards are activatable controls in the toolbar, so both get the same
-   rest, hover and keyboard-focus treatment. */
+   rest, hover, press and keyboard-focus treatment. The lift is carried by the
+   tinted shadow as much as the translate, so it still reads on reduced motion
+   where the movement is dropped. */
 .card:hover {
   border-color: var(--ink-dim);
-  translate: 0 -2px;
+  translate: 0 -3px;
+  box-shadow: var(--shadow-2);
+}
+
+.card:active {
+  translate: 0 -1px;
+  transition-duration: var(--dur-1);
 }
 
 /* The keyboard-focus state reads as the app's gold/green highlight — the same
@@ -67,13 +97,17 @@
   border-color: var(--ball-line);
 }
 
-/* Motion is decorative; honour a reduced-motion preference. */
+/* Motion is decorative; honour a reduced-motion preference. The shadow lift
+   stays (it is depth, not movement); only the translate is dropped. */
 @media (prefers-reduced-motion: reduce) {
   .card {
-    transition: border-color 0.18s ease;
+    transition:
+      border-color var(--dur-2) var(--ease-out),
+      box-shadow var(--dur-2) var(--ease-out);
   }
 
-  .card:hover {
+  .card:hover,
+  .card:active {
     translate: none;
   }
 }
@@ -129,6 +163,7 @@
   text-decoration: none;
   border-bottom: 2px solid var(--ball);
   padding-bottom: 0.15rem;
+  transition: color var(--dur-1) var(--ease-out);
 }
 
 .cardLinks .cardCta {
@@ -148,6 +183,9 @@
   text-decoration: none;
   border-bottom: 1px solid var(--line);
   padding-bottom: 0.15rem;
+  transition:
+    color var(--dur-1) var(--ease-out),
+    border-color var(--dur-1) var(--ease-out);
 }
 
 .cardCtaSoft:hover {

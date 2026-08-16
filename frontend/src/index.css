@@ -57,14 +57,56 @@
     Arial, sans-serif;
   --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 
-  /* One rhythm, referenced everywhere so spacing stays on a grid. */
-  --gap: 1.5rem;
+  /* One rhythm, referenced everywhere so spacing stays on a grid. `--gap` is
+     kept as the historical alias for the 1.5rem step so nothing that reads it
+     has to change; the named scale is what new work reaches for. */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2.25rem;
+  --space-xl: 3.5rem;
+  --gap: var(--space-md);
   --radius: 4px;
+  --radius-lg: 10px;
+
+  /*
+   * Motion. Two curves and a small set of durations, so every transition in the
+   * app pulls from the same physical vocabulary instead of a scattered handful
+   * of `0.18s ease`. `--ease-spring` is the settle the champion reveal already
+   * used, promoted to a token; `--ease-out` is the quicker curve for state
+   * changes (hover, focus). Nothing here runs unless the viewer allows motion —
+   * every `animation`/`transition` that uses these lives inside a
+   * `prefers-reduced-motion: no-preference` guard.
+   */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-1: 0.16s;
+  --dur-2: 0.26s;
+  --dur-3: 0.5s;
+  --dur-reveal: 0.7s;
+
+  /*
+   * Elevation. A tinted shadow — carrying the ground's own near-black, never a
+   * flat rgba(0,0,0) — so a raised surface reads as belonging to this room
+   * rather than floating on a generic drop shadow. Editorial flatness stays the
+   * rule; these are a whisper, spent only where a surface genuinely lifts (a
+   * card under the cursor, a floating menu). Light mode re-tints them warm.
+   */
+  --shadow-1: 0 1px 2px rgba(3, 3, 5, 0.45);
+  --shadow-2:
+    0 10px 30px -12px rgba(3, 3, 5, 0.7), 0 2px 8px -3px rgba(3, 3, 5, 0.45);
 
   color-scheme: dark;
   font: 400 16px/1.55 var(--sans);
   color: var(--ink-mid);
   background: var(--bg);
+  /* A single, very quiet radial lift toward the raised surface at the top of
+     the page, so the ground has a faint horizon instead of one dead flat fill.
+     Two real palette colours, no transparency, so it stays clean in both
+     themes and never muddies the AA-checked surfaces. Painted on <body>. */
+  --ground: radial-gradient(135% 90% at 50% -25%, var(--bg-raise), var(--bg) 62%);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -109,6 +151,13 @@
   --ball-soft: rgba(114, 88, 16, 0.13);
   --ball-line: rgba(114, 88, 16, 0.42);
 
+  /* Shadows re-tinted onto the warm ground and lightened hard — on cream a
+     near-black drop shadow reads as grime, so these carry the deep court green
+     at low opacity and stay soft. */
+  --shadow-1: 0 1px 2px rgba(23, 48, 33, 0.1);
+  --shadow-2:
+    0 10px 30px -14px rgba(23, 48, 33, 0.28), 0 2px 8px -4px rgba(23, 48, 33, 0.16);
+
   color-scheme: light;
 }
 
@@ -120,7 +169,49 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--ground);
+  background-color: var(--bg);
+  min-height: 100svh;
+}
+
+/*
+ * Shared entrance choreography. Navigation in this app is a full document load
+ * (every view is a real URL — see App.tsx), so "on mount" and "on load" are the
+ * same instant: a screen can stage its own arrival in pure CSS with no scroll
+ * observer. `rise` is the one motion primitive — a short lift and fade the
+ * screens below reuse, staggering their own sections with `animation-delay`.
+ *
+ * It is defined once, globally, and every use sits behind the reduced-motion
+ * guard below. The default (no animation) leaves content fully visible, so a
+ * viewer who asked for less motion, or a browser mid-parse, never sees a blank
+ * screen — the same fail-safe pattern the champion reveal has always used.
+ */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* The masthead and the two nav rows lead the page in. Screen bodies stage
+     their own sections; these are the frame around them. */
+  .masthead {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+  }
+
+  .tournamentNav {
+    animation: rise var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.04s;
+  }
 }
 
 /* A bracket at 128 is the widest thing here, so the app takes the viewport
@@ -193,6 +284,19 @@ body {
   translate: 0 0.04em;
 }
 
+/* A quiet reward for finding the wordmark: the ball gives a small spin, its
+   seams rolling with it. `translate` (the baseline nudge) and `transform` are
+   separate properties, so the rotation composes over the nudge cleanly. */
+@media (prefers-reduced-motion: no-preference) {
+  .ballMark {
+    transition: transform var(--dur-reveal) var(--ease-spring);
+  }
+
+  .wordmark:hover .ballMark {
+    transform: rotate(32deg) scale(1.06);
+  }
+}
+
 .ballMark .ballBody {
   fill: var(--ball);
 }
@@ -234,26 +338,48 @@ body {
   color: var(--ink-dim);
   text-decoration: none;
   padding-bottom: 0.35rem;
-  transition: color 0.18s ease;
+  transition: color var(--dur-1) var(--ease-out);
 }
 
-.viewNav a:hover {
-  color: var(--ink);
-}
-
-.viewNav a[aria-current='page'] {
-  color: var(--ink);
-}
-
-/* The accent rule under the current view: the one lit marker in the header. */
-.viewNav a[aria-current='page']::after {
+/* One underline rule for every link: a bar that grows from the left. It is
+   neutral on hover (a quiet acknowledgement, not the accent) and only turns to
+   the ball on the current view — so the header still has exactly one lit
+   marker, but the marker now slides into place instead of snapping. */
+.viewNav a::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   height: 2px;
+  background: var(--ink-dim);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .viewNav a::after {
+    transition:
+      transform var(--dur-2) var(--ease-spring),
+      background-color var(--dur-1) var(--ease-out);
+  }
+}
+
+.viewNav a:hover {
+  color: var(--ink);
+}
+
+.viewNav a:hover::after {
+  transform: scaleX(1);
+}
+
+.viewNav a[aria-current='page'] {
+  color: var(--ink);
+}
+
+.viewNav a[aria-current='page']::after {
   background: var(--ball);
+  transform: scaleX(1);
 }
 
 .viewNav a:focus-visible {
@@ -285,11 +411,35 @@ body {
   color: var(--ink-dim);
   text-decoration: none;
   padding-bottom: 0.3rem;
-  transition: color 0.18s ease;
+  transition: color var(--dur-1) var(--ease-out);
+}
+
+.tournamentNav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--ink-dim);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tournamentNav a::after {
+    transition:
+      transform var(--dur-2) var(--ease-spring),
+      background-color var(--dur-1) var(--ease-out);
+  }
 }
 
 .tournamentNav a:hover {
   color: var(--ink);
+}
+
+.tournamentNav a:hover::after {
+  transform: scaleX(1);
 }
 
 .tournamentNav a[aria-current='page'] {
@@ -297,13 +447,8 @@ body {
 }
 
 .tournamentNav a[aria-current='page']::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
   background: var(--ball);
+  transform: scaleX(1);
 }
 
 .tournamentNav a:focus-visible {
