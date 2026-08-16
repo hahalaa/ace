@@ -1,7 +1,8 @@
 /*
  * The landing screen. Two cards over an editorial hero. Tokens from
- * src/index.css; the accent (--ball) is spent only on the featured card and the
- * call-to-action, so the single-match path reads as the primary one.
+ * src/index.css; the accent (--ball) is an interaction state — it follows the
+ * hovered or keyboard-focused card, so both cards are treated identically and
+ * neither is pre-highlighted at rest.
  */
 
 .dashboard {
@@ -70,16 +71,26 @@
   cursor: pointer;
   transition:
     border-color var(--dur-2) var(--ease-out),
+    background var(--dur-2) var(--ease-out),
     box-shadow var(--dur-2) var(--ease-out),
     translate var(--dur-2) var(--ease-spring);
 }
 
 /* Both cards are activatable controls in the toolbar, so both get the same
-   rest, hover, press and keyboard-focus treatment. The lift is carried by the
-   tinted shadow as much as the translate, so it still reads on reduced motion
-   where the movement is dropped. */
+   rest, hover, press and keyboard-focus treatment. The accent (gold border +
+   tinted ground) is an *interaction* state, not a fixed decoration: it follows
+   whichever card is hovered or keyboard-focused, so a mouse hover and a roving-
+   tabindex arrow move both light up the card the user is actually on. At rest
+   neither card is pre-highlighted. The lift is carried by the tinted shadow as
+   much as the translate, so it still reads on reduced motion where the movement
+   is dropped. */
+.card:hover,
+.card:focus-visible {
+  border-color: var(--ball-line);
+  background: var(--ball-soft);
+}
+
 .card:hover {
-  border-color: var(--ink-dim);
   translate: 0 -3px;
   box-shadow: var(--shadow-2);
 }
@@ -91,11 +102,17 @@
 
 /* The keyboard-focus state reads as the app's gold/green highlight — the same
    ball-coloured ring the rest of the app uses for :focus-visible — not a
-   generic browser outline, and it lights the card's border to match. */
+   generic browser outline, on top of the shared border/ground accent above. */
 .card:focus-visible {
   outline: 2px solid var(--ball);
   outline-offset: 3px;
-  border-color: var(--ball-line);
+}
+
+/* The kicker takes the accent ink in step with its card's hover/focus state,
+   so the highlight reads as a whole and never sits on one card at rest. */
+.card:hover .cardKicker,
+.card:focus-visible .cardKicker {
+  color: var(--ball);
 }
 
 /* Motion is decorative; honour a reduced-motion preference. The shadow lift
@@ -104,6 +121,7 @@
   .card {
     transition:
       border-color var(--dur-2) var(--ease-out),
+      background var(--dur-2) var(--ease-out),
       box-shadow var(--dur-2) var(--ease-out);
   }
 
@@ -113,21 +131,12 @@
   }
 }
 
-.featured {
-  border-color: var(--ball-line);
-  background: var(--ball-soft);
-}
-
 .cardKicker {
   font-family: var(--mono);
   font-size: 0.68rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-dim);
-}
-
-.featured .cardKicker {
-  color: var(--ball);
 }
 
 .cardTitle {

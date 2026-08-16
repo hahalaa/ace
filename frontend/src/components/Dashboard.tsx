@@ -133,7 +133,7 @@ export default function Dashboard({ tournamentId }: DashboardProps) {
           ref={(el) => {
             cardRefs.current[0] = el;
           }}
-          className={`${styles.card} ${styles.featured}`}
+          className={styles.card}
           href={matchHref}
           data-card="match"
           aria-label="Simulate a single match"
