@@ -309,6 +309,31 @@ API_MATCH_SEED_MAX = 2**32 - 1
 # it without limit.
 API_MATCH_RATE_LIMIT = "20/minute"
 
+# ---- Shared concurrency cap across the live-compute endpoints (security-review-2) ----
+# The three endpoints that run real per-request compute — GET /storybook (curated
+# AND uploaded draws) and POST /match/simulate — are sync handlers, so FastAPI
+# runs them in the anyio threadpool (default 40 workers). Each was individually
+# rate-limited and individually verified affordable, but the PER-IP rate limits do
+# not bound how many run AT ONCE: a single client can fire many concurrent requests
+# under its own limit, and several different clients each stay under theirs, so up
+# to a threadpool's worth of 128-match brackets could pile onto one 0.1-CPU /
+# 512-MB instance simultaneously. Summed at their per-IP limits the three endpoints
+# oversubscribe that CPU budget several times over (security-review-2, §2), so the
+# instance degrades (latencies balloon, requests time out) — not from memory
+# (bounded ~250 MB), but from CPU contention among queued handlers.
+#
+# This is a small IN-MEMORY, per-process semaphore that bounds the number of
+# live simulations running concurrently, regardless of source IP. Excess requests
+# are shed immediately with a 503 + Retry-After rather than queued (queuing behind
+# a throttled CPU is what produces the timeout pile-up). Unlike the per-IP rate
+# limits it also blunts the distributed case (many IPs, one request each), which a
+# per-IP window structurally cannot. Same honest scope as the rate limits: it is
+# per-process (resets on restart, independent per replica), so it is peak-load
+# hygiene, not a substitute for the platform's volumetric defense. 4 allows a
+# little genuine concurrency for simultaneous visitors while keeping the peak a
+# small, predictable constant.
+API_LIVE_COMPUTE_MAX_CONCURRENCY = 4
+
 # ---- Draw upload (POST /tournaments/upload) ----
 # A visitor can POST a draw JSON matching the same schema the shipped example
 # draws use and then simulate it live. Everything about the feature is shaped by

@@ -9,6 +9,7 @@ the same pattern ``tests/test_api_storybook.py`` uses.
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -21,6 +22,7 @@ import api.main as api_main
 from api.main import (
     API_CSP,
     DOCS_CSP,
+    LiveComputeGate,
     SlidingWindowRateLimiter,
     _client_key,
     _parse_rate,
@@ -293,3 +295,99 @@ def test_frontend_csp_connect_src_is_pinned_not_wildcard():
     # No wildcard host as a CSP source (the comment may still name it as the
     # anti-pattern being avoided; what must never reappear is a wildcard origin).
     assert "https://*.onrender.com" not in text
+
+
+# --------------------------------------------------------------------------- #
+# Shared live-compute concurrency cap (security-review-2)
+#
+# The per-IP rate limits bound each client's request RATE but not how many live
+# simulations run AT ONCE. LiveComputeGate caps concurrent /storybook +
+# /match/simulate executions across every IP and sheds the excess with a 503,
+# so a burst of concurrent requests (one client or many) cannot pile a
+# threadpool's worth of 128-match brackets onto a 0.1-CPU instance.
+# --------------------------------------------------------------------------- #
+def test_live_compute_gate_admits_up_to_cap_then_sheds():
+    gate = LiveComputeGate(2)
+    assert gate.acquire() is True
+    assert gate.acquire() is True
+    # Cap reached: further acquires are refused without blocking.
+    assert gate.acquire() is False
+    # Releasing frees exactly one slot.
+    gate.release()
+    assert gate.acquire() is True
+    assert gate.acquire() is False
+
+
+def test_live_compute_gate_rejects_bad_capacity():
+    with pytest.raises(ValueError):
+        LiveComputeGate(0)
+
+
+def test_concurrent_live_sims_over_the_cap_get_503(context, monkeypatch):
+    """A burst of concurrent /storybook calls beyond the cap is shed with 503.
+
+    Uses a classifier stub that blocks until the test releases it, so the
+    admitted requests genuinely hold their slots while the rest arrive — which is
+    what forces the gate to shed rather than serialise. Distinct client keys per
+    request rule the per-IP rate limiter out as the cause.
+    """
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    cap = 2
+    monkeypatch.setattr(config, "API_LIVE_COMPUTE_MAX_CONCURRENCY", cap)
+
+    release = threading.Event()
+
+    class _BlockingClassifier:
+        def __call__(self, a: str, b: str, surface: str) -> float:
+            # Hold the slot until the test lets go (bounded so a bug can't hang
+            # the suite).
+            release.wait(timeout=10)
+            return 0.55 if a < b else 0.45
+
+    def _blocking_factory(estimator, data, surface_history, h2h_history):
+        return _BlockingClassifier()
+
+    app = create_app(
+        context_factory=lambda: context,
+        draws_dir=FIXTURE_DRAWS,
+        cache_dir=FIXTURE_CACHE,
+        classifier_factory=_blocking_factory,
+    )
+
+    n = 5  # cap admitted, the rest shed
+    with TestClient(app) as client:
+        def fire(i: int):
+            return client.get(
+                f"/tournaments/toy_open_2026/storybook?seed={i}",
+                headers={"CF-Connecting-IP": f"client-{i}"},
+            ).status_code
+
+        with ThreadPoolExecutor(max_workers=n) as pool:
+            futures = [pool.submit(fire, i) for i in range(n)]
+            # Give the admitted requests time to occupy their slots and the
+            # excess time to be shed, then release everyone.
+            time.sleep(0.5)
+            release.set()
+            codes = [f.result(timeout=15) for f in futures]
+
+    assert sorted(codes) == [200] * cap + [503] * (n - cap), codes
+
+
+def test_storybook_and_match_routes_declare_the_concurrency_dependency(context):
+    """Both live-compute routes carry the gate dependency; read-only ones do not."""
+    app = _make_app(context)
+    guarded = {"/tournaments/{tournament_id}/storybook", "/match/simulate"}
+    seen = set()
+    for route in app.routes:
+        path = getattr(route, "path", None)
+        if path not in guarded:
+            continue
+        dep_names = {
+            getattr(d.call, "__name__", "")
+            for d in route.dependant.dependencies
+        }
+        assert "live_compute_slot" in dep_names, (path, dep_names)
+        seen.add(path)
+    assert seen == guarded
