@@ -11,12 +11,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applyTheme,
   currentTheme,
+  DEFAULT_THEME,
   otherTheme,
   persistTheme,
   resolveTheme,
   setTheme,
   storedTheme,
-  systemTheme,
   THEME_STORAGE_KEY,
 } from './theme';
 
@@ -56,28 +56,26 @@ describe('storedTheme', () => {
   });
 });
 
-describe('systemTheme', () => {
-  it('is light only when the OS explicitly prefers light', () => {
-    stubSystem(true);
-    expect(systemTheme()).toBe('light');
-  });
-
-  it('defaults to dark for a no-preference / dark OS', () => {
-    stubSystem(false);
-    expect(systemTheme()).toBe('dark');
-  });
-});
-
 describe('resolveTheme', () => {
-  it('prefers a stored choice over the OS', () => {
+  it('the shipped default is dark', () => {
+    expect(DEFAULT_THEME).toBe('dark');
+  });
+
+  it('a stored choice is returned, and the OS never overrides it', () => {
     stubSystem(true); // OS wants light...
-    window.localStorage.setItem(THEME_STORAGE_KEY, 'dark'); // ...but the user chose dark
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'light'); // stored light -> light
+    expect(resolveTheme()).toBe('light');
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'dark'); // stored dark -> dark
     expect(resolveTheme()).toBe('dark');
   });
 
-  it('falls back to the OS when nothing is stored', () => {
+  it('a genuine first visit falls back to DEFAULT dark, ignoring an OS light preference', () => {
+    // The policy change: prefers-color-scheme must NOT pull a first-time visitor
+    // to light. Empty storage + a light-preferring OS still resolves to dark.
     stubSystem(true);
-    expect(resolveTheme()).toBe('light');
+    expect(storedTheme()).toBeNull();
+    expect(resolveTheme()).toBe(DEFAULT_THEME);
+    expect(resolveTheme()).toBe('dark');
   });
 });
 

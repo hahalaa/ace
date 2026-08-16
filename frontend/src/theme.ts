@@ -45,15 +45,19 @@ export function storedTheme(): Theme | null {
   }
 }
 
-/** The OS preference. Only an explicit "light" is light; everything else dark. */
-export function systemTheme(): Theme {
-  const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches ?? false;
-  return prefersLight ? 'light' : DEFAULT_THEME;
-}
-
-/** Stored preference wins; otherwise fall back to the OS. */
+/**
+ * Stored preference wins; otherwise the shipped `DEFAULT_THEME`.
+ *
+ * A genuine first visit (empty storage) lands on the dark identity regardless of
+ * the OS `prefers-color-scheme`: the dark theme is the brand default, and a
+ * light-preferring OS must not override it. Only an explicit choice, stored by
+ * the toggle, moves a visitor off dark. (This is deliberately the ONLY policy
+ * knob here — the resolution pipeline the toggle depends on is unchanged:
+ * localStorage feeds this, this feeds the painted attribute, the attribute feeds
+ * the toggle's state.)
+ */
 export function resolveTheme(): Theme {
-  return storedTheme() ?? systemTheme();
+  return storedTheme() ?? DEFAULT_THEME;
 }
 
 /** Paint the theme by stamping <html data-theme>. The CSS keys off this. */

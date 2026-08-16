@@ -68,6 +68,16 @@ describe('ThemeToggle', () => {
   // storage state — which is what every real navigation is (each screen is a
   // full document load). These tests cover initial-STATE correctness on mount.
 
+  it('a genuine first visit (empty storage, no attribute) mounts on dark', () => {
+    // Nothing stored and no attribute painted: the toggle derives its state from
+    // the painted attribute, falling back to the dark DEFAULT (the toggle never
+    // consults the OS). A first-time visitor lands on dark, offered switch-to-light.
+    render(<ThemeToggle />);
+    const button = screen.getByRole('button');
+    expect(button.getAttribute('aria-label')).toBe('Switch to light theme');
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+  });
+
   it('on a fresh mount, the label matches the PAINTED theme, ignoring a disagreeing store', () => {
     // The exact deployed-bug state: the pre-paint script was CSP-blocked, so no
     // attribute is painted (page shows the dark CSS default), yet 'light' is in

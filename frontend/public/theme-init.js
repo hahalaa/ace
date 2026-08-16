@@ -16,18 +16,15 @@
  *
  * It mirrors resolveTheme() in src/theme.ts by hand — a classic script cannot
  * import a module, and this is the one place that logic is duplicated. Stored
- * choice wins; otherwise the OS preference; default dark. Kept tiny and
- * failure-tolerant on purpose.
+ * choice wins; otherwise the dark default. The OS prefers-color-scheme is
+ * deliberately NOT consulted: a first visit lands on the dark brand identity
+ * regardless of OS, and only an explicit toggle choice moves off it. Kept tiny
+ * and failure-tolerant on purpose.
  */
 (function () {
   try {
     var stored = window.localStorage.getItem('ace-theme');
-    var theme =
-      stored === 'light' || stored === 'dark'
-        ? stored
-        : window.matchMedia('(prefers-color-scheme: light)').matches
-          ? 'light'
-          : 'dark';
+    var theme = stored === 'light' || stored === 'dark' ? stored : 'dark';
     document.documentElement.setAttribute('data-theme', theme);
   } catch (e) {
     document.documentElement.setAttribute('data-theme', 'dark');
