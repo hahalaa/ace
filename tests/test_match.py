@@ -268,6 +268,122 @@ def test_tiebreak_rejects_bad_args(kwargs):
         simulate_tiebreak(**base)
 
 
+class _RecordingRNG:
+    """A ``numpy`` Generator wrapper that records every ``random()`` draw in order.
+
+    ``simulate_tiebreak`` consumes exactly one ``rng.random()`` per point, so the
+    recorded draw stream, aligned to the §4 serving schedule via
+    :func:`_tiebreak_server`, lets a test reconstruct which player served each
+    point and whether that server won it — the per-point evidence that the public
+    :class:`TiebreakResult` (two aggregate totals) cannot expose. Only ``random``
+    is used by the tiebreak point loop, so only it needs wrapping.
+    """
+
+    def __init__(self, seed: int) -> None:
+        self._rng = np.random.default_rng(seed)
+        self.draws: list[float] = []
+
+    def random(self) -> float:
+        d = self._rng.random()
+        self.draws.append(d)
+        return d
+
+
+def test_tiebreak_applies_each_servers_own_probability_per_point():
+    """§4: inside the tiebreak loop, each point uses the *current server's* own prob.
+
+    This closes a gap the two adjacent serve tests do not cover *together*:
+    ``test_tiebreak_serve_schedule_matches_1_2_2_2`` pins server **identity** per
+    point, and ``test_simulate_set_server_alternates_via_captured_probabilities``
+    pins the **probability** selection but only for whole *games* within a set (it
+    spies ``simulate_game``). Neither asserts that, inside ``simulate_tiebreak``'s
+    own point loop, the serving player's own probability is the one applied. That
+    selection — ``p_first_wins = p_server_first if server == first_server else
+    1 - p_other`` (``sim/match.py``) — calls no spy-able sub-function and surfaces
+    only two aggregate totals, so it was otherwise reachable only through
+    aggregate win-rate symmetry, which cannot distinguish a per-point swap/blend.
+
+    Strategy: give the two players clearly distinct serve-win probabilities
+    (strong 0.90 vs weak 0.40), record the per-point Bernoulli draws (one
+    ``rng.random()`` per point), align them to the §4 schedule, and reconstruct —
+    under the CORRECT server→probability mapping — who won each point on serve.
+
+    Two assertions, of different strength:
+
+    1. **Anchor (exact, per-point, mutation-sensitive).** The reconstruction's
+       point totals must equal the engine's returned ``(pts_first, pts_other)`` on
+       EVERY tiebreak. Because the reconstruction applies the correct threshold to
+       the *same* draw the engine saw, any point whose draw falls between the two
+       players' thresholds (here 0.60 and 0.90) is scored differently the instant
+       the engine swaps or blends the probabilities, so its totals diverge from
+       this reconstruction. This is a stronger, exact form of "the right
+       probability was applied at each point".
+    2. **Statistical readout (the requested check).** Aggregated over all serving
+       turns, each player's observed own-serve point-win rate matches its
+       configured probability within tolerance.
+
+    Sample size / tolerance: 5,000 tiebreaks at this asymmetry run short (~8
+    points each), yielding well over 15,000 serve points per player. For the weak
+    server (p=0.40, the wider-variance case) that gives a standard error of
+    ``sqrt(0.4·0.6/15000) ≈ 0.004``, so the ``abs=0.02`` band is ~5 SE — loose
+    enough never to flake, yet an order of magnitude tighter than the shift a real
+    bug causes (a swap moves an own-serve rate by ~0.30–0.50; a mean-blend moves
+    both to ~0.75). The anchor in (1) is the primary bug catcher; a pure
+    statistical reconstruction would be insensitive to the engine's mapping (the
+    draws are uniform and independent of the schedule), so (1) is what ties the
+    reconstruction — and hence the rate readout — to the engine's actual behaviour.
+    """
+    P_STRONG, P_WEAK = 0.90, 0.40
+    # The engine's own threshold per point (sim/match.py): the strong player is
+    # always the first server (p_server_first), so a point where the first server
+    # serves uses P_STRONG; a point where the *other* (weak) player serves uses
+    # 1 - p_other. Keyed on "is the current server the first server?".
+    thresh = {True: P_STRONG, False: 1.0 - P_WEAK}
+
+    served = {"strong": 0, "weak": 0}
+    won = {"strong": 0, "weak": 0}
+    n_tiebreaks = 5000
+
+    for seed in range(n_tiebreaks):
+        first_server = seed % 2  # exercise both first-server indices (0 and 1)
+        rng = _RecordingRNG(seed)
+        # Strong player is the first server in both orientations; weak is "other".
+        res = simulate_tiebreak(P_STRONG, P_WEAK, first_server, 7, rng)
+
+        pts_first = pts_other = 0
+        for i, draw in enumerate(rng.draws):
+            server = _tiebreak_server(i, first_server)
+            is_first = server == first_server
+            first_wins = draw < thresh[is_first]  # the engine's increment rule
+            if first_wins:
+                pts_first += 1
+            else:
+                pts_other += 1
+            # Attribute the point to the SERVER's own-serve outcome. The first
+            # server (strong) wins their serve point iff first_wins; the other
+            # (weak) server wins their serve point iff NOT first_wins.
+            if is_first:
+                served["strong"] += 1
+                won["strong"] += int(first_wins)
+            else:
+                served["weak"] += 1
+                won["weak"] += int(not first_wins)
+
+        # (1) Anchor: the correct-mapping reconstruction reproduces the engine's
+        # own totals exactly, on every tiebreak. A swapped/blended mapping breaks
+        # this the moment any draw lands between the two thresholds.
+        assert (pts_first, pts_other) == (res.pts_first, res.pts_other), (
+            f"reconstruction diverged from engine at seed {seed}: "
+            f"{(pts_first, pts_other)} vs engine {(res.pts_first, res.pts_other)}"
+        )
+
+    # Enough own-serve points per player for the tolerance below to be meaningful.
+    assert served["strong"] > 15000 and served["weak"] > 15000
+    # (2) Statistical readout: each server's own-serve win rate ≈ its configured p.
+    assert won["strong"] / served["strong"] == pytest.approx(P_STRONG, abs=0.02)
+    assert won["weak"] / served["weak"] == pytest.approx(P_WEAK, abs=0.02)
+
+
 # ---------------------------------------------------------------------------
 # _set_server — game-by-game serve rotation (§3) + the cross-set contract
 # ---------------------------------------------------------------------------
