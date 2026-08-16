@@ -107,8 +107,17 @@ describe('currentTheme', () => {
     expect(currentTheme()).toBe('light');
   });
 
-  it('resolves from scratch when no attribute is set', () => {
-    stubSystem(false);
+  it('falls back to the DEFAULT (what the CSS paints), not a preference read', () => {
+    // Regression guard for the inverted-label bug. When the pre-paint script did
+    // not stamp the attribute (it was CSP-blocked on the deployed site), the CSS
+    // paints the bare-:root DARK default regardless of any stored preference. The
+    // toggle's state must match those pixels, so currentTheme() returns DEFAULT
+    // here — it must NOT trust localStorage, or it would claim a theme the page
+    // is not showing. The old code read resolveTheme() here and returned 'light',
+    // producing a label that disagreed with the dark page.
+    stubSystem(true); // OS prefers light...
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'light'); // ...and light is stored
+    // ...but no attribute is painted, so the page is showing dark:
     expect(currentTheme()).toBe('dark');
   });
 });

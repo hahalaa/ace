@@ -59,11 +59,24 @@ services:
       - path: /index.html
         name: Cache-Control
         value: no-cache
+      # theme-init.js is a fixed, un-hashed path referenced by index.html, so a
+      # cached copy would outlive a deploy that changes the pre-paint logic.
+      # no-cache it too, for the same reason as index.html.
+      - path: /theme-init.js
+        name: Cache-Control
+        value: no-cache
 
       # ---- Security headers (security hardening) ----
       # Scoped to what a Vite build of THIS app actually loads:
-      #   * script-src 'self'      — the one hashed ES module bundle; Vite emits
-      #                              no inline <script> (verified in dist/).
+      #   * script-src 'self'      — the hashed ES module bundle AND the
+      #                              same-origin pre-paint script /theme-init.js
+      #                              (public/theme-init.js, copied to dist root).
+      #                              Both are 'self', so neither needs a hash and
+      #                              there is no 'unsafe-inline'. The theme logic
+      #                              MUST stay in that external file, never an
+      #                              inline <script>: an inline script would be
+      #                              blocked here and the pre-paint would silently
+      #                              never run (regression guarded by test).
       #   * style-src  'self'      — the one hashed stylesheet; the app uses plain
       #                              CSS, no CSS-in-JS and no inline style attrs.
       #   * connect-src            — the browser calls the API cross-origin, so

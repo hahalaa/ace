@@ -6,28 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ace: tennis Grand Slam simulator</title>
     <!--
-      Apply the theme before first paint so there is no flash of the wrong
-      ground. This mirrors resolveTheme() in src/theme.ts by hand — a blocking
-      inline script cannot import a module, and this is the one place that logic
-      is duplicated. Stored choice wins; otherwise the OS preference; default
-      dark. Kept tiny and failure-tolerant on purpose.
+      Apply the theme before first paint (no flash of the wrong ground; a
+      navigation restores the stored choice before render). This is a same-origin
+      classic script, NOT an inline one, because the deployed CSP is
+      `script-src 'self'` with no 'unsafe-inline' — an inline script is blocked on
+      Render and the pre-paint never runs. It is render-blocking (no defer/async)
+      so it runs before the module bundle below and before first paint. See
+      public/theme-init.js and render.yaml.
     -->
-    <script>
-      (function () {
-        try {
-          var stored = window.localStorage.getItem('ace-theme');
-          var theme =
-            stored === 'light' || stored === 'dark'
-              ? stored
-              : window.matchMedia('(prefers-color-scheme: light)').matches
-                ? 'light'
-                : 'dark';
-          document.documentElement.setAttribute('data-theme', theme);
-        } catch (e) {
-          document.documentElement.setAttribute('data-theme', 'dark');
-        }
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

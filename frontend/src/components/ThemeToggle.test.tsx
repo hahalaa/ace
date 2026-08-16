@@ -60,6 +60,41 @@ describe('ThemeToggle', () => {
     expect(button.getAttribute('aria-pressed')).toBe('true');
   });
 
+  // --- Fresh-mount / second-page-load correctness ---------------------------
+  //
+  // The gap that let the persistence bug ship twice: the prior tests only ever
+  // clicked an already-mounted component (click-RESPONSE correctness). None
+  // simulated a fresh load — a component mounting against pre-existing DOM/
+  // storage state — which is what every real navigation is (each screen is a
+  // full document load). These tests cover initial-STATE correctness on mount.
+
+  it('on a fresh mount, the label matches the PAINTED theme, ignoring a disagreeing store', () => {
+    // The exact deployed-bug state: the pre-paint script was CSP-blocked, so no
+    // attribute is painted (page shows the dark CSS default), yet 'light' is in
+    // storage from an earlier choice. A correct toggle reflects the PIXELS
+    // (dark), not the stored preference. The old currentTheme() fell back to the
+    // stored value and mounted claiming light — an inverted label over a dark
+    // page. This test fails on that old code and passes on the fix.
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'light');
+    // deliberately NO data-theme attribute — the pre-paint script did not run
+    render(<ThemeToggle />);
+    const button = screen.getByRole('button');
+    expect(button.getAttribute('aria-label')).toBe('Switch to light theme');
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('on a correct second load (pre-paint stamped light), mounts showing light', () => {
+    // What a real navigation looks like once the pre-paint script runs under CSP:
+    // it reads storage and stamps the attribute before React mounts. The toggle
+    // then reflects light immediately on that fresh mount — no click needed.
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'light');
+    document.documentElement.setAttribute('data-theme', 'light');
+    render(<ThemeToggle />);
+    const button = screen.getByRole('button');
+    expect(button.getAttribute('aria-label')).toBe('Switch to dark theme');
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('flips the painted theme, persists it, and relabels on click', () => {
     document.documentElement.setAttribute('data-theme', 'dark');
     render(<ThemeToggle />);
