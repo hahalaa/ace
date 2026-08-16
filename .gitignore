@@ -46,7 +46,5 @@ ace-startup-guide.md
 .claude/
 docs/
 
-# Skill-install manifest from `npx skills add` (taste-skill, ui-ux-pro-max-skill).
-# Records which design skills were used during development, not a build or
-# runtime dependency — nothing in npm run build or the Docker image reads it.
+.agents/
 skills-lock.json
