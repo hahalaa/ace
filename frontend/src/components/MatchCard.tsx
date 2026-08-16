@@ -31,8 +31,8 @@
  *   * a resolved player — seed chip (when seeded) and name;
  *   * a **placeholder** (`is_placeholder: true`, `player_id: null`) — the draw
  *     file's own wording (`Qualifier`, `Qualifier/Lucky Loser`) rendered
- *     verbatim but styled as unfilled, because the API deliberately serves such
- *     draws (`example_usopen_2026.json`) even though they cannot be simulated;
+ *     verbatim but styled as unfilled, because the API deliberately serves
+ *     draws holding placeholder slots even though they cannot be simulated;
  *   * an **unknown** side (`slot: null`) — every round after the first, whose
  *     participants the `/bracket` response does not know. Reads `TBD`.
  *

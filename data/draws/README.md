@@ -8,18 +8,15 @@ field-by-field format (what a valid draw JSON must contain), see
 
 | File | Size | Placeholders | Simulable |
 |---|---|---|---|
-| `example_usopen_2026.json` | 8 | yes (`Qualifier`, `Qualifier/Lucky Loser`) | **no** |
 | `example_usopen_2024_full.json` | 128 | none | yes |
 | `ausopen_2026_atp_full.json` | 128 | none | yes |
 
-**Which one to use.** `example_usopen_2026.json` is the schema illustration:
-a toy 8-slot bracket with invented structure, kept because it is the only
-example that exercises placeholder handling. It **cannot be simulated**.
-`simulate_bracket` refuses any draw containing placeholders, because a
-`"Qualifier"` slot has no `player_id` and no classifier-visible history, so no
-reconciled match-win probability exists for it. (It *does* get a skill profile,
-since `Draw.skill_for` returns `SkillTable.default(surface)`, but the point model
-alone is not what `simulate_bracket` reconciles against.) That refusal is deliberate and is not a bug to work around.
+Both shipped draws are real, full-size, placeholder-free brackets that simulate
+end-to-end. A draw containing any placeholder (a `"Qualifier"` slot has no
+`player_id` and no classifier-visible history, so no reconciled match-win
+probability exists for it) is refused by `simulate_bracket`; that refusal is
+deliberate and is not a bug to work around. For the field-by-field format,
+including how placeholders are handled, see [`DRAW_SCHEMA.md`](DRAW_SCHEMA.md).
 
 `example_usopen_2024_full.json` is the one to simulate. It is the **real**
 128-player men's singles bracket of the 2024 US Open, reconstructed from the

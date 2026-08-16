@@ -223,7 +223,7 @@ describe('rendering a 128 draw', () => {
 });
 
 // --------------------------------------------------------------------------
-// Placeholder entrants — real, documented API behaviour (example_usopen_2026).
+// Placeholder entrants — real, documented API behaviour (placeholder draws).
 // --------------------------------------------------------------------------
 
 describe('placeholder slots', () => {

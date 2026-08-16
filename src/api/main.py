@@ -23,8 +23,8 @@ Conventions this ticket sets for T3.2–T3.4:
 ``load_draw`` and nothing else, so T2.2's placeholder-entrant refusal — which
 lives in ``simulate_bracket`` — never fires there. A draw containing
 ``Qualifier`` slots loads fine (placeholders take the default skill profile, as
-everywhere else), so ``data/draws/example_usopen_2026.json`` is legitimately
-listed and its bracket legitimately served. T3.3 keeps that unchanged and answers
+everywhere else), so such a draw is legitimately listed and its bracket
+legitimately served. T3.3 keeps that unchanged and answers
 the simulability question at ``/simulate`` instead — see
 :func:`tournament_simulation` for the decision and its reasoning.
 
@@ -285,6 +285,43 @@ class SlidingWindowRateLimiter:
                 return max(1, int(retry_after) + 1)
             hits.append(now)
             return None
+
+
+class LiveComputeGate:
+    """A shared, in-memory cap on *concurrent* live simulations (security-review-2).
+
+    The per-IP rate limiters bound each client's request *rate*; nothing bounds
+    how many live simulations execute *at the same time*. ``/storybook`` and
+    ``/match/simulate`` are sync handlers, so FastAPI dispatches them into the
+    anyio threadpool (default 40 workers) — a single client firing concurrent
+    requests under its own rate limit, or a handful of clients each under theirs,
+    can pile a threadpool's worth of 128-match brackets onto one 0.1-CPU instance
+    at once. Summed at their per-IP limits the three live-compute endpoints
+    oversubscribe that CPU budget several times over, and queued CPU-bound
+    handlers turn into ballooning latency and edge timeouts.
+
+    This bounds the number in flight to ``max_concurrency`` and **sheds** the
+    excess immediately (:meth:`acquire` returns ``False``) rather than blocking a
+    threadpool thread waiting for a slot — blocking would re-create the pile-up it
+    exists to prevent. Same honest scope as the rate limiters: per-process, resets
+    on restart, independent per replica; it is peak-load hygiene, not a
+    substitute for the platform's volumetric defense.
+    """
+
+    def __init__(self, max_concurrency: int) -> None:
+        if max_concurrency < 1:
+            raise ValueError(
+                f"max_concurrency must be >= 1, got {max_concurrency}"
+            )
+        self.max_concurrency = max_concurrency
+        self._sem = threading.BoundedSemaphore(max_concurrency)
+
+    def acquire(self) -> bool:
+        """Take a slot without blocking; ``True`` if one was free, else ``False``."""
+        return self._sem.acquire(blocking=False)
+
+    def release(self) -> None:
+        self._sem.release()
 
 
 # A factory with ``cli.simulate_match.make_classifier_prob``'s signature:
@@ -1124,6 +1161,40 @@ def create_app(
                 headers={"Retry-After": str(retry_after)},
             )
 
+    # Shared concurrency cap across BOTH live-compute routes (/storybook and
+    # /match/simulate). One gate per app instance so the peak simultaneous load —
+    # summed across every IP and every live endpoint — is a small constant. See
+    # config.API_LIVE_COMPUTE_MAX_CONCURRENCY for why the per-IP rate limits above
+    # do not cover this. Excess is shed with 503, not queued.
+    live_compute_gate = LiveComputeGate(config.API_LIVE_COMPUTE_MAX_CONCURRENCY)
+
+    def live_compute_slot(request: Request):
+        """Dependency: hold one live-compute slot for the request, or 503.
+
+        A generator dependency so FastAPI runs the teardown (slot release) after
+        the response is sent, whether the handler returned or raised. Acquisition
+        is non-blocking: over the cap, the request is rejected immediately with a
+        503 + Retry-After rather than parked on a threadpool thread.
+        """
+        if not live_compute_gate.acquire():
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "reason": "server_busy",
+                    "message": (
+                        "The server is running the maximum number of live "
+                        "simulations at once "
+                        f"({config.API_LIVE_COMPUTE_MAX_CONCURRENCY}). This is a "
+                        "small demo instance; retry in a moment."
+                    ),
+                },
+                headers={"Retry-After": "2"},
+            )
+        try:
+            yield
+        finally:
+            live_compute_gate.release()
+
     @app.middleware("http")
     async def add_security_headers(request: Request, call_next):
         """Attach the standard security headers to every response.
@@ -1655,7 +1726,7 @@ def create_app(
         "/tournaments/{tournament_id}/storybook",
         response_model=StorybookResponse,
         tags=["tournaments"],
-        dependencies=[Depends(storybook_rate_limit)],
+        dependencies=[Depends(storybook_rate_limit), Depends(live_compute_slot)],
     )
     def tournament_storybook(
         tournament_id: Annotated[
@@ -1784,7 +1855,7 @@ def create_app(
         "/match/simulate",
         response_model=MatchSimulateResponse,
         tags=["match"],
-        dependencies=[Depends(match_rate_limit)],
+        dependencies=[Depends(match_rate_limit), Depends(live_compute_slot)],
     )
     def match_simulate(
         body: MatchSimulateRequest,

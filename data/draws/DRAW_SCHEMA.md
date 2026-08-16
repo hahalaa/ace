@@ -117,47 +117,8 @@ is) and `source` (where it was reconstructed from).
 
 ---
 
-## Minimal worked example (8-slot toy draw)
+## A complete example draw
 
-A complete, valid 8-slot draw. Positions `1..8` are contiguous; seed 1 sits at
-position 1 and seed 2 at the far end of the draw (position 8) per the canonical
-seed-doubling convention; positions 6 holds a placeholder, so this toy draw
-**loads but does not simulate**.
-
-```json
-{
-  "note": "Toy 8-slot illustration of the draw schema — not a real event.",
-  "tournament_id": "toy_open_2026",
-  "name": "Toy Open 2026: Men's Singles (8-slot example)",
-  "surface": "Hard",
-  "best_of": 5,
-  "final_set_tiebreak": "10pt_at_6_6",
-  "event_date": "2026-06-01",
-  "draw_size": 8,
-  "seeds": {
-    "Carlos Alcaraz": 1,
-    "Jannik Sinner": 2,
-    "Alexander Zverev": 3,
-    "Novak Djokovic": 4
-  },
-  "bracket": [
-    { "position": 1, "player": "Carlos Alcaraz" },
-    { "position": 2, "player": "Taylor Fritz" },
-    { "position": 3, "player": "Alexander Zverev" },
-    { "position": 4, "player": "Casper Ruud" },
-    { "position": 5, "player": "Novak Djokovic" },
-    { "position": 6, "player": "Qualifier" },
-    { "position": 7, "player": "Daniil Medvedev" },
-    { "position": 8, "player": "Jannik Sinner" }
-  ]
-}
-```
-
-Round-1 pairings that produces: 1 v 2, 3 v 4, 5 v 6, 7 v 8 — i.e. Alcaraz v
-Fritz, Zverev v Ruud, Djokovic v (Qualifier), Medvedev v Sinner. Drop the
-placeholder (fill position 6 with a real, resolvable name) and remove
-`event_date` if the event is historical, and the same file becomes fully
-simulable.
-
-For a **real, full-size, placeholder-free** draw to model against, see
-`ausopen_2026_atp_full.json` or `example_usopen_2024_full.json` (both 128 slots).
+For a real, full-size, placeholder-free draw that exercises every field above,
+see [`ausopen_2026_atp_full.json`](https://github.com/hahalaa/ace/blob/main/data/draws/ausopen_2026_atp_full.json)
+(or `example_usopen_2024_full.json`), both committed under `data/draws/`.

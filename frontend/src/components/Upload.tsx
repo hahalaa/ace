@@ -27,35 +27,9 @@ import type { UploadResponse } from '../api/types';
 import ErrorPanel from './ErrorPanel';
 import styles from './upload.module.css';
 
-/**
- * A complete, valid eight-slot draw, copied verbatim from
- * `data/draws/example_usopen_2026.json` — the sample draw shipped with the repo.
- */
-const SCHEMA_EXAMPLE = `{
-  "note": "A sample draw showing valid upload JSON.",
-  "tournament_id": "example_usopen_2026_atp",
-  "name": "US Open 2026: Men's Singles (sample)",
-  "surface": "Hard",
-  "best_of": 5,
-  "final_set_tiebreak": "10pt_at_6_6",
-  "draw_size": 8,
-  "seeds": {
-    "Jannik Sinner": 1,
-    "Carlos Alcaraz": 2,
-    "Daniil Medvedev": 3,
-    "Casper Ruud": 4
-  },
-  "bracket": [
-    { "position": 1, "player": "Jannik Sinner" },
-    { "position": 2, "player": "Qualifier" },
-    { "position": 3, "player": "Taylor Fritz" },
-    { "position": 4, "player": "Casper Ruud" },
-    { "position": 5, "player": "Daniil Medvedev" },
-    { "position": 6, "player": "Qualifier/Lucky Loser" },
-    { "position": 7, "player": "Andrey Rublev" },
-    { "position": 8, "player": "Carlos Alcaraz" }
-  ]
-}`;
+/** The real, placeholder-free draw a reader can open to see the exact format. */
+const EXAMPLE_DRAW_URL =
+  'https://github.com/hahalaa/ace/blob/main/data/draws/ausopen_2026_atp_full.json';
 
 type State =
   | { status: 'idle' }
@@ -124,18 +98,13 @@ export default function Upload() {
         not checked against any official record.
       </p>
 
-      <details className={styles.schema}>
-        <summary>See a valid draw file</summary>
-        <div className={styles.schemaBody}>
-          <p className={styles.schemaLede}>
-            Here is a complete eight-slot draw in the format the uploader expects. The full
-            field-by-field reference lives in <code>data/draws/DRAW_SCHEMA.md</code>.
-          </p>
-          <pre className={styles.schemaCode}>
-            <code>{SCHEMA_EXAMPLE}</code>
-          </pre>
-        </div>
-      </details>
+      <p className={styles.schemaLink}>
+        For the exact format, open a{' '}
+        <a href={EXAMPLE_DRAW_URL} target="_blank" rel="noreferrer">
+          real draw file on GitHub
+        </a>{' '}
+        or read the <code>data/draws/DRAW_SCHEMA.md</code> field reference.
+      </p>
 
       {state.status !== 'done' && (
         <label

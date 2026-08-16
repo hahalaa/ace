@@ -112,77 +112,13 @@
   line-height: 1.6;
 }
 
-/* Collapsed-by-default schema reference: same progressive-disclosure idiom as
-   the model Disclosure component — a monospace summary with a +/- marker, the
-   detail tucked behind native <details> so it carries its own state to
-   assistive tech and stays out of the way of anyone who knows the format. */
-.schema {
+/* A one-line pointer to the format: the real draw file on GitHub and the
+   field-by-field reference, for anyone who wants to check the shape first. */
+.schemaLink {
   margin: 0;
-}
-
-.schema > summary {
-  cursor: pointer;
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-dim);
-  list-style: none;
-  transition: color var(--dur-1) var(--ease-out);
-}
-
-.schema > summary::-webkit-details-marker {
-  display: none;
-}
-
-.schema > summary::before {
-  content: '+ ';
-  color: var(--ball);
-}
-
-.schema[open] > summary::before {
-  content: '- ';
-}
-
-.schema > summary:hover {
-  color: var(--ink);
-}
-
-.schema > summary:focus-visible {
-  outline: 2px solid var(--ball);
-  outline-offset: 3px;
-  border-radius: 1px;
-}
-
-.schemaBody {
-  margin: 0.75rem 0 0;
-}
-
-.schemaLede {
-  margin: 0 0 0.6rem;
   font-size: 0.85rem;
   line-height: 1.6;
   color: var(--ink-mid);
-}
-
-.schemaCode {
-  margin: 0;
-  padding: 1rem 1.15rem;
-  overflow-x: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--bg-sink);
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  line-height: 1.55;
-  color: var(--ink);
-}
-
-.schemaCode code {
-  background: none;
-  padding: 0;
-  font-size: inherit;
-  color: inherit;
 }
 
 /* Result panel after a successful upload. */

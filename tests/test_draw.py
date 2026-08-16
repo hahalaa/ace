@@ -2,9 +2,9 @@
 
 Most tests run against a hand-built :class:`SkillTable` (constructed directly,
 so no data frame is needed) whose name→id map holds a handful of toy entrants.
-The one exception is the example-file test, which builds a *real* skill table
-from the vendored CSVs so it proves the shipped example's names genuinely
-resolve.
+The one exception is the placeholder-handling test, which builds a *real* skill
+table from the vendored CSVs so it proves genuine player names resolve while
+placeholder slots stay unresolved.
 """
 
 import json
@@ -454,17 +454,49 @@ def test_all_problems_are_reported_together(skill_table):
 
 
 # ---------------------------------------------------------------------------
-# The shipped example file
+# Placeholder handling against a real skill table
 # ---------------------------------------------------------------------------
 
 
-def test_example_draw_file_loads_against_the_real_skill_table():
-    """The vendored example resolves against skills built from real data."""
+def test_placeholder_draw_loads_against_the_real_skill_table():
+    """Real entrant names resolve, placeholders stay unresolved (real skills).
+
+    The one test that builds a *real* skill table from the vendored CSVs rather
+    than the toy fixture: it proves that a draw mixing genuine player names with
+    ``Qualifier``/``Qualifier/Lucky Loser`` placeholders both resolves the real
+    names to ids and leaves the placeholders with ``player_id is None``.
+    """
     df = loader.load_atp_data(config.TEST_YEAR, config.END_YEAR)
     processed = preprocess.preprocess_data(df)
     table = serve.build_skill_table(processed)
 
-    draw = load_draw(config.DRAWS_DIR / "example_usopen_2026.json", table)
+    payload = {
+        "note": "In-test draw exercising placeholders against real skills.",
+        "tournament_id": "placeholder_open_2026",
+        "name": "Placeholder Open 2026",
+        "surface": "Hard",
+        "best_of": 5,
+        "final_set_tiebreak": "10pt_at_6_6",
+        "draw_size": 8,
+        "seeds": {
+            "Jannik Sinner": 1,
+            "Carlos Alcaraz": 2,
+            "Daniil Medvedev": 3,
+            "Casper Ruud": 4,
+        },
+        "bracket": [
+            {"position": 1, "player": "Jannik Sinner"},
+            {"position": 2, "player": "Qualifier"},
+            {"position": 3, "player": "Taylor Fritz"},
+            {"position": 4, "player": "Casper Ruud"},
+            {"position": 5, "player": "Daniil Medvedev"},
+            {"position": 6, "player": "Qualifier/Lucky Loser"},
+            {"position": 7, "player": "Andrey Rublev"},
+            {"position": 8, "player": "Carlos Alcaraz"},
+        ],
+    }
+
+    draw = parse_draw(payload, table)
 
     assert draw.draw_size == len(draw.bracket) == 8
     assert draw.surface in config.VALID_SURFACES
@@ -474,6 +506,7 @@ def test_example_draw_file_loads_against_the_real_skill_table():
         "Qualifier",
         "Qualifier/Lucky Loser",
     ]
+    assert all(slot.player_id is None for slot in draw.bracket if slot.is_placeholder)
 
 
 def test_config_tiebreak_values_match_the_match_layer_enum():

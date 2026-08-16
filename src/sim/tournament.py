@@ -80,10 +80,9 @@ for the reconciliation join and no classifier-visible history at all, so no
 ticket does not own — silently substituting 0.5, or bypassing the classifier
 for part of the bracket, would make some matches quietly lower-quality than
 others), :func:`simulate_bracket` refuses upfront and names every offending
-slot, in T2.1's fail-loudly-but-complete style. Consequence to be aware of: the
-shipped ``data/draws/example_usopen_2026.json`` contains placeholders and so
-cannot be simulated as-is. Deciding how an unfilled slot should be modelled is
-left to the project owner.
+slot, in T2.1's fail-loudly-but-complete style. Consequence to be aware of: any
+draw that still contains placeholders cannot be simulated as-is. Deciding how an
+unfilled slot should be modelled is left to the project owner.
 
 **Classifier quality (was a caveat; resolved by T3.5).** This module takes its
 classifier as an injected callable (T1.8's dependency inversion, exercised by

@@ -200,17 +200,17 @@ describe('tournament branch', () => {
   });
 
   it('carries a non-default id into the odds board and the sub-nav', () => {
-    loadUrl('/?tournament=example_usopen_2026_atp&view=odds');
+    loadUrl('/?tournament=placeholder_open_atp&view=odds');
 
-    expect(getSimulateMock.mock.calls[0][0]).toBe('example_usopen_2026_atp');
+    expect(getSimulateMock.mock.calls[0][0]).toBe('placeholder_open_atp');
     const hrefs = Array.from(tournamentNav()?.querySelectorAll('a') ?? []).map((a) =>
       a.getAttribute('href'),
     );
     expect(hrefs).toEqual([
-      '?tournament=example_usopen_2026_atp&view=bracket',
-      '?tournament=example_usopen_2026_atp&view=odds',
-      '?tournament=example_usopen_2026_atp&view=storybook',
-      '?tournament=example_usopen_2026_atp&view=upload',
+      '?tournament=placeholder_open_atp&view=bracket',
+      '?tournament=placeholder_open_atp&view=odds',
+      '?tournament=placeholder_open_atp&view=storybook',
+      '?tournament=placeholder_open_atp&view=upload',
     ]);
   });
 
@@ -245,13 +245,13 @@ describe('primary nav', () => {
   });
 
   it("points the Tournament branch at the current draw's bracket", () => {
-    loadUrl('/?tournament=example_usopen_2026_atp&view=upload');
+    loadUrl('/?tournament=placeholder_open_atp&view=upload');
 
     const tournamentLink = Array.from(
       document.querySelectorAll('nav[aria-label="Sections"] a'),
     ).find((a) => a.textContent?.trim() === 'Tournament');
     expect(tournamentLink?.getAttribute('href')).toBe(
-      '?tournament=example_usopen_2026_atp&view=bracket',
+      '?tournament=placeholder_open_atp&view=bracket',
     );
   });
 });

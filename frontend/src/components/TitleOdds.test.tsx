@@ -4,11 +4,11 @@
  * is required to show, and the failures that must not read as "no data".
  *
  * **The 8-draw case is necessarily mocked, and that is not a shortcut.** The
- * only 8-slot draw shipped (`example_usopen_2026_atp`) holds a `Qualifier`, so
- * T3.3 refuses to simulate it (409 `draw_not_simulatable`) and no cache exists
- * for it — the sole cached simulation is the 128 draw. A mocked payload is the
- * only way to exercise the small-draw column derivation at all, which is
- * exactly the regression a hardcoded three-column table would survive.
+ * shipped draws are all 128-slot, and a draw holding a `Qualifier` is refused by
+ * T3.3 (409 `draw_not_simulatable`) with no cache, so the only cached simulation
+ * is the 128 draw. A mocked payload is the only way to exercise the small-draw
+ * column derivation at all, which is exactly the regression a hardcoded
+ * three-column table would survive.
  *
  * `getSimulate`/`searchPlayers` are stubbed but the rest of `../api/client` is
  * real, so the error classes here are the ones the component branches on.
@@ -444,13 +444,13 @@ describe('loading and error states', () => {
       new ApiError({
         status: 409,
         statusText: 'Conflict',
-        url: 'http://api.test/tournaments/example_usopen_2026_atp/simulate',
+        url: 'http://api.test/tournaments/placeholder_open_atp/simulate',
         body: {
           detail: {
             reason: 'draw_not_simulatable',
             message: 'Draw holds placeholder entrants.',
-            tournament_id: 'example_usopen_2026_atp',
-            source: 'example_usopen_2026.json',
+            tournament_id: 'placeholder_open_atp',
+            source: 'placeholder_open.json',
             placeholder_slots: [
               { position: 2, player: 'Qualifier' },
               { position: 6, player: 'Qualifier/Lucky Loser' },
@@ -461,7 +461,7 @@ describe('loading and error states', () => {
       }),
     );
 
-    render(<TitleOdds tournamentId="example_usopen_2026_atp" />);
+    render(<TitleOdds tournamentId="placeholder_open_atp" />);
     const panel = await screen.findByRole('alert');
 
     expect(panel.dataset.errorKind).toBe('not-simulatable');

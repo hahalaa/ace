@@ -510,14 +510,14 @@ describe('loading and error states', () => {
       new ApiError({
         status: 409,
         statusText: 'Conflict',
-        url: 'http://api.test/tournaments/example_usopen_2026_atp/storybook?seed=7',
+        url: 'http://api.test/tournaments/placeholder_open_atp/storybook?seed=7',
         body: {
           detail: {
             reason: 'draw_not_simulatable',
             message:
-              "Draw 'example_usopen_2026_atp' still holds placeholder entrants and cannot be simulated.",
-            tournament_id: 'example_usopen_2026_atp',
-            source: 'example_usopen_2026.json',
+              "Draw 'placeholder_open_atp' still holds placeholder entrants and cannot be simulated.",
+            tournament_id: 'placeholder_open_atp',
+            source: 'placeholder_open.json',
             placeholder_slots: [
               { position: 2, player: 'Qualifier' },
               { position: 6, player: 'Qualifier/Lucky Loser' },
@@ -528,7 +528,7 @@ describe('loading and error states', () => {
       }),
     );
     window.history.replaceState({}, '', '/?seed=7');
-    render(<Storybook tournamentId="example_usopen_2026_atp" />);
+    render(<Storybook tournamentId="placeholder_open_atp" />);
 
     const panel = await screen.findByRole('alert');
     expect(panel.dataset.errorKind).toBe('not-simulatable');

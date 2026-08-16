@@ -776,10 +776,10 @@ def test_placeholder_entrants_are_rejected_upfront(skill_table, classifier):
 def test_full_example_draw_loads_and_simulates_end_to_end():
     """Smoke test for ``example_usopen_2024_full.json``.
 
-    ``example_usopen_2026.json`` carries ``"Qualifier"``/``"Lucky Loser"`` slots
-    and so is *correctly* refused by :func:`simulate_bracket`. This second
-    example is a real, completed 128-draw in which every slot was filled by a
-    named player, so it is the fixture T2.3 can actually measure against.
+    A draw carrying ``"Qualifier"``/``"Lucky Loser"`` slots is *correctly*
+    refused by :func:`simulate_bracket` (covered above). This example is a real,
+    completed 128-draw in which every slot was filled by a named player, so it is
+    the fixture T2.3 can actually measure against.
 
     Deliberately a smoke test: structure, labels and determinism are already
     covered above against toy draws. What is unique here is that the file
