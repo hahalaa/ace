@@ -2,7 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      Favicons. favicon.svg is the primary (modern browsers prefer it when both
+      are present); favicon.ico (16+32) and apple-touch-icon.png (180) are the
+      fallbacks for older Safari and bookmark/share surfaces that don't render
+      SVG-only icons. The two raster files are GENERATED from favicon.svg — if
+      that ball-mark design ever changes, regenerate them so they don't drift
+      out of sync. See public/README.md for the one-off command.
+    -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ace</title>
     <!--
