@@ -27,7 +27,7 @@
 
 services:
   - type: web
-    name: ace-frontend
+    name: play-ace
     runtime: static
     rootDir: frontend
     buildCommand: npm ci && npm run build
