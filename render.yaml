@@ -65,6 +65,21 @@ services:
       - path: /theme-init.js
         name: Cache-Control
         value: no-cache
+      # The favicons are fixed, un-hashed paths too (favicon.svg is referenced
+      # by index.html; the .ico and apple-touch-icon.png are picked up by
+      # convention). Without an explicit rule they fall through to Render's
+      # default static policy (s-maxage=300), so a favicon change can sit behind
+      # a stale CDN copy across a deploy. no-cache them for the same reason as
+      # theme-init.js and index.html.
+      - path: /favicon.svg
+        name: Cache-Control
+        value: no-cache
+      - path: /favicon.ico
+        name: Cache-Control
+        value: no-cache
+      - path: /apple-touch-icon.png
+        name: Cache-Control
+        value: no-cache
 
       # ---- Security headers (security hardening) ----
       # Scoped to what a Vite build of THIS app actually loads:
