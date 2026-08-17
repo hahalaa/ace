@@ -3,15 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <!--
-      Favicons. favicon.svg is the primary (modern browsers prefer it when both
-      are present); favicon.ico (16+32) and apple-touch-icon.png (180) are the
-      fallbacks for older Safari and bookmark/share surfaces that don't render
-      SVG-only icons. The two raster files are GENERATED from favicon.svg — if
-      that ball-mark design ever changes, regenerate them so they don't drift
-      out of sync. See public/README.md for the one-off command.
+      Favicons. favicon.svg is the primary (modern browsers render it); the
+      raster files are fallbacks for surfaces that can't use an SVG icon —
+      favicon.ico (16+32+48) for older Safari/IE, apple-touch-icon.png (180) for
+      iOS home-screen/bookmark. The two raster files are GENERATED from
+      favicon.svg — if that ball-mark design ever changes, regenerate them so
+      they don't drift out of sync. See public/README.md for the command.
+
+      Order and attributes are load-bearing, not cosmetic (see the "favicon
+      nightmare" write-up linked in public/README.md). Chrome's rule is "if
+      several icons are equally appropriate, the LAST one wins," so:
+        * the .ico must come BEFORE the .svg, and
+        * sizes="any" belongs on the SVG (it marks the scalable icon as the
+          most-appropriate choice), NOT on the .ico.
+      Putting sizes="any" on the .ico and listing it last — as an earlier
+      revision did — makes Chrome treat the raster fallback as the best icon and
+      render it (or, with a stale favicon cache, nothing) instead of the SVG.
+      The .ico's sizes="48x48" is the real largest frame in the file and is a
+      size Chrome considers too big for a 16/32px tab, so Chrome skips it and
+      uses the SVG while Safari/IE still fall back to the .ico.
     -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ace</title>

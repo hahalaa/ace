@@ -8,10 +8,18 @@ Static assets copied verbatim into the build output at the site root.
 raster fallbacks are **generated from it** and must be regenerated if that design
 ever changes, or they will silently drift and look like a bug:
 
-- `favicon.ico` — multi-resolution (16×16 + 32×32), transparent corners; fallback
-  for browsers/contexts without SVG-favicon support.
+- `favicon.ico` — multi-resolution (16×16 + 32×32 + 48×48), transparent corners;
+  fallback for browsers/contexts without SVG-favicon support.
 - `apple-touch-icon.png` — 180×180, opaque square (iOS masks the corners itself);
   iOS home-screen / bookmark icon.
+
+The order and attributes of the `<link>` tags in `index.html` matter (see the
+["favicon nightmare"](https://dev.to/masakudamatsu/favicon-nightmare-how-to-maintain-sanity-3al7)
+write-up): the `.ico` is listed **before** the `.svg`, `sizes="any"` goes on the
+**SVG** (not the `.ico`), and the `.ico` carries `sizes="48x48"`. Chrome's rule is
+"the last equally-appropriate icon wins," so that combination makes Chrome render
+the crisp SVG while Safari/IE still fall back to the `.ico`. Inverting it makes
+Chrome pick the raster fallback instead.
 
 Regenerate (macOS, using QuickLook to rasterize + Pillow to resize — no npm
 devDependency):
@@ -35,7 +43,9 @@ for y in range(H):
         else:
             tp[x,y]=(r,g,b,a); dp[x,y]=(r,g,b,255)
 dark.convert("RGB").resize((180,180), Image.LANCZOS).save("apple-touch-icon.png")
-trans.resize((32,32), Image.LANCZOS).save("favicon.ico", format="ICO", sizes=[(16,16),(32,32)])
+# Pillow downscales the 512 master to each frame; 48×48 is the size index.html
+# declares (sizes="48x48"), so it must be present in the file.
+trans.save("favicon.ico", format="ICO", sizes=[(16,16),(32,32),(48,48)])
 PY
 ```
 
