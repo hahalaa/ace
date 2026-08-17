@@ -10,14 +10,17 @@
  * not what the link is for. So it lives in localStorage instead, and the URL
  * stays purely about the tournament.
  *
- * First visit with nothing stored falls back to the OS `prefers-color-scheme`.
- * The dark theme is the default identity, so anything other than an explicit OS
- * "light" resolves to dark (a `no-preference` OS included).
+ * First visit with nothing stored lands on the dark `DEFAULT_THEME` identity;
+ * the OS `prefers-color-scheme` is deliberately NOT consulted, so a light-
+ * preferring OS does not pull a first-time visitor off dark. Only an explicit
+ * toggle choice, stored in localStorage, moves a visitor off the default.
  *
  * These functions are intentionally free of React: the same resolution runs in
- * the inline pre-paint script in index.html (which cannot import a module), so
- * the logic is kept small enough to mirror there by hand, and unit-testable on
- * its own. The React seam is `useTheme` in components/ThemeToggle.tsx.
+ * the external same-origin pre-paint script (public/theme-init.js, referenced
+ * by index.html — a classic script cannot import a module, and it must stay
+ * external rather than inline to survive the deployed CSP), so the logic is kept
+ * small enough to mirror there by hand, and unit-testable on its own. The React
+ * seam is `useTheme` in components/ThemeToggle.tsx.
  */
 
 export type Theme = 'light' | 'dark';

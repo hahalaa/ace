@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 /**
  * Theme resolution: the rules that decide which register a visitor lands in,
- * and that a flip persists. These are the pure functions the pre-paint inline
- * script mirrors by hand, so pinning them here also pins the contract that
- * script has to keep.
+ * and that a flip persists. These are the pure functions the external pre-paint
+ * script (public/theme-init.js) mirrors by hand, so pinning them here also pins
+ * the contract that script has to keep.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
