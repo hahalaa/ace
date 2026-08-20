@@ -85,10 +85,6 @@ export default function RecentSimulations() {
           <Item key={entry.id} entry={entry} />
         ))}
       </ul>
-
-      <p className={styles.note}>
-        Kept in this browser only, never sent anywhere.
-      </p>
     </section>
   );
 }

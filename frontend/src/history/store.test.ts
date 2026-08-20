@@ -132,7 +132,7 @@ describe('recordMatch / recordStorybook', () => {
     recordMatch(result);
     const [entry] = readHistory();
     expect(entry.kind).toBe('match');
-    expect(entry.summary).toBe('Jannik Sinner vs Tommy Paul, Hard, best of 5');
+    expect(entry.summary).toBe('Jannik Sinner vs Tommy Paul, Hard, Best of 5');
     expect(entry.ephemeral).toBe(false);
     const params = new URLSearchParams(entry.url.replace(/^\?/, ''));
     expect(params.get('view')).toBe('match');

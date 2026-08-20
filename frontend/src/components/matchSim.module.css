@@ -50,7 +50,16 @@
 }
 
 /* --- Controls ------------------------------------------------------------ */
+/* `position: relative; z-index: 2` keeps the player-picker dropdown (absolutely
+   positioned inside this block) above the results below. The `--kf-rise`
+   entrance animation applies a transform while it plays, turning both this block
+   and `.results` into stacking contexts — that traps the dropdown's own z-index
+   inside `.controls`, so without an explicit order the later-sibling `.results`
+   paints over it. Pinning controls above results fixes it at every animation
+   state, theme and zoom level. */
 .controls {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
@@ -270,7 +279,11 @@
 }
 
 /* --- Results ------------------------------------------------------------- */
+/* Sits one level below `.controls` (see that block) so the picker dropdown
+   always overlays it. */
 .results {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: clamp(1.25rem, 3vw, 1.75rem);

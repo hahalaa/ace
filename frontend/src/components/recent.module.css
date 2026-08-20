@@ -112,9 +112,3 @@
   letter-spacing: 0.04em;
   color: var(--ink-mid);
 }
-
-.note {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--ink-dim);
-}

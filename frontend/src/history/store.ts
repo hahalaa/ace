@@ -39,7 +39,7 @@ export interface HistoryEntry {
   kind: HistoryKind;
   /** Relative search string (`?view=…`) that reproduces the result. Origin-free. */
   url: string;
-  /** Human-scannable one-liner, e.g. "Sinner vs Paul, Hard, best of 5". */
+  /** Human-scannable one-liner, e.g. "Sinner vs Paul, Hard, Best of 5". */
   summary: string;
   /** Epoch millis the result completed. */
   timestamp: number;
@@ -171,7 +171,7 @@ export function recordMatch(result: MatchSimulateResponse): void {
   logSimulation({
     kind: 'match',
     url,
-    summary: `${result.player_a} vs ${result.player_b}, ${result.surface}, best of ${result.best_of}`,
+    summary: `${result.player_a} vs ${result.player_b}, ${result.surface}, Best of ${result.best_of}`,
     ephemeral: false,
   });
 }

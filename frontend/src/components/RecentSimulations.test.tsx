@@ -26,12 +26,12 @@ describe('RecentSimulations', () => {
     logSimulation({
       kind: 'match',
       url: '?view=match&a=A&b=B&surface=Hard&bo=5&seed=7',
-      summary: 'A vs B, Hard, best of 5',
+      summary: 'A vs B, Hard, Best of 5',
       ephemeral: false,
     });
     render(<RecentSimulations />);
 
-    const link = screen.getByRole('link', { name: /A vs B, Hard, best of 5/ });
+    const link = screen.getByRole('link', { name: /A vs B, Hard, Best of 5/ });
     expect(link.getAttribute('href')).toBe('?view=match&a=A&b=B&surface=Hard&bo=5&seed=7');
     // Proper list semantics.
     expect(screen.getByRole('list')).not.toBeNull();
@@ -70,7 +70,7 @@ describe('RecentSimulations', () => {
     logSimulation({
       kind: 'match',
       url: '?view=match&seed=1',
-      summary: 'A vs B, Hard, best of 5',
+      summary: 'A vs B, Hard, Best of 5',
       ephemeral: false,
     });
     const { container } = render(<RecentSimulations />);
