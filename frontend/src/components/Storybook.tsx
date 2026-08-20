@@ -35,6 +35,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { getStorybook } from '../api/client';
 import type { StorybookResponse } from '../api/types';
+import { recordStorybook } from '../history/store';
 import Bracket from './Bracket';
 import Disclosure from './Disclosure';
 import ErrorPanel from './ErrorPanel';
@@ -106,7 +107,12 @@ export default function Storybook({ tournamentId }: StorybookProps) {
 
     getStorybook(tournamentId, seed, { signal: controller.signal }).then(
       (story) => {
-        if (!controller.signal.aborted) setState({ status: 'ready', story });
+        if (!controller.signal.aborted) {
+          setState({ status: 'ready', story });
+          // Log the completed run to the browser-local history the dashboard
+          // reads back. Uploaded draws are flagged ephemeral inside recordStorybook.
+          recordStorybook(story);
+        }
       },
       (error: unknown) => {
         // An abort surfaces as an ApiNetworkError; it is this effect tearing

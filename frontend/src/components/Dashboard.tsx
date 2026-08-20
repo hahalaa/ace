@@ -27,6 +27,7 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
 
 import type { BestOf, Surface } from '../api/types';
+import RecentSimulations from './RecentSimulations';
 import styles from './dashboard.module.css';
 
 export interface DashboardProps {
@@ -200,6 +201,9 @@ export default function Dashboard({ tournamentId }: DashboardProps) {
           {EXAMPLE_MATCH.a} vs {EXAMPLE_MATCH.b} on {EXAMPLE_MATCH.surface}
         </a>
       </p>
+
+      {/* Renders nothing until the visitor has a result to their name. */}
+      <RecentSimulations />
     </section>
   );
 }

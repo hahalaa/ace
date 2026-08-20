@@ -27,6 +27,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 import { isApiError, searchPlayers, simulateMatch } from '../api/client';
+import { recordMatch } from '../history/store';
 import type {
   BestOf,
   MatchSimulateResponse,
@@ -353,7 +354,12 @@ export default function MatchSim() {
       { signal: controller.signal },
     ).then(
       (result) => {
-        if (!controller.signal.aborted) setState({ status: 'ready', result });
+        if (!controller.signal.aborted) {
+          setState({ status: 'ready', result });
+          // Log the completed result to the browser-local history the dashboard
+          // reads back. Fires once per fetch, so a re-render cannot re-log it.
+          recordMatch(result);
+        }
       },
       (error: unknown) => {
         if (!controller.signal.aborted) setState({ status: 'error', error });

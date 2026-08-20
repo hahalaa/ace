@@ -1,0 +1,120 @@
+/*
+ * The "Recent simulations" panel on the dashboard. Editorial and restrained to
+ * match the two cards above it: no icons, monochrome, the gold accent spent only
+ * on a link's focus/hover the way the rest of the dashboard spends it. Tokens
+ * from src/index.css.
+ */
+
+.recent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-width: 46ch;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.clear {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  cursor: pointer;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.1rem;
+  transition:
+    color var(--dur-1) var(--ease-out),
+    border-color var(--dur-1) var(--ease-out);
+}
+
+.clear:hover {
+  color: var(--ink);
+  border-color: var(--ink-dim);
+}
+
+.clear:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  border-top: 1px solid var(--line);
+}
+
+.item:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.7rem 0.1rem;
+  text-decoration: none;
+  color: var(--ink);
+  transition: color var(--dur-1) var(--ease-out);
+}
+
+.link:hover {
+  color: var(--ball);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.summary {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.8rem;
+  font-size: 0.8rem;
+  color: var(--ink-dim);
+}
+
+.ephemeral {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-mid);
+}
+
+.note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-dim);
+}
