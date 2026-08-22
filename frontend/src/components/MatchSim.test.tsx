@@ -194,6 +194,49 @@ describe('slow-request loading state', () => {
     await screen.findByLabelText('Win probability');
     expect(screen.queryByText(/waking up the server/i)).toBeNull();
   });
+
+  it('does not false-positive on a warm-but-slightly-slow request under the threshold', async () => {
+    vi.useFakeTimers();
+    try {
+      // A warm request that is a touch slower than usual (1700ms) but is NOT a
+      // cold start. It must never show the wake-up message: that copy claims the
+      // server is asleep, so it has to stay true.
+      let resolve!: (value: MatchSimulateResponse) => void;
+      simulateMatchMock.mockReturnValue(
+        new Promise<MatchSimulateResponse>((r) => {
+          resolve = r;
+        }),
+      );
+      searchPlayersMock.mockReturnValue(new Promise(() => {}));
+      window.history.replaceState({}, '', COMPLETE_URL);
+      act(() => {
+        render(<MatchSim />);
+      });
+
+      // Advance to just under the threshold: still simulating, no wake-up.
+      act(() => {
+        vi.advanceTimersByTime(1700);
+      });
+      expect(screen.queryByText(/waking up the server/i)).toBeNull();
+
+      // The warm request completes at 1700ms, clearing the slow timer.
+      await act(async () => {
+        resolve(RESULT);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      // Even well past where the threshold would have fired, the message never
+      // appears — the cleared timer cannot resurrect it — and the result shows.
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(screen.queryByText(/waking up the server/i)).toBeNull();
+      expect(screen.getByLabelText('Win probability')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 // --------------------------------------------------------------------------
