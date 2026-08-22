@@ -29,6 +29,7 @@ estimator is a logistic regression fitted on it.
 from __future__ import annotations
 
 import ast
+import dataclasses
 import os
 import pickle
 import subprocess
@@ -45,7 +46,12 @@ import config
 import features.engineering as engineering
 import features.rolling as rolling
 from api.deps import ApiContext
-from api.main import adapter_name, create_app, resolve_classifier_factory
+from api.main import (
+    adapter_name,
+    build_classifier,
+    create_app,
+    resolve_classifier_factory,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_DRAWS = Path(__file__).parent / "fixtures" / "draws"
@@ -625,6 +631,53 @@ def test_live_storybook_reflects_the_classifier_it_was_given(live_client, pipeli
     # only if the classifier is genuinely driving the simulation.
     assert skewed["champion"]["position"] == 1
     assert skewed != baseline
+
+
+# --------------------------------------------------------------------------- #
+# Startup warm-up: the rolling-form table is built eagerly, not on first request
+# --------------------------------------------------------------------------- #
+def _context_from(pipeline, estimator) -> ApiContext:
+    data, surface_history, h2h_history, skill_table = pipeline
+    return ApiContext(
+        data=data,
+        surface_history=surface_history,
+        h2h_history=h2h_history,
+        skill_table=skill_table,
+        estimator=estimator,
+        estimator_class=type(estimator).__name__,
+        data_through_year=int(data["tourney_date"].dt.year.max()),
+    )
+
+
+def test_build_classifier_warms_the_rolling_form_table_eagerly(pipeline, estimator):
+    """The deferred scan is charged to startup, not to the first simulate request.
+
+    ``build_classifier`` moves the adapter's one lazy artefact — the as-of-now
+    rolling-form table — off the first-request path. After it returns, the table
+    is already built and memoised, so the first ``/match`` or ``/storybook``
+    does not pay the ~0.08 s scan on a cold instance.
+    """
+    adapter_wrapper = build_classifier(_context_from(pipeline, estimator), adapter.make_classifier_prob)
+    # Reaching into the private memo is deliberate: the whole point of the fix
+    # is that this is populated *before* any prediction has been asked for.
+    assert adapter_wrapper.call._form_table is not None
+
+
+def test_build_classifier_warm_up_never_breaks_startup_on_a_bad_frame(
+    pipeline, estimator
+):
+    """Warming is best-effort: an unbuildable frame falls back to lazy, not a crash.
+
+    A minimal frame that lacks the columns ``build_rolling_form_table`` needs
+    (the shape every small test fixture has) must not abort app startup. The
+    adapter is still returned, and the table simply builds — or fails — on first
+    use exactly as it did before the warm-up existed.
+    """
+    context = _context_from(pipeline, estimator)
+    broken = dataclasses.replace(context, data=context.data[["tourney_date"]].copy())
+    # Must not raise despite the frame being unusable for a form table.
+    adapter_wrapper = build_classifier(broken, adapter.make_classifier_prob)
+    assert adapter_wrapper.call._form_table is None
 
 
 def test_config_default_and_precompute_still_name_the_same_adapter():

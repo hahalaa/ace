@@ -158,6 +158,75 @@ describe('results', () => {
 });
 
 // --------------------------------------------------------------------------
+// Cold-start / slow-request loading state
+// --------------------------------------------------------------------------
+describe('slow-request loading state', () => {
+  it('shows "Simulating…" first, then switches to a wake-up message past the threshold', async () => {
+    vi.useFakeTimers();
+    try {
+      // A request that never resolves, so the component stays in `loading`.
+      simulateMatchMock.mockReturnValue(new Promise(() => {}));
+      searchPlayersMock.mockReturnValue(new Promise(() => {}));
+      window.history.replaceState({}, '', COMPLETE_URL);
+      act(() => {
+        render(<MatchSim />);
+      });
+
+      // Before the threshold: the ordinary simulating status, not the wake-up copy.
+      expect(screen.getByText(/Simulating/)).toBeTruthy();
+      expect(screen.queryByText(/waking up the server/i)).toBeNull();
+
+      // Past the threshold: the honest cold-start message replaces it.
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(screen.getByText(/waking up the server/i)).toBeTruthy();
+      expect(screen.getByText(/sleeps when idle/i)).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('never shows the wake-up message when the result arrives quickly', async () => {
+    simulateMatchMock.mockResolvedValue(RESULT);
+    mountAt(COMPLETE_URL);
+
+    await screen.findByLabelText('Win probability');
+    expect(screen.queryByText(/waking up the server/i)).toBeNull();
+  });
+});
+
+// --------------------------------------------------------------------------
+// Player picker keeps a stable height (no layout shift on "Searching…")
+// --------------------------------------------------------------------------
+describe('player picker layout', () => {
+  it('always renders a status slot under each input so its height never jumps', () => {
+    // A bare match URL: no simulation runs and no search is in flight, so the
+    // pickers sit in their resting state (no "Searching…", no loading panel).
+    searchPlayersMock.mockReturnValue(new Promise(() => {}));
+    simulateMatchMock.mockReturnValue(new Promise(() => {}));
+    window.history.replaceState({}, '', '/?view=match');
+    render(<MatchSim />);
+
+    // Each picker keeps a reserved status line even at rest (aria-hidden while
+    // empty). Before the fix this element only appeared while searching, which
+    // is exactly what grew one input taller than the other. `hidden: true` is
+    // required because the resting slots are aria-hidden.
+    const reserved = screen.getAllByRole('status', { hidden: true });
+    expect(reserved).toHaveLength(2);
+    for (const slot of reserved) {
+      // The slot holds non-breaking whitespace at rest, never collapsing to
+      // zero height.
+      expect(slot.textContent?.trim()).toBe('');
+    }
+
+    // And both player inputs are present and label-associated, so the two
+    // reserved slots belong to the two side-by-side pickers.
+    expect(screen.getAllByLabelText(/Player [AB]/, { selector: 'input' })).toHaveLength(2);
+  });
+});
+
+// --------------------------------------------------------------------------
 // Reproducible-by-seed
 // --------------------------------------------------------------------------
 describe('reproducibility', () => {

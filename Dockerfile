@@ -9,7 +9,7 @@
 # touches Node and a frontend build never trains a model.
 #
 #   deps              python:3.11-slim + /opt/venv from requirements.txt
-#   runtime-deps      ⬑ the same venv minus build-only packages (1.2 GB → 731 MB)
+#   runtime-deps      ⬑ the same venv minus build-only packages (1.2 GB → 693 MB)
 #   artefacts         ⬑ trains the model and precomputes the sim cache
 #   frontend-builder  node + `npm ci && npm run build`
 #   frontend          nginx serving dist/            (--target frontend)
@@ -106,7 +106,7 @@ RUN pip install -r requirements.txt
 #
 # `COPY --from=` copies a stage's final filesystem, not its layers, so pruning
 # here genuinely shrinks the shipped image (an uninstall in the api stage would
-# not — deleted files still sit in the layer below). Measured: 1.2 GB → 731 MB.
+# not — deleted files still sit in the layer below). Measured: 1.2 GB → 693 MB (of which the matplotlib-orphan prune below is the last ~34 MB).
 #
 #   nvidia-nccl-cu12  401 MB of CUDA collective-communication libraries, pulled
 #                     in as an xgboost dependency and used only for distributed
@@ -114,6 +114,15 @@ RUN pip install -r requirements.txt
 #   matplotlib,       plotting, used by model/train.py + model/viz.py during the
 #   seaborn           artefacts stage. `import api.main` loads neither (checked).
 #   pytest            test-only; tests/ is not even in the image.
+#   fonttools,        matplotlib's own dependencies, left orphaned once it goes
+#   kiwisolver,       (pip uninstall does not cascade to a package's deps). None
+#   cycler,           is required by any surviving package — verified: their
+#   contourpy         reverse-dependency set is empty — and fonttools alone is
+#                     ~28 MB. Pruned the same pip-list|grep|xargs way as nvidia
+#                     so an absent one (a future matplotlib with different deps)
+#                     is a no-op, not a build failure. pillow/narwhals/pygments
+#                     are deliberately NOT here: they are still declared deps of
+#                     scikit-learn / httpx, so the guard universe keeps them.
 #
 # The guard below is the safety net: any of those turning out to be load-bearing
 # fails the build here rather than at container start. It must keep exercising
@@ -124,6 +133,7 @@ FROM deps AS runtime-deps
 
 RUN pip list --format=freeze | grep -i '^nvidia' | cut -d= -f1 | xargs -r pip uninstall -y \
  && pip uninstall -y matplotlib seaborn pytest \
+ && pip list --format=freeze | grep -iE '^(fonttools|kiwisolver|cycler|contourpy)=' | cut -d= -f1 | xargs -r pip uninstall -y \
  && python -c "import xgboost, sklearn, pandas, numpy, joblib, fastapi, uvicorn, pydantic; print('[build] runtime import guard OK')"
 
 

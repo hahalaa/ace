@@ -419,14 +419,47 @@ def build_classifier(
     request, repeat matchups across seeds cost one ``predict_proba`` in total
     rather than one per request.
     """
-    return ClassifierAdapter(
-        call=factory(
-            context.estimator,
-            context.data,
-            context.surface_history,
-            context.h2h_history,
-        ),
-        name=adapter_name(factory),
+    call = factory(
+        context.estimator,
+        context.data,
+        context.surface_history,
+        context.h2h_history,
+    )
+    # Warm the one piece of state the adapter otherwise defers to the first
+    # simulate request: the as-of-now rolling-form table (a ~0.08 s scan of the
+    # full frame, built once and kept). Doing it here folds that cost into the
+    # ~2 s startup — the same eager-init discipline the rest of this module
+    # follows — so the first /match or /storybook request is not the one that
+    # pays for it.
+    #
+    # Best-effort by design. The `form_table` property is read only if the
+    # adapter exposes one (the factory is pluggable via
+    # config.API_CLASSIFIER_ADAPTER), and building it is wrapped so that any
+    # failure — chiefly a minimal test-fixture frame that lacks the rolling
+    # columns — falls back to the original lazy behaviour instead of aborting
+    # startup. Warming can only make the first request faster; it must never be
+    # the thing that stops the app from starting.
+    _warm_form_table(call)
+    return ClassifierAdapter(call=call, name=adapter_name(factory))
+
+
+def _warm_form_table(call: ClassifierProb) -> None:
+    """Trigger the adapter's deferred rolling-form build at startup, if it has one."""
+    # Check the *class*, not the instance: `hasattr(call, "form_table")` would
+    # invoke the property getter and let its exception escape this guard. The
+    # class carries the property descriptor whether or not it can be evaluated.
+    if not hasattr(type(call), "form_table"):
+        return
+    try:
+        form_table = call.form_table
+    except Exception as exc:  # noqa: BLE001 — warming must never break startup
+        logger.warning(
+            "Skipped rolling-form warm-up (%s); it will build on first request.",
+            exc,
+        )
+        return
+    logger.info(
+        "Warmed rolling-form table at startup (%d players).", len(form_table.form)
     )
 
 
