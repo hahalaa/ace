@@ -323,9 +323,8 @@ CONTENT_NOTE_CURATED = (
 )
 
 CONTENT_NOTE_UPLOAD = (
-    "User-submitted draw. It has not been checked against any official record, "
-    "and it is held in memory only, so it may be cleared when the server "
-    "restarts. Save anything you want to keep."
+    "User-submitted draw, unverified. This may stop working later. Save "
+    "anything you want to keep."
 )
 
 
