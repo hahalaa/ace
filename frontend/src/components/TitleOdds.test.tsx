@@ -330,7 +330,7 @@ describe('caption', () => {
   it('reads the plain, reworded caption rather than the old corporate copy', async () => {
     await renderOdds(eightDraw());
     const caption = screen.getByRole('table').querySelector('caption');
-    expect(caption?.textContent).toContain('Sorted with the most likely champion first.');
+    expect(caption?.textContent).toContain('Sorted by most likely champion first.');
     expect(caption?.textContent).not.toContain('Title and round-survival probabilities');
   });
 });

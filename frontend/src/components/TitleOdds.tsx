@@ -106,7 +106,7 @@ export default function TitleOdds({ tournamentId }: TitleOddsProps) {
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <caption className={styles.caption}>
-            Sorted with the most likely champion first.
+            Sorted by most likely champion first.
             {sim.count < sim.draw_size && ` Showing ${sim.count} of ${sim.draw_size} entrants.`}
           </caption>
           <thead>

@@ -134,8 +134,13 @@
  * Champion — the reveal.
  * ------------------------------------------------------------------------- */
 
+/* One divider, immediately after the reveal — filling the gap the removed
+   disclosure block used to occupy rather than leaving it blank. No
+   border-top: nothing above the reveal needs marking off, and a second rule
+   there would just recreate the doubled-line problem this replaced. */
 .champion {
   padding: 2rem 0 2.25rem;
+  border-bottom: 1px solid var(--line);
 }
 
 .championLabel {
