@@ -483,19 +483,19 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* --- Slow / cold-start loading ------------------------------------------- */
-/* Shown only once a request passes the wake-up threshold. The pulsing dot marks
-   it as deliberate, live activity rather than a frozen panel. */
-.wakeLine {
+/* --- Loading ---------------------------------------------------------- */
+/* The pulsing dot marks this as deliberate, live activity rather than a
+   frozen panel — no explanation of why a given request takes as long as it
+   does, just a plain "something is happening" signal. */
+.loadingLine {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  margin: 0 0 0.4rem;
-  font-weight: 700;
+  margin: 0;
   color: var(--ink);
 }
 
-.wakeLine::before {
+.loadingLine::before {
   content: '';
   width: 0.6rem;
   height: 0.6rem;
@@ -505,11 +505,11 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .wakeLine::before {
-    animation: wakePulse 1.2s var(--ease-out) infinite;
+  .loadingLine::before {
+    animation: loadingPulse 1.2s var(--ease-out) infinite;
   }
 
-  @keyframes wakePulse {
+  @keyframes loadingPulse {
     0%,
     100% {
       opacity: 0.35;
@@ -520,14 +520,6 @@
       transform: scale(1);
     }
   }
-}
-
-.wakeSub {
-  margin: 0;
-  max-width: 46ch;
-  font-size: 0.9rem;
-  line-height: 1.55;
-  color: var(--ink-mid);
 }
 
 @media (max-width: 34rem) {

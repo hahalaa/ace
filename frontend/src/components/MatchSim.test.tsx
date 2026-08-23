@@ -158,10 +158,10 @@ describe('results', () => {
 });
 
 // --------------------------------------------------------------------------
-// Cold-start / slow-request loading state
+// Loading state
 // --------------------------------------------------------------------------
-describe('slow-request loading state', () => {
-  it('shows "Simulating…" first, then switches to a wake-up message past the threshold', async () => {
+describe('loading state', () => {
+  it('shows a plain "Simulating…" status with no infrastructure explanation, however long the request takes', async () => {
     vi.useFakeTimers();
     try {
       // A request that never resolves, so the component stays in `loading`.
@@ -172,67 +172,16 @@ describe('slow-request loading state', () => {
         render(<MatchSim />);
       });
 
-      // Before the threshold: the ordinary simulating status, not the wake-up copy.
       expect(screen.getByText(/Simulating/)).toBeTruthy();
-      expect(screen.queryByText(/waking up the server/i)).toBeNull();
 
-      // Past the threshold: the honest cold-start message replaces it.
+      // No wording about servers, sleeping, or waking up — at any point.
       act(() => {
-        vi.advanceTimersByTime(2000);
+        vi.advanceTimersByTime(10000);
       });
-      expect(screen.getByText(/waking up the server/i)).toBeTruthy();
-      expect(screen.getByText(/sleeps when idle/i)).toBeTruthy();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('never shows the wake-up message when the result arrives quickly', async () => {
-    simulateMatchMock.mockResolvedValue(RESULT);
-    mountAt(COMPLETE_URL);
-
-    await screen.findByLabelText('Win probability');
-    expect(screen.queryByText(/waking up the server/i)).toBeNull();
-  });
-
-  it('does not false-positive on a warm-but-slightly-slow request under the threshold', async () => {
-    vi.useFakeTimers();
-    try {
-      // A warm request that is a touch slower than usual (1700ms) but is NOT a
-      // cold start. It must never show the wake-up message: that copy claims the
-      // server is asleep, so it has to stay true.
-      let resolve!: (value: MatchSimulateResponse) => void;
-      simulateMatchMock.mockReturnValue(
-        new Promise<MatchSimulateResponse>((r) => {
-          resolve = r;
-        }),
-      );
-      searchPlayersMock.mockReturnValue(new Promise(() => {}));
-      window.history.replaceState({}, '', COMPLETE_URL);
-      act(() => {
-        render(<MatchSim />);
-      });
-
-      // Advance to just under the threshold: still simulating, no wake-up.
-      act(() => {
-        vi.advanceTimersByTime(1700);
-      });
-      expect(screen.queryByText(/waking up the server/i)).toBeNull();
-
-      // The warm request completes at 1700ms, clearing the slow timer.
-      await act(async () => {
-        resolve(RESULT);
-        await Promise.resolve();
-        await Promise.resolve();
-      });
-
-      // Even well past where the threshold would have fired, the message never
-      // appears — the cleared timer cannot resurrect it — and the result shows.
-      act(() => {
-        vi.advanceTimersByTime(2000);
-      });
-      expect(screen.queryByText(/waking up the server/i)).toBeNull();
-      expect(screen.getByLabelText('Win probability')).toBeTruthy();
+      expect(screen.queryByText(/server/i)).toBeNull();
+      expect(screen.queryByText(/sleep/i)).toBeNull();
+      expect(screen.queryByText(/waking/i)).toBeNull();
+      expect(screen.getByText(/Simulating/)).toBeTruthy();
     } finally {
       vi.useRealTimers();
     }

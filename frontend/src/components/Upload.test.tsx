@@ -65,12 +65,9 @@ it('POSTs the file text and links into the new draw on success', async () => {
   const bracket = screen.getByRole('link', { name: 'View bracket' });
   expect(bracket.getAttribute('href')).toBe('?tournament=upload-abc123&view=bracket');
 
-  // The server's own content note is shown, not a paraphrase.
+  // The server's own content note is shown, not a paraphrase — it already
+  // carries the ephemeral-storage caveat, so the screen adds no second copy.
   expect(screen.getByText(OK_RESULT.content_note)).toBeTruthy();
-
-  // The ephemeral-storage caveat shows on the result, where a share link matters.
-  const note = document.querySelector('[data-note="ephemeral"]');
-  expect(note?.textContent).toMatch(/memory only/i);
 });
 
 it('shows a forecast badge for a future-dated upload', async () => {

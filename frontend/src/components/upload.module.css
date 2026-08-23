@@ -2,10 +2,10 @@
  * Upload screen styles.
  *
  * A single-column form: a drop zone that doubles as the file-picker label, and
- * the result panel (which carries the ephemerality caveat once there is a
- * result to caveat). Tokens come from src/index.css; the drop zone borrows the
- * same line/raise surface every other panel uses so an upload does not look
- * like a different app.
+ * the result panel. The ephemerality caveat lives in the server's own
+ * `content_note`, not a separate frontend box. Tokens come from src/index.css;
+ * the drop zone borrows the same line/raise surface every other panel uses so
+ * an upload does not look like a different app.
  */
 
 .upload {
@@ -96,20 +96,6 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-/* The ephemerality caveat, surfaced on the result — where a user might go on
-   to share a link — rather than as a standing note before anyone has uploaded
-   anything. */
-.ephemeralNote {
-  margin: 0 0 1rem;
-  padding: 0.9rem 1.1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--bg-sink);
-  color: var(--ink-mid);
-  font-size: 0.85rem;
-  line-height: 1.6;
 }
 
 /* A one-line pointer to the format: the real draw file on GitHub and the

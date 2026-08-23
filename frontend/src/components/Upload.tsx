@@ -8,12 +8,15 @@
  * storybook — normal deep links, so the rest of the app needs no upload-aware
  * code.
  *
- * **Honest about ephemerality, where it matters.** Uploaded draws live in the
- * server's memory only (there is no persistent disk on the free tier), so they
- * do not survive a restart and a shared link to one can stop working. That is
- * stated on the result, right where a user might go on to share a link, rather
- * than implied away — the same reason the API marks every upload
- * `ephemeral: true`.
+ * **Honest about ephemerality, without saying it twice.** Uploaded draws live
+ * in the server's memory only (there is no persistent disk on the free tier),
+ * so they do not survive a restart and a shared link to one can stop working.
+ * `result.content_note` (`CONTENT_NOTE_UPLOAD`, `api/schemas.py`) already says
+ * so on the result, in the same breath as "not checked against any official
+ * record" — the one place that caveat needs to live. It used to be repeated in
+ * a second, frontend-authored box; that box is gone, not because the caveat
+ * stopped mattering but because duplicating it back-to-back with the server's
+ * own copy was the over-explaining this file otherwise tries to avoid.
  *
  * **Errors reuse the shared {@link ErrorPanel}.** A malformed draw comes back as
  * the validator's accumulated problem list, surfaced the same way every other
@@ -144,10 +147,6 @@ export default function Upload() {
             {result.tournament_id}
           </p>
           <p className={styles.resultNote}>{result.content_note}</p>
-          <p className={styles.ephemeralNote} data-note="ephemeral">
-            Held in memory only, so a link you share may stop working later. Save any result you
-            want to keep.
-          </p>
 
           <div className={styles.actions}>
             {result.is_simulatable ? (

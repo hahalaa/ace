@@ -47,12 +47,6 @@ import {
 import styles from './matchSim.module.css';
 import panelStyles from './panel.module.css';
 
-// Past this many milliseconds a request is almost certainly waiting on a cold
-// server waking up rather than on the simulation itself (a warm run returns in
-// well under a second), so the loading panel switches to an honest wake-up
-// message. Kept just above the warm round-trip so it never flashes on a normal
-// request.
-const SLOW_REQUEST_MS = 1800;
 
 // --------------------------------------------------------------------------
 // Player picker — an accessible combobox over /players.
@@ -348,10 +342,6 @@ export default function MatchSim() {
   );
   const [state, setState] = useState<LoadState>({ status: 'idle' });
   const [copied, setCopied] = useState<CopyState>('idle');
-  // Goes true when a request is taking meaningfully longer than a warm one, so
-  // the loading panel can honestly say the server is likely waking up rather
-  // than leaving a first-time visitor staring at a frozen "Simulating…".
-  const [slowLoad, setSlowLoad] = useState(false);
 
   useEffect(() => {
     if (query === null) {
@@ -360,11 +350,6 @@ export default function MatchSim() {
     }
     const controller = new AbortController();
     setState({ status: 'loading' });
-    setSlowLoad(false);
-    // The free-tier API sleeps after ~15 min idle and takes a few seconds to
-    // wake. A warm simulation returns well under a second, so past this
-    // threshold it is almost always a cold start, not a slow simulation.
-    const slowTimer = setTimeout(() => setSlowLoad(true), SLOW_REQUEST_MS);
     simulateMatch(
       {
         player_a: query.a,
@@ -376,7 +361,6 @@ export default function MatchSim() {
       { signal: controller.signal },
     ).then(
       (result) => {
-        clearTimeout(slowTimer);
         if (!controller.signal.aborted) {
           setState({ status: 'ready', result });
           // Log the completed result to the browser-local history the dashboard
@@ -385,12 +369,10 @@ export default function MatchSim() {
         }
       },
       (error: unknown) => {
-        clearTimeout(slowTimer);
         if (!controller.signal.aborted) setState({ status: 'error', error });
       },
     );
     return () => {
-      clearTimeout(slowTimer);
       controller.abort();
     };
   }, [query]);
@@ -531,21 +513,10 @@ export default function MatchSim() {
       )}
 
       {state.status === 'loading' && (
-        <div className={panelStyles.panel} role="status" data-slow={slowLoad}>
-          {slowLoad ? (
-            <>
-              <p className={styles.wakeLine}>Waking up the server</p>
-              <p className={styles.wakeSub}>
-                The demo runs on a free instance that sleeps when idle. First
-                request in a while takes a few seconds. Hang tight, then it stays
-                quick.
-              </p>
-            </>
-          ) : (
-            <p style={{ margin: 0 }}>
-              Simulating {query?.a} vs {query?.b}…
-            </p>
-          )}
+        <div className={panelStyles.panel} role="status">
+          <p className={styles.loadingLine}>
+            Simulating {query?.a} vs {query?.b}…
+          </p>
         </div>
       )}
 
