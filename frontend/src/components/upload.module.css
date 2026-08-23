@@ -1,10 +1,10 @@
 /*
  * Upload screen styles.
  *
- * A single-column form: a drop zone that doubles as the file-picker label, a
- * standing note about what "uploaded" means here (in memory only, temporary),
- * and the result panel. Tokens come from src/index.css; the drop zone borrows
- * the same line/raise surface every other panel uses so an upload does not look
+ * A single-column form: a drop zone that doubles as the file-picker label, and
+ * the result panel (which carries the ephemerality caveat once there is a
+ * result to caveat). Tokens come from src/index.css; the drop zone borrows the
+ * same line/raise surface every other panel uses so an upload does not look
  * like a different app.
  */
 
@@ -17,10 +17,8 @@
   min-width: 0;
 }
 
-/* Lead the screen in: intro, then the drop zone. The standing ephemerality
-   note and the result are left un-delayed so the honesty copy is never held
-   back behind the flow. Shared `rise` via `--kf-rise`, off under reduced
-   motion. */
+/* Lead the screen in: intro, then the drop zone. Shared `rise` via
+   `--kf-rise`, off under reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   .intro {
     animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
@@ -100,9 +98,11 @@
   border: 0;
 }
 
-/* The standing ephemerality note — always on screen, near the flow. */
+/* The ephemerality caveat, surfaced on the result — where a user might go on
+   to share a link — rather than as a standing note before anyone has uploaded
+   anything. */
 .ephemeralNote {
-  margin: 0;
+  margin: 0 0 1rem;
   padding: 0.9rem 1.1rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);

@@ -301,16 +301,13 @@ describe('rendering a degenerate payload', () => {
 // --------------------------------------------------------------------------
 
 describe('disclosure', () => {
-  it('renders the summary and the detail prose, and says outright this is not a forecast', async () => {
+  it('renders the one-line summary, and says outright this is not a forecast', async () => {
     await renderOdds(eightDraw());
 
-    // The one-line summary is the always-visible lead.
+    // The compact variant renders only the one-line summary — no detail toggle.
     expect(screen.getByText(SUMMARY)).toBeDefined();
     expect(screen.getByText(/Not a forecast/)).toBeDefined();
-    // The full account is present but tucked behind a collapsed <details>.
-    expect(screen.getByText(LIMITATION)).toBeDefined();
-    const details = document.querySelector('details') as HTMLDetailsElement;
-    expect(details.open).toBe(false);
+    expect(document.querySelector('details')).toBeNull();
     const panel = document.querySelector('[data-forecast]') as HTMLElement;
     expect(panel.dataset.forecast).toBe('false');
   });
@@ -327,7 +324,6 @@ describe('disclosure', () => {
     await renderOdds(eightDraw({ metadata: metadata({ is_forecast: true }) }));
     expect(screen.queryByText(/Not a forecast/)).toBeNull();
     expect(screen.getByText(/has not yet been played/)).toBeDefined();
-    expect(screen.getByText(LIMITATION)).toBeDefined();
   });
 
   it('shows runs, seed and data year in the footnote', async () => {

@@ -8,11 +8,11 @@
  * storybook — normal deep links, so the rest of the app needs no upload-aware
  * code.
  *
- * **Honest about ephemerality, up front and again after.** Uploaded draws live
- * in the server's memory only (there is no persistent disk on the free tier), so
- * they do not survive a restart and a shared link to one can stop working. That
- * is stated as a standing note above the drop zone and repeated on the result,
- * rather than implied away — the same reason the API marks every upload
+ * **Honest about ephemerality, where it matters.** Uploaded draws live in the
+ * server's memory only (there is no persistent disk on the free tier), so they
+ * do not survive a restart and a shared link to one can stop working. That is
+ * stated on the result, right where a user might go on to share a link, rather
+ * than implied away — the same reason the API marks every upload
  * `ephemeral: true`.
  *
  * **Errors reuse the shared {@link ErrorPanel}.** A malformed draw comes back as
@@ -92,12 +92,6 @@ export default function Upload() {
         then play it out point by point. Seeds and entrants are yours; the model does the rest.
       </p>
 
-      <p className={styles.ephemeralNote} data-note="ephemeral">
-        Uploaded draws are held in memory only. They are cleared when the server restarts, and a
-        link you share may stop working later, so save any results you want to keep. Uploads are
-        not checked against any official record.
-      </p>
-
       <p className={styles.schemaLink}>
         For the exact format, open a{' '}
         <a href={EXAMPLE_DRAW_URL} target="_blank" rel="noreferrer">
@@ -150,6 +144,10 @@ export default function Upload() {
             {result.tournament_id}
           </p>
           <p className={styles.resultNote}>{result.content_note}</p>
+          <p className={styles.ephemeralNote} data-note="ephemeral">
+            Held in memory only, so a link you share may stop working later. Save any result you
+            want to keep.
+          </p>
 
           <div className={styles.actions}>
             {result.is_simulatable ? (

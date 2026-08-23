@@ -205,13 +205,6 @@ export default function Storybook({ tournamentId }: StorybookProps) {
         </p>
       )}
 
-      {state.status === 'idle' && (
-        <p className={panelStyles.panel} data-state="idle">
-          Play this draw out match by match. Every run gets a seed, and the seed is in the
-          address bar, so the link you share replays the same tournament, point for point.
-        </p>
-      )}
-
       {state.status === 'loading' && (
         <p className={panelStyles.panel} role="status">
           Simulating the {tournamentId} draw…

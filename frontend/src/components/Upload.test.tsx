@@ -51,13 +51,6 @@ function pickFile(container: HTMLElement, content: string): void {
   fireEvent.change(fileInput(container), { target: { files: [file] } });
 }
 
-it('always shows the ephemeral / unverified note, before any upload', () => {
-  render(<Upload />);
-  const note = document.querySelector('[data-note="ephemeral"]');
-  expect(note?.textContent).toMatch(/memory only/i);
-  expect(note?.textContent).toMatch(/not checked against any official record/i);
-});
-
 it('POSTs the file text and links into the new draw on success', async () => {
   uploadDrawMock.mockResolvedValue(OK_RESULT);
   const { container } = render(<Upload />);
@@ -74,6 +67,10 @@ it('POSTs the file text and links into the new draw on success', async () => {
 
   // The server's own content note is shown, not a paraphrase.
   expect(screen.getByText(OK_RESULT.content_note)).toBeTruthy();
+
+  // The ephemeral-storage caveat shows on the result, where a share link matters.
+  const note = document.querySelector('[data-note="ephemeral"]');
+  expect(note?.textContent).toMatch(/memory only/i);
 });
 
 it('shows a forecast badge for a future-dated upload', async () => {

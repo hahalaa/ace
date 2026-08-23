@@ -520,20 +520,13 @@ export default function MatchSim() {
       {copied !== 'idle' && query !== null && (
         <p className={styles.copy} data-copy={copied}>
           {copied === 'copied' ? (
-            <>Link copied. It replays this exact result.</>
+            <>Link copied.</>
           ) : (
             <>
               Copy this link to replay this exact result:{' '}
               <code className={styles.copyUrl}>{buildMatchUrl(query)}</code>
             </>
           )}
-        </p>
-      )}
-
-      {state.status === 'idle' && (
-        <p className={panelStyles.panel} data-state="idle">
-          Choose two players above to run a match. Every result gets a seed in the
-          address bar, so the link you share replays the same numbers.
         </p>
       )}
 
@@ -573,17 +566,7 @@ export default function MatchSim() {
             <SetScores result={result} />
             <TotalGames result={result} />
           </div>
-          <Disclosure metadata={result.metadata} />
-          <p className={styles.footnote}>
-            <span data-meta="runs">{result.metadata.runs.toLocaleString()} simulations</span> ·{' '}
-            <span data-meta="seed">seed {result.metadata.seed}</span> ·{' '}
-            <span data-meta="classifier">classifier {pct(result.p_clf)}</span> ·{' '}
-            <span data-meta="mode">
-              {result.metadata.mode}
-              {result.metadata.mode === 'blend' && ` (w=${result.metadata.w})`}
-            </span>{' '}
-            · <span data-meta="data_through_year">data through {result.metadata.data_through_year}</span>
-          </p>
+          <Disclosure metadata={result.metadata} variant="compact" />
         </div>
       )}
     </section>

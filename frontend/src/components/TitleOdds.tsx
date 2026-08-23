@@ -125,7 +125,7 @@ export default function TitleOdds({ tournamentId }: TitleOddsProps) {
         </p>
       </header>
 
-      <Disclosure metadata={sim.metadata} />
+      <Disclosure metadata={sim.metadata} variant="compact" />
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>

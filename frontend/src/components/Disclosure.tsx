@@ -24,6 +24,12 @@
  * different things while claiming the same source. `ModelDisclosure` — the
  * shared base, not either subclass — is the prop type, so neither screen can
  * make the disclosure depend on a field the other one lacks.
+ *
+ * **Two variants, one source of truth.** `variant="full"` (the default, used by
+ * the storybook screen) keeps the kicker and the collapsed mechanics detail.
+ * `variant="compact"` (single match, title odds) renders only the one-line
+ * summary, small and muted — the mechanics behind it are not something a user
+ * doing the thing needs to read.
  */
 
 import type { ModelDisclosure } from '../api/types';
@@ -32,9 +38,11 @@ import styles from './disclosure.module.css';
 export interface DisclosureProps {
   /** Either endpoint's metadata block; only the shared base is read. */
   metadata: ModelDisclosure;
+  /** @default 'full' */
+  variant?: 'full' | 'compact';
 }
 
-export default function Disclosure({ metadata }: DisclosureProps) {
+export default function Disclosure({ metadata, variant = 'full' }: DisclosureProps) {
   // The always-visible one-liner. Every draw shipped today is historical
   // (`is_forecast: false`), so the server's own summary is the honest lead.
   // When a forecast-capable draw first ships, `is_forecast` flips true and this
@@ -45,6 +53,14 @@ export default function Disclosure({ metadata }: DisclosureProps) {
       // exists. None ships today, so this branch is currently unreached.
       'These are model projections for a draw that has not yet been played.'
     : metadata.classifier_limitation;
+
+  if (variant === 'compact') {
+    return (
+      <p className={styles.compactLine} data-forecast={metadata.is_forecast}>
+        {summary}
+      </p>
+    );
+  }
 
   return (
     <section className={styles.disclosure} data-forecast={metadata.is_forecast}>

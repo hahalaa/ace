@@ -83,3 +83,11 @@
   font-size: 0.95rem;
   color: var(--ink-mid);
 }
+
+.compactLine {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
