@@ -297,42 +297,41 @@ describe('rendering a degenerate payload', () => {
 });
 
 // --------------------------------------------------------------------------
-// The disclosure — a required field is not the same as a rendered one.
+// The disclosure and the bottom stats strip: dropped from this screen. The
+// wire fields (`SimulationMetadata`'s `ModelDisclosure` base) still travel
+// in the response for any non-browser consumer — only the browser's
+// rendering of them is gone, which is what these tests pin.
 // --------------------------------------------------------------------------
 
 describe('disclosure', () => {
-  it('renders the one-line summary, and says outright this is not a forecast', async () => {
+  it('does not render the model disclosure or the bottom stats strip', async () => {
     await renderOdds(eightDraw());
 
-    // The compact variant renders only the one-line summary — no detail toggle.
-    expect(screen.getByText(SUMMARY)).toBeDefined();
-    expect(screen.getByText(/Not a forecast/)).toBeDefined();
-    expect(document.querySelector('details')).toBeNull();
-    const panel = document.querySelector('[data-forecast]') as HTMLElement;
-    expect(panel.dataset.forecast).toBe('false');
+    expect(screen.queryByText(SUMMARY)).toBeNull();
+    expect(document.querySelector('[data-forecast]')).toBeNull();
+    expect(document.querySelector('[data-meta="runs"]')).toBeNull();
+    expect(document.querySelector('[data-meta="seed"]')).toBeNull();
   });
 
-  it('places the caveat above the numbers, where they are read', async () => {
+  it('moves the table up with no leftover divider or spacing artifact', async () => {
     await renderOdds(eightDraw());
-    const disclosure = document.querySelector('[data-forecast]')!;
     const table = screen.getByRole('table');
-    // DOCUMENT_POSITION_FOLLOWING: the table comes after the disclosure.
-    expect(disclosure.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The heading is the only thing above the table now — nothing sits
+    // between them, so the table wrap is the header's very next sibling.
+    expect(table.closest('div')?.previousElementSibling?.tagName).toBe('HEADER');
   });
+});
 
-  it('changes its wording — not just a flag — when a draw really is a forecast', async () => {
-    await renderOdds(eightDraw({ metadata: metadata({ is_forecast: true }) }));
-    expect(screen.queryByText(/Not a forecast/)).toBeNull();
-    expect(screen.getByText(/has not yet been played/)).toBeDefined();
-  });
+// --------------------------------------------------------------------------
+// The table caption.
+// --------------------------------------------------------------------------
 
-  it('shows runs, seed and data year in the footnote', async () => {
+describe('caption', () => {
+  it('reads the plain, reworded caption rather than the old corporate copy', async () => {
     await renderOdds(eightDraw());
-    expect(document.querySelector('[data-meta="runs"]')?.textContent).toContain('5,000');
-    expect(document.querySelector('[data-meta="seed"]')?.textContent).toBe('seed 0');
-    expect(document.querySelector('[data-meta="data_through_year"]')?.textContent).toBe(
-      'data through 2026',
-    );
+    const caption = screen.getByRole('table').querySelector('caption');
+    expect(caption?.textContent).toContain('Sorted with the most likely champion first.');
+    expect(caption?.textContent).not.toContain('Title and round-survival probabilities');
   });
 });
 

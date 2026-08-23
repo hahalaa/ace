@@ -21,10 +21,10 @@
  *
  * **What is shown comes from the response, not from re-derivation.** The
  * champion is `StorybookResponse.champion` (never "whoever won the last match"),
- * scorelines are copied strings, and the disclosure is the shared
- * {@link Disclosure} — `StorybookMetadata` carries the same required
- * `ModelDisclosure` fields as the odds board (T3.4), so a story cannot be
- * published without the caveat any more than a probability can.
+ * and scorelines are copied strings. `StorybookMetadata` still carries the
+ * required `ModelDisclosure` fields on the wire for any non-browser consumer —
+ * this screen simply stopped rendering them; the backend contract is
+ * unchanged.
  *
  * **No staggered reveal.** The ticket offers it as optional; it would mean a
  * timer-driven round cursor, an interruption path for re-run, and a class of
@@ -37,7 +37,6 @@ import { getStorybook } from '../api/client';
 import type { StorybookResponse } from '../api/types';
 import { recordStorybook } from '../history/store';
 import Bracket from './Bracket';
-import Disclosure from './Disclosure';
 import ErrorPanel from './ErrorPanel';
 import { buildShareUrl, nextSeed, readSeed } from './seed';
 import styles from './storybook.module.css';
@@ -181,10 +180,7 @@ export default function Storybook({ tournamentId }: StorybookProps) {
           </button>
         </div>
         {/* The seed the address bar carries — i.e. the one a link shared right
-            now would replay. The footnote reports `metadata.seed`, the one the
-            server says it ran; they are the same value from two sources, and
-            keeping them separately labelled is what would make a disagreement
-            visible rather than plausible. */}
+            now would replay. */}
         {hasRun && (
           <p className={styles.seed} data-meta="url_seed">
             seed {seed}
@@ -195,7 +191,7 @@ export default function Storybook({ tournamentId }: StorybookProps) {
       {copied !== 'idle' && seed !== null && (
         <p className={styles.copy} data-copy={copied}>
           {copied === 'copied' ? (
-            <>Link copied. It replays this exact tournament.</>
+            <>Link copied.</>
           ) : (
             <>
               Copy this link to replay this exact tournament:{' '}
@@ -216,13 +212,13 @@ export default function Storybook({ tournamentId }: StorybookProps) {
       {story !== null && (
         <>
           <Champion story={story} />
-          <Disclosure metadata={story.metadata} />
           {/* Provenance of the draw itself, distinct from the model disclosure
-              above. An uploaded draw is user-submitted, unverified and held in
-              memory only — the uploader saw this on the upload form, and anyone
-              who opens a shared link to this run needs to see it too, not just
-              at upload time. Curated draws (`content_source === 'curated'`)
-              carry no such note. */}
+              (no longer rendered on this screen — the backend contract is
+              unchanged). An uploaded draw is user-submitted, unverified and
+              held in memory only — the uploader saw this on the upload form,
+              and anyone who opens a shared link to this run needs to see it
+              too, not just at upload time. Curated draws
+              (`content_source === 'curated'`) carry no such note. */}
           {story.metadata.content_source === 'user_upload' && (
             <p className={styles.contentNote} data-content-source="user_upload">
               {story.metadata.content_note}
@@ -232,21 +228,6 @@ export default function Storybook({ tournamentId }: StorybookProps) {
       )}
 
       <Bracket tournamentId={tournamentId} storybook={story} />
-
-      {story !== null && (
-        <p className={styles.footnote}>
-          <span data-meta="match_count">{story.match_count} matches</span> ·{' '}
-          <span data-meta="seed">seed {story.metadata.seed}</span> ·{' '}
-          <span data-meta="data_through_year">data through {story.metadata.data_through_year}</span>{' '}
-          ·{' '}
-          <span data-meta="mode">
-            {story.metadata.mode}
-            {story.metadata.mode === 'blend' && ` (w=${story.metadata.w})`}
-          </span>{' '}
-          · <span data-meta="estimator">{story.metadata.estimator_class}</span> ·{' '}
-          <span data-meta="source">{story.metadata.source}</span>
-        </p>
-      )}
     </section>
   );
 }

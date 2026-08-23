@@ -140,12 +140,19 @@ describe('results', () => {
     expect(games.querySelector('[data-meta="games_mean"]')?.textContent).toBe('38.4');
   });
 
-  it('renders the shared model disclosure with the betting caveat', async () => {
+  it('renders the single-match-specific disclaimer wording, not the server’s raw text', async () => {
     simulateMatchMock.mockResolvedValue(RESULT);
     mountAt(COMPLETE_URL);
 
-    const caveat = await screen.findByText(/not a betting tip/i);
+    const caveat = await screen.findByText(
+      'Disclaimer: this is a model estimate for a hypothetical matchup, not a betting tip.',
+    );
     expect(caveat).toBeTruthy();
+    // The override changes only what the browser renders — the field this
+    // page reads off `result.metadata` is untouched.
+    expect(RESULT.metadata.classifier_limitation).toBe(
+      'A model estimate for a hypothetical matchup, not a betting tip.',
+    );
   });
 
   it('renders a structured error without crashing', async () => {

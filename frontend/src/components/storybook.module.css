@@ -9,8 +9,7 @@
  *
  * The bracket below brings its own stylesheet (bracket.module.css, including
  * the winner rules a run switches on), so this file covers only what wraps it:
- * the run controls, the champion panel and the footnote. Tokens come from
- * src/index.css.
+ * the run controls and the champion panel. Tokens come from src/index.css.
  */
 
 .storybook {
@@ -136,8 +135,6 @@
  * ------------------------------------------------------------------------- */
 
 .champion {
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
   padding: 2rem 0 2.25rem;
 }
 
@@ -240,15 +237,6 @@
       transform: translateY(0) scale(1);
     }
   }
-}
-
-.footnote {
-  margin: 0;
-  font-size: 0.72rem;
-  font-family: var(--mono);
-  color: var(--ink-dim);
-  line-height: 1.9;
-  letter-spacing: 0.02em;
 }
 
 /* Provenance note for an uploaded draw: user-submitted, unverified, temporary.

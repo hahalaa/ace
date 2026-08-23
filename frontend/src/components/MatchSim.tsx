@@ -18,10 +18,16 @@
  * The server still refuses an unknown or ambiguous name with a 422; the UI just
  * makes that hard to hit.
  *
- * **The disclosure is the shared one.** `MatchMetadata` carries the same required
- * `ModelDisclosure` fields as every other published number, so the same
- * {@link Disclosure} renders the "model estimate, not a betting tip" caveat here
- * too — a probability cannot be shown without it.
+ * **The disclosure component is shared; its wording here is not.**
+ * `MatchMetadata` carries the same required `ModelDisclosure` fields as every
+ * other published number, so the same {@link Disclosure} renders a caveat
+ * here too — a probability cannot be shown without it. The compact line's
+ * text is overridden with {@link SINGLE_MATCH_DISCLAIMER} rather than the
+ * server's `metadata.classifier_limitation`: the wire field
+ * (`MATCH_CLASSIFIER_LIMITATION` in `api/schemas.py`) is already
+ * single-match-specific, not shared with `/simulate` or `/storybook`, so this
+ * override only changes what the browser renders — the response body, and
+ * any non-browser consumer reading it, are untouched.
  */
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
@@ -47,6 +53,8 @@ import {
 import styles from './matchSim.module.css';
 import panelStyles from './panel.module.css';
 
+const SINGLE_MATCH_DISCLAIMER =
+  'Disclaimer: this is a model estimate for a hypothetical matchup, not a betting tip.';
 
 // --------------------------------------------------------------------------
 // Player picker — an accessible combobox over /players.
@@ -537,7 +545,7 @@ export default function MatchSim() {
             <SetScores result={result} />
             <TotalGames result={result} />
           </div>
-          <Disclosure metadata={result.metadata} variant="compact" />
+          <Disclosure metadata={result.metadata} variant="compact" text={SINGLE_MATCH_DISCLAIMER} />
         </div>
       )}
     </section>

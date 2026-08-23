@@ -40,19 +40,28 @@ export interface DisclosureProps {
   metadata: ModelDisclosure;
   /** @default 'full' */
   variant?: 'full' | 'compact';
+  /**
+   * Overrides the rendered summary line without touching the wire field.
+   * Single-match wants wording distinct from `metadata.classifier_limitation`
+   * (see MatchSim.tsx) while the response still carries the server's text for
+   * any non-browser consumer.
+   */
+  text?: string;
 }
 
-export default function Disclosure({ metadata, variant = 'full' }: DisclosureProps) {
+export default function Disclosure({ metadata, variant = 'full', text }: DisclosureProps) {
   // The always-visible one-liner. Every draw shipped today is historical
   // (`is_forecast: false`), so the server's own summary is the honest lead.
   // When a forecast-capable draw first ships, `is_forecast` flips true and this
   // branch is where the wording diverges — kept as a conditional now, with a
   // placeholder, so adding that copy is a one-line change rather than a rewrite.
-  const summary = metadata.is_forecast
-    ? // TODO: real "these are projections" copy once a not-yet-played draw
-      // exists. None ships today, so this branch is currently unreached.
-      'These are model projections for a draw that has not yet been played.'
-    : metadata.classifier_limitation;
+  const summary =
+    text ??
+    (metadata.is_forecast
+      ? // TODO: real "these are projections" copy once a not-yet-played draw
+        // exists. None ships today, so this branch is currently unreached.
+        'These are model projections for a draw that has not yet been played.'
+      : metadata.classifier_limitation);
 
   if (variant === 'compact') {
     return (

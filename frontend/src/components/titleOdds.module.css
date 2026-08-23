@@ -179,15 +179,6 @@
   background: var(--bg-sink);
 }
 
-.footnote {
-  margin: 0;
-  font-size: 0.72rem;
-  font-family: var(--mono);
-  color: var(--ink-dim);
-  line-height: 1.9;
-  letter-spacing: 0.02em;
-}
-
 /* -------------------------------------------------------------------------
  * PlayerCard, inline under its row.
  * ------------------------------------------------------------------------- */

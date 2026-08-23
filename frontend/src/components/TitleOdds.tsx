@@ -11,14 +11,10 @@
  * column of `100.0%` carries no information. `p_reach` is keyed by those same
  * labels, so cell lookup is by label and never by position.
  *
- * **The disclosure is not optional and not a footnote detail.**
- * `metadata.is_forecast` and `metadata.classifier_limitation` are *required*
- * fields on the wire (`api.schemas.ModelDisclosure`) precisely so probabilities
- * cannot be published without their caveat — the point of seam 7 is that the
- * caveat reaches a person, not just a response body. It renders **above the
- * numbers**, where they are read, and lives in {@link Disclosure} — moved there
- * by T4.4 rather than copied, so the storybook screen publishes the same caveat
- * from the same component.
+ * **The disclosure still travels on the wire, just not in this view.**
+ * `metadata.is_forecast` and `metadata.classifier_limitation` remain *required*
+ * fields (`api.schemas.ModelDisclosure`) for any non-browser consumer — this
+ * screen simply stopped rendering them; the backend contract is unchanged.
  *
  * **Sorting is re-applied, not assumed.** The server already sorts by title
  * probability (ties by bracket position) and this sorts by the same key rather
@@ -30,7 +26,6 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { getSimulate } from '../api/client';
 import type { SimulationResponse } from '../api/types';
-import Disclosure from './Disclosure';
 import ErrorPanel from './ErrorPanel';
 import PlayerCard from './PlayerCard';
 import { formatPercent, rankPlayers, survivalColumns } from './odds';
@@ -46,23 +41,6 @@ type LoadState =
   | { status: 'loading' }
   | { status: 'ready'; simulation: SimulationResponse }
   | { status: 'error'; error: unknown };
-
-function Footnote({ metadata, drawSize }: { metadata: SimulationResponse['metadata']; drawSize: number }) {
-  return (
-    <p className={styles.footnote}>
-      <span data-meta="runs">{metadata.runs.toLocaleString()} simulations</span> ·{' '}
-      <span data-meta="seed">seed {metadata.seed}</span> ·{' '}
-      <span data-meta="data_through_year">data through {metadata.data_through_year}</span> ·{' '}
-      <span data-meta="draw_size">{drawSize}-player draw</span> ·{' '}
-      <span data-meta="mode">
-        {metadata.mode}
-        {metadata.mode === 'blend' && ` (w=${metadata.w})`}
-      </span>{' '}
-      · <span data-meta="estimator">{metadata.estimator_class}</span> ·{' '}
-      <span data-meta="source">{metadata.source}</span>
-    </p>
-  );
-}
 
 // --------------------------------------------------------------------------
 // The table.
@@ -125,12 +103,10 @@ export default function TitleOdds({ tournamentId }: TitleOddsProps) {
         </p>
       </header>
 
-      <Disclosure metadata={sim.metadata} variant="compact" />
-
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <caption className={styles.caption}>
-            Title and round-survival probabilities, most likely champion first.
+            Sorted with the most likely champion first.
             {sim.count < sim.draw_size && ` Showing ${sim.count} of ${sim.draw_size} entrants.`}
           </caption>
           <thead>
@@ -203,8 +179,6 @@ export default function TitleOdds({ tournamentId }: TitleOddsProps) {
           </tbody>
         </table>
       </div>
-
-      <Footnote metadata={sim.metadata} drawSize={sim.draw_size} />
     </section>
   );
 }

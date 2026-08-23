@@ -559,38 +559,21 @@ describe('loading and error states', () => {
 });
 
 // --------------------------------------------------------------------------
-// The disclosure — inherited from T4.3's requirement via StorybookMetadata.
+// The disclosure and the bottom stats strip: dropped from this screen. The
+// wire fields (`StorybookMetadata`'s `ModelDisclosure` base) still travel in
+// the response for any non-browser consumer — only the browser's rendering
+// of them is gone, which is what these tests pin.
 // --------------------------------------------------------------------------
 
 describe('disclosure', () => {
-  it('renders is_forecast: false and the limitation prose, above the bracket', async () => {
+  it('does not render the model disclosure or the bottom stats strip', async () => {
     mountAt('/?seed=7');
     await screen.findByRole('region', { name: 'Champion' });
 
-    const disclosure = document.querySelector('[data-forecast]') as HTMLElement;
-    expect(disclosure.dataset.forecast).toBe('false');
-    expect(screen.getByText(/Not a forecast/)).toBeDefined();
-    expect(
-      screen.getByText(/Every input is an as-of-now snapshot/),
-    ).toBeDefined();
-
-    const board = screen.getByRole('list', { name: 'QF matches' });
-    expect(disclosure.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('reports the seed and model that produced this run', async () => {
-    mountAt('/?seed=7');
-    await screen.findByRole('region', { name: 'Champion' });
-
-    const footnote = document.querySelector('[data-meta="estimator"]')?.parentElement;
-    expect(footnote?.textContent).toContain('RandomForestClassifier');
-    expect(footnote?.textContent).toContain('blend (w=0.5)');
-    expect(footnote?.textContent).toContain('data through 2026');
-    expect(footnote?.textContent).toContain('toy_8.json');
-    // Two sources, separately labelled: what the URL asks for, and what the
-    // server says it ran.
-    expect(document.querySelector('[data-meta="seed"]')?.textContent).toContain('42');
-    expect(document.querySelector('[data-meta="url_seed"]')?.textContent).toContain('seed 7');
+    expect(document.querySelector('[data-forecast]')).toBeNull();
+    expect(screen.queryByText(/Not a forecast/)).toBeNull();
+    expect(document.querySelector('[data-meta="estimator"]')).toBeNull();
+    expect(document.querySelector('[data-meta="seed"]')).toBeNull();
   });
 });
 

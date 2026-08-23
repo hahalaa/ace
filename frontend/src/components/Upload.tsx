@@ -91,8 +91,8 @@ export default function Upload() {
   return (
     <section className={styles.upload} aria-label="Upload a draw">
       <p className={styles.intro}>
-        Upload your own tournament draw as a JSON file, in the same format as the built-in draws,
-        then play it out point by point. Seeds and entrants are yours; the model does the rest.
+        Upload your own tournament draw as a JSON file following the same format as the built-in
+        draws, then play it out point by point.
       </p>
 
       <p className={styles.schemaLink}>
