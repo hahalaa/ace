@@ -1,4 +1,4 @@
-"""Tests for src/data/loader.py — offline vendored-file reading (T0.2).
+"""Tests for src/data/loader.py, offline vendored-file reading.
 
 No network access: the loader only reads local ``data/raw/`` CSVs. Tests point
 ``config.RAW_DATA_DIR`` at a tmp dir of hand-written fixtures.

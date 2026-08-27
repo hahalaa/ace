@@ -1,5 +1,5 @@
 /**
- * Wire types for the ace API — a direct mirror of `src/api/schemas.py`.
+ * Wire types for the ace API, a direct mirror of `src/api/schemas.py`.
  *
  * Every interface here corresponds one-to-one to a Pydantic model in that file,
  * field for field and name for name. Three rules kept it honest, and keeping
@@ -9,7 +9,7 @@
  *     `api/schemas.py` and `api/main.py`, which are the contract; prose
  *     elsewhere paraphrases it and drifts.
  *   * **Every schema model sets `extra="forbid"`,** so a response body carries
- *     exactly the declared keys — no optional-unknown escape hatch is needed,
+ *     exactly the declared keys, no optional-unknown escape hatch is needed,
  *     and an extra field on the wire is a server bug rather than something a
  *     client should tolerate.
  *   * **Open string fields stay open; closed ones close.** `surface`,
@@ -20,7 +20,7 @@
  */
 
 // --------------------------------------------------------------------------
-// Value domains — closed on the server, so closed here.
+// Value domains, closed on the server, so closed here.
 // --------------------------------------------------------------------------
 
 /** `config.VALID_SURFACES`. `Carpet`/unknown never reach the wire. */
@@ -39,7 +39,7 @@ export type ReconcileMode = 'blend' | 'classifier_anchor';
 export type MatchStrategy = 'exact' | 'initials' | 'substring' | 'fuzzy';
 
 /**
- * A round label — `QF`/`SF`/`F` for an 8 draw, `R128 … F` for a 128 draw.
+ * A round label, `QF`/`SF`/`F` for an 8 draw, `R128 … F` for a 128 draw.
  *
  * An alias for `string` on purpose: labels are derived from the draw size
  * (`sim.tournament.round_labels`), so hardcoding a union would be wrong for
@@ -48,14 +48,14 @@ export type MatchStrategy = 'exact' | 'initials' | 'substring' | 'fuzzy';
 export type RoundLabel = string;
 
 // --------------------------------------------------------------------------
-// /health, /players (T3.1)
+// /health, /players
 // --------------------------------------------------------------------------
 
 /** `api.schemas.HealthResponse`. */
 export interface HealthResponse {
   /** `"ok"` once the app has loaded its state. */
   status: string;
-  /** Latest season *present in the loaded data* — not `config.END_YEAR`. */
+  /** Latest season *present in the loaded data*, not `config.END_YEAR`. */
   data_through_year: number;
   n_players: number;
 }
@@ -90,7 +90,7 @@ export interface PlayerSummary {
  * whitespace-only query fails, with a 422.
  */
 export interface PlayerSearchResponse {
-  /** The query as searched — whitespace-stripped by validation, echoed back. */
+  /** The query as searched, whitespace-stripped by validation, echoed back. */
   query: string;
   count: number;
   /** Which strategy matched; `null` when nothing matched. */
@@ -99,10 +99,10 @@ export interface PlayerSearchResponse {
 }
 
 // --------------------------------------------------------------------------
-// /tournaments, /tournaments/{id}/bracket (T3.2)
+// /tournaments, /tournaments/{id}/bracket
 // --------------------------------------------------------------------------
 
-/** `api.schemas.TournamentSummary` — note it carries no `final_set_tiebreak`. */
+/** `api.schemas.TournamentSummary`, note it carries no `final_set_tiebreak`. */
 export interface TournamentSummary {
   tournament_id: string;
   name: string;
@@ -111,7 +111,7 @@ export interface TournamentSummary {
   draw_size: number;
 }
 
-/** `api.schemas.InvalidDraw` — a draw file that failed to load, listed not skipped. */
+/** `api.schemas.InvalidDraw`, a draw file that failed to load, listed not skipped. */
 export interface InvalidDraw {
   /** The file's stem: a failed file has no trustworthy id of its own. Still addressable. */
   tournament_id: string;
@@ -123,7 +123,7 @@ export interface InvalidDraw {
 
 /** `api.schemas.TournamentListResponse`. */
 export interface TournamentListResponse {
-  /** Number of **valid** tournaments — `invalid` is counted separately. */
+  /** Number of **valid** tournaments, `invalid` is counted separately. */
   count: number;
   tournaments: TournamentSummary[];
   invalid: InvalidDraw[];
@@ -134,7 +134,7 @@ export interface BracketSlot {
   /** 1-based. Slots `2k-1` and `2k` meet in round 1. */
   position: number;
   player: string;
-  /** True for `Qualifier`/`Bye`/… — such a draw is listed and its bracket served, but not simulatable. */
+  /** True for `Qualifier`/`Bye`/…, such a draw is listed and its bracket served, but not simulatable. */
   is_placeholder: boolean;
   /** `null` for placeholders. */
   player_id: string | null;
@@ -150,19 +150,19 @@ export interface BracketResponse {
   final_set_tiebreak: FinalSetTiebreak;
   /** Equals `slots.length`. */
   draw_size: number;
-  /** Every slot in `position` order — placeholders flagged, never dropped. */
+  /** Every slot in `position` order, placeholders flagged, never dropped. */
   slots: BracketSlot[];
 }
 
 // --------------------------------------------------------------------------
-// The shared disclosure (T3.3/T3.4/T3.5)
+// The shared disclosure
 // --------------------------------------------------------------------------
 
 /**
- * `api.schemas.ModelDisclosure` — the base of both metadata blocks.
+ * `api.schemas.ModelDisclosure`, the base of both metadata blocks.
  *
  * Every field is required on the server precisely so probabilities cannot be
- * published without their caveat. T4.3/T4.4 must render `is_forecast` and
+ * published without their caveat. The screens must render `is_forecast` and
  * `classifier_limitation`, not merely receive them.
  */
 export interface ModelDisclosure {
@@ -185,18 +185,18 @@ export interface ModelDisclosure {
   source: string;
 }
 
-/** `api.schemas.SimulationMetadata` — disclosure plus what only a cached aggregate has. */
+/** `api.schemas.SimulationMetadata`, disclosure plus what only a cached aggregate has. */
 export interface SimulationMetadata extends ModelDisclosure {
   runs: number;
   /** Base **RNG** seed, not a player's tournament seed. */
   seed: number;
-  /** Processes used. Provenance only — the aggregate is worker-count-independent. */
+  /** Processes used. Provenance only, the aggregate is worker-count-independent. */
   workers: number;
   /** ISO-8601 UTC timestamp of when the cache file was written. */
   generated_at: string;
 }
 
-/** `api.schemas.StorybookMetadata` — disclosure plus the seed that replays this story. */
+/** `api.schemas.StorybookMetadata`, disclosure plus the seed that replays this story. */
 export interface StorybookMetadata extends ModelDisclosure {
   /** The **RNG** seed that ran (the caller's, or the server default). */
   seed: number;
@@ -205,12 +205,12 @@ export interface StorybookMetadata extends ModelDisclosure {
    * for a submitted one. Distinct from `is_forecast`, which is about the model.
    */
   content_source: 'curated' | 'user_upload';
-  /** Plain-language provenance note — for an upload, that it is unverified and temporary. */
+  /** Plain-language provenance note, for an upload, that it is unverified and temporary. */
   content_note: string;
 }
 
 // --------------------------------------------------------------------------
-// /tournaments/{id}/simulate (T3.3)
+// /tournaments/{id}/simulate
 // --------------------------------------------------------------------------
 
 /** `api.schemas.SimulationPlayer`. */
@@ -237,14 +237,14 @@ export interface SimulationPlayer {
   p_reach: Record<RoundLabel, number>;
 }
 
-/** `api.schemas.SimulationResponse` — also the on-disk cache format. */
+/** `api.schemas.SimulationResponse`, also the on-disk cache format. */
 export interface SimulationResponse {
   tournament_id: string;
   name: string;
   surface: Surface;
   best_of: BestOf;
   final_set_tiebreak: FinalSetTiebreak;
-  /** The **full** field size — exceeds `count` when `?top=` truncated the rows. */
+  /** The **full** field size, exceeds `count` when `?top=` truncated the rows. */
   draw_size: number;
   /** The draw's round labels, first round first. Derive table columns from this. */
   round_labels: RoundLabel[];
@@ -256,7 +256,7 @@ export interface SimulationResponse {
 }
 
 // --------------------------------------------------------------------------
-// /tournaments/{id}/storybook (T3.4)
+// /tournaments/{id}/storybook
 // --------------------------------------------------------------------------
 
 /** `api.schemas.StorybookMatch`. */
@@ -291,7 +291,7 @@ export interface StorybookPlayerRun {
   /** Tournament seed. */
   seed: number | null;
   is_champion: boolean;
-  /** Last round *contested* — a beaten finalist and the champion both read `F`. */
+  /** Last round *contested*, a beaten finalist and the champion both read `F`. */
   furthest_round: RoundLabel;
   matches_won: number;
   beat: string[];
@@ -307,7 +307,7 @@ export interface StorybookChampion {
   seed: number | null;
 }
 
-/** `api.schemas.StorybookResponse` — one bracket played out, for one seed. */
+/** `api.schemas.StorybookResponse`, one bracket played out, for one seed. */
 export interface StorybookResponse {
   tournament_id: string;
   name: string;
@@ -329,12 +329,12 @@ export interface StorybookResponse {
 // --------------------------------------------------------------------------
 
 /**
- * `api.schemas.UploadResponse` — acknowledgement that a draw was accepted.
+ * `api.schemas.UploadResponse`, acknowledgement that a draw was accepted.
  *
  * `tournament_id` is a generated `upload-…` id in a namespace separate from the
  * curated draws; use it for `/bracket` and `/storybook`. Uploaded draws are
- * **ephemeral** (`ephemeral: true`) — held in memory only, cleared on a server
- * restart — so a shared link may stop working, which the UI discloses.
+ * **ephemeral** (`ephemeral: true`), held in memory only, cleared on a server
+ * restart, so a shared link may stop working, which the UI discloses.
  */
 export interface UploadResponse {
   /** The `upload-…` id to address this draw by. */
@@ -344,10 +344,10 @@ export interface UploadResponse {
   best_of: BestOf;
   final_set_tiebreak: FinalSetTiebreak;
   draw_size: number;
-  /** False when the draw still holds placeholder slots — it lists but cannot run. */
+  /** False when the draw still holds placeholder slots, it lists but cannot run. */
   is_simulatable: boolean;
   placeholder_count: number;
-  /** True when the draw's `event_date` is in the future — a genuine forecast. */
+  /** True when the draw's `event_date` is in the future, a genuine forecast. */
   is_forecast: boolean;
   /** Always true: uploaded draws do not survive a restart. */
   ephemeral: boolean;
@@ -359,7 +359,7 @@ export interface UploadResponse {
 // POST /match/simulate (single-match live simulation)
 // --------------------------------------------------------------------------
 
-/** `api.schemas.MatchSimulateRequest` — the body POSTed to `/match/simulate`. */
+/** `api.schemas.MatchSimulateRequest`, the body POSTed to `/match/simulate`. */
 export interface MatchSimulateRequest {
   /** First player (index 0); `win_prob_a` is P(player A wins). A name `/players` returned. */
   player_a: string;
@@ -372,7 +372,7 @@ export interface MatchSimulateRequest {
   seed?: number;
 }
 
-/** `api.schemas.SetScore` — one final set tally and how often it occurred. Oriented A/B. */
+/** `api.schemas.SetScore`, one final set tally and how often it occurred. Oriented A/B. */
 export interface SetScore {
   sets_a: number;
   sets_b: number;
@@ -381,18 +381,18 @@ export interface SetScore {
   prob: number;
 }
 
-/** `api.schemas.TotalGamesSummary` — the total-games (over/under) distribution. */
+/** `api.schemas.TotalGamesSummary`, the total-games (over/under) distribution. */
 export interface TotalGamesSummary {
   mean: number;
   /** Population standard deviation. */
   std: number;
   minimum: number;
   maximum: number;
-  /** `[total_games, count]` pairs, ascending — the full histogram. */
+  /** `[total_games, count]` pairs, ascending, the full histogram. */
   distribution: [number, number][];
 }
 
-/** `api.schemas.MatchMetadata` — disclosure plus this live run's provenance. */
+/** `api.schemas.MatchMetadata`, disclosure plus this live run's provenance. */
 export interface MatchMetadata extends ModelDisclosure {
   /** Simulations behind the distributions. */
   runs: number;
@@ -424,7 +424,7 @@ export interface MatchSimulateResponse {
 // --------------------------------------------------------------------------
 // Error bodies
 // --------------------------------------------------------------------------
-// These are not Pydantic response models — they are what FastAPI serialises
+// These are not Pydantic response models, they are what FastAPI serialises
 // `HTTPException.detail` into. They are typed anyway because a later UI ticket
 // has to render them, and the alternative (parsing prose out of a message) is
 // what `detail.reason` exists to avoid. Note the asymmetry, faithfully mirrored
@@ -441,7 +441,7 @@ export interface RequestValidationProblem {
   url?: string;
 }
 
-/** 422 — a draw file that failed `sim.draw` validation. Carries no `reason`. */
+/** 422, a draw file that failed `sim.draw` validation. Carries no `reason`. */
 export interface InvalidDrawFileDetail {
   message: string;
   tournament_id: string;
@@ -450,7 +450,7 @@ export interface InvalidDrawFileDetail {
   problems: string[];
 }
 
-/** 409 — `reason: "draw_not_simulatable"`: the draw still holds placeholder slots. */
+/** 409, `reason: "draw_not_simulatable"`: the draw still holds placeholder slots. */
 export interface NotSimulatableDetail {
   reason: 'draw_not_simulatable';
   message: string;
@@ -459,7 +459,7 @@ export interface NotSimulatableDetail {
   placeholder_slots: { position: number; player: string }[];
 }
 
-/** 425 — `reason: "cache_missing"`: nothing precomputed yet. `command` is runnable as-is. */
+/** 425, `reason: "cache_missing"`: nothing precomputed yet. `command` is runnable as-is. */
 export interface CacheMissingDetail {
   reason: 'cache_missing';
   message: string;
@@ -468,21 +468,35 @@ export interface CacheMissingDetail {
   command: string;
 }
 
-/** 422 — `reason: "cache_unreadable" | "cache_stale"`: the cache file needs regenerating. */
+/** 422, `reason: "cache_unreadable" | "cache_stale"`: the cache file needs regenerating. */
 export interface CacheProblemDetail {
   reason: 'cache_unreadable' | 'cache_stale';
   message: string;
   tournament_id: string;
 }
 
-/** 404 — `reason: "upload_not_found"`: an upload id that is no longer held (evicted/restarted). */
+/** 425, `reason: "rankings_missing"`: the Elo cache has not been precomputed. */
+export interface RankingsMissingDetail {
+  reason: 'rankings_missing';
+  message: string;
+  /** The exact precompute command that produces the missing file. Show it. */
+  command: string;
+}
+
+/** 422, `reason: "rankings_unreadable"`: the Elo cache file is corrupt. */
+export interface RankingsProblemDetail {
+  reason: 'rankings_unreadable';
+  message: string;
+}
+
+/** 404, `reason: "upload_not_found"`: an upload id that is no longer held (evicted/restarted). */
 export interface UploadNotFoundDetail {
   reason: 'upload_not_found';
   message: string;
   tournament_id: string;
 }
 
-/** 422 — `reason: "draw_invalid"`: an uploaded draw failed validation. Carries the problem list. */
+/** 422, `reason: "draw_invalid"`: an uploaded draw failed validation. Carries the problem list. */
 export interface UploadDrawInvalidDetail {
   reason: 'draw_invalid';
   message: string;
@@ -515,7 +529,7 @@ export interface UploadProblemDetail {
  *
  * Closed on purpose, so a `switch` over it is exhaustive and a new server-side
  * error shape is a compile error here rather than a silent `default` branch.
- * It deliberately does **not** include `unknown` — a union containing `unknown`
+ * It deliberately does **not** include `unknown`, a union containing `unknown`
  * collapses to `unknown`, which would make every member above decorative and
  * every exhaustiveness check vacuous.
  *
@@ -532,13 +546,15 @@ export type ApiErrorDetail =
   | NotSimulatableDetail
   | CacheMissingDetail
   | CacheProblemDetail
+  | RankingsMissingDetail
+  | RankingsProblemDetail
   | UploadNotFoundDetail
   | UploadDrawInvalidDetail
   | UploadProblemDetail
   | MatchPlayerProblemDetail;
 
 /**
- * 422 — a single-match player query that did not resolve to one player.
+ * 422, a single-match player query that did not resolve to one player.
  *
  * `player_not_found` carries no candidates; `player_ambiguous` carries the list
  * so the UI can offer them. `seed_out_of_range` is the seed cap.
@@ -568,4 +584,55 @@ export type ApiErrorReason =
   | 'player_not_found'
   | 'player_ambiguous'
   | 'player_not_simulatable'
-  | 'seed_out_of_range';
+  | 'seed_out_of_range'
+  | 'rankings_missing'
+  | 'rankings_unreadable';
+
+// --------------------------------------------------------------------------
+// Rankings (Elo), a display-only feature (`GET /rankings`).
+// --------------------------------------------------------------------------
+
+/** `api.schemas.RankedPlayer`, one player's standing in one Elo track. */
+export interface RankedPlayer {
+  /** 1-based position within this track. */
+  rank: number;
+  player_id: string;
+  player_name: string;
+  /** Elo rating (starts at 1500). */
+  rating: number;
+  /** Matches that moved this track's rating. */
+  matches: number;
+  /** `YYYY-MM-DD` of the player's last match on this track. */
+  last_played: string;
+  /**
+   * Whether the player has played recently tour-wide. A long-retired player can
+   * hold a high frozen rating; this flag separates them from current form.
+   */
+  is_active: boolean;
+}
+
+/** `api.schemas.RankingsTrack`, one leaderboard: overall, or a single surface. */
+export interface RankingsTrack {
+  /** `overall`, `Hard`, `Clay` or `Grass`. */
+  track: string;
+  /** Players sorted by rating, highest first. */
+  players: RankedPlayer[];
+}
+
+/** `api.schemas.RankingsMetadata`, provenance of a rankings run. */
+export interface RankingsMetadata {
+  generated_at: string;
+  as_of: string;
+  active_cutoff: string;
+  active_window_days: number;
+  data_through_year: number;
+  n_matches: number;
+  /** Plain-language label distinguishing this from the official ATP ranking. */
+  note: string;
+}
+
+/** `api.schemas.RankingsResponse`, the full set of Elo leaderboards. */
+export interface RankingsResponse {
+  tracks: RankingsTrack[];
+  metadata: RankingsMetadata;
+}

@@ -1,7 +1,7 @@
-"""Pydantic response models for the API (T3.1, T3.2, T3.3, T3.4).
+"""Pydantic response models for the API.
 
-Every endpoint returns one of these — no handler returns a raw dict. Three
-conventions established here for the rest of Phase 3 to follow:
+Every endpoint returns one of these, no handler returns a raw dict. Three
+conventions:
 
   * **The wire model is not the domain model.** ``SurfaceSkill`` mirrors
     ``features.serve.PlayerSkill`` rather than serialising it directly, so the
@@ -18,7 +18,7 @@ conventions established here for the rest of Phase 3 to follow:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -31,7 +31,7 @@ class HealthResponse(BaseModel):
 
     status: str = Field(description="``\"ok\"`` when the app has loaded its state.")
     data_through_year: int = Field(
-        description="Latest season actually present in the loaded data — the "
+        description="Latest season actually present in the loaded data: the "
         "observed maximum, not the configured ``END_YEAR``."
     )
     n_players: int = Field(
@@ -40,7 +40,7 @@ class HealthResponse(BaseModel):
 
 
 class SurfaceSkill(BaseModel):
-    """One player's serve/return profile on one surface (T1.1).
+    """One player's serve/return profile on one surface.
 
     ``n_serve_pts``/``n_return_pts`` are the raw sample sizes behind the shrunk
     rates: **0 means this is the surface-baseline default profile**, not a
@@ -75,7 +75,7 @@ class PlayerSummary(BaseModel):
 class PlayerSearchResponse(BaseModel):
     """Result of a ``/players`` search.
 
-    A **list**, deliberately — including when the query is ambiguous or matches
+    A **list**, deliberately, including when the query is ambiguous or matches
     nothing. See the endpoint docstring in ``api/main.py`` for why this diverges
     from the CLI's error-on-ambiguity behaviour.
     """
@@ -99,7 +99,7 @@ class PlayerSearchResponse(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
-# Tournaments (T3.2)
+# Tournaments
 # --------------------------------------------------------------------------- #
 class TournamentSummary(BaseModel):
     """One listable event: exactly the five fields the ticket specifies.
@@ -136,12 +136,12 @@ class InvalidDraw(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     tournament_id: str = Field(
-        description="Id this file is addressable by — its filename stem, since "
+        description="Id this file is addressable by: its filename stem, since "
         "the draw's own ``tournament_id`` could not be trusted."
     )
     source: str = Field(description="Draw file basename, so the file can be fixed.")
     problems: list[str] = Field(
-        description="Every problem the T2.1 validator found, in its own order — "
+        description="Every problem the draw validator found, in its own order: "
         "the whole list, so a hand-entered draw is fixable in one pass."
     )
 
@@ -183,10 +183,10 @@ class BracketSlot(BaseModel):
     is_placeholder: bool = Field(
         description="True when the entrant names an unfilled slot (``Qualifier``, "
         "``Bye``, …) rather than a person. Such a slot resolves to the "
-        "surface-baseline skill profile, but cannot be simulated (T2.2)."
+        "surface-baseline skill profile, but cannot be simulated."
     )
     player_id: str | None = Field(
-        description="Skill-table id — the canonical join key. ``None`` for "
+        description="Skill-table id, the canonical join key. ``None`` for "
         "placeholders."
     )
     seed: int | None = Field(
@@ -210,15 +210,14 @@ class BracketResponse(BaseModel):
     draw_size: int = Field(description="Number of slots; equals ``len(slots)``.")
     slots: list[BracketSlot] = Field(
         default_factory=list,
-        description="Every slot, ordered by ``position`` — placeholders "
+        description="Every slot, ordered by ``position``; placeholders "
         "included and flagged, never dropped.",
     )
 
 
 # --------------------------------------------------------------------------- #
-# The model disclosure (T3.3), shared by every endpoint that publishes a
-# simulated probability (T3.4). Rewritten by T3.5, which fixed what the original
-# text described.
+# The model disclosure, shared by every endpoint that publishes a simulated
+# probability.
 # --------------------------------------------------------------------------- #
 # The canonical disclosure text. It lives here, next to the schema that requires
 # it, because two producers need the identical wording: ``scripts/precompute_sim.py``
@@ -226,30 +225,24 @@ class BracketResponse(BaseModel):
 # storybook. A second copy of this paragraph is exactly the "second disclosure
 # format" the requirement exists to prevent.
 #
-# **What changed in T3.5.** Until then this text disclosed seam 7: the
-# classifier was fed a row whose 20 recent-form features were synthetic
-# constants, flattening its probability toward 0.5. That is fixed —
-# ``common.classifier_adapter`` builds all 27 features from the pipeline's real
-# leakage-safe state, and the adapter's held-out Brier score now equals the
-# training pipeline's own (0.2188). The field is kept, and still required,
-# because a real limitation remains: every input is an **as-of-now snapshot** of
-# the loaded data, so simulating a draw that has already been played uses form
-# and skills its participants did not have at the time.
+# The classifier is fed a fully populated feature row: ``common.classifier_adapter``
+# builds all 27 features from the pipeline's real leakage-safe state, and the
+# adapter's held-out Brier score equals the training pipeline's own (0.2188). The
+# field is kept, and still required, because a real limitation remains: every
+# input is an **as-of-now snapshot** of the loaded data, so simulating a draw
+# that has already been played uses form and skills its participants did not have
+# at the time.
 #
 # **These strings must stay self-contained.** They are published on every
 # /simulate and /storybook response and rendered in the web app's disclosure
-# panel, so their audience is a reader of the deployed site — someone with no
-# access to this repository's internal design notes (which are not distributed)
-# and no idea what a ticket number refers to. The text carried a
-# "(ace-04-current-state.md §7 seam 7, closed in T3.5)" citation until the
-# 2026-08-09 audit; the claim it supported is true and stays, the pointer to a
-# file no reader has does not. Describe the limitation, never cite where it is
-# discussed.
+# panel, so their audience is a reader of the deployed site, someone with no
+# access to this repository's internal design notes. Describe the limitation,
+# never cite where it is discussed.
 #
 # **Two fields, one disclosure.** CLASSIFIER_LIMITATION is the one-line summary
 # a reader sees first; CLASSIFIER_LIMITATION_DETAIL is the full technical
 # account behind it, unchanged in substance from the single paragraph this used
-# to be. Both are required response fields — the split is a presentation choice
+# to be. Both are required response fields, the split is a presentation choice
 # (the web app shows the summary and tucks the detail behind a collapsed
 # toggle), so the API body stays fully self-describing: a non-browser consumer
 # still receives the complete disclosure, not just the teaser.
@@ -273,9 +266,8 @@ CLASSIFIER_LIMITATION_DETAIL = (
 # Whether output produced under the adapter above may be presented as a
 # prediction. ``False``: the draws shipped today are historical, and the
 # as-of-now snapshot above makes their numbers retrospective. One flag, so the
-# two producers cannot disagree about it. (Before T3.5 this flag stood for the
-# seam-7 defect; it now stands for the snapshot caveat, which is why it did not
-# flip when the defect was fixed.)
+# two producers cannot disagree about it. The flag stands for the snapshot
+# caveat above, not for any classifier defect.
 IS_FORECAST = False
 
 # --------------------------------------------------------------------------- #
@@ -286,8 +278,8 @@ IS_FORECAST = False
 # one case where that does not apply: none of its matches have been played, so
 # the snapshot is simply the latest available form rather than after-the-fact
 # knowledge. That draw's disclosure reads is_forecast=true and swaps in the
-# wording below. It is still not a confident prediction — the model's ceiling is
-# unchanged — but it is an honest forward projection, not a retrospective, and it
+# wording below. It is still not a confident prediction, the model's ceiling is
+# unchanged, but it is an honest forward projection, not a retrospective, and it
 # must not carry the "this already happened" sentence.
 FORECAST_CLASSIFIER_LIMITATION = (
     "A model projection for an event that has not been played. Treat it as an "
@@ -298,8 +290,8 @@ FORECAST_CLASSIFIER_LIMITATION_DETAIL = (
     "The classifier is fed a fully populated feature row: all 27 features, "
     "including recent form, computed from the pipeline's own leakage-safe match "
     "history. Because this draw's event date is in the future, none of its "
-    "matches have happened yet, so those inputs — rankings, surface records, "
-    "head-to-heads and recent form — are the latest available form rather than "
+    "matches have happened yet, so those inputs (rankings, surface records, "
+    "head-to-heads and recent form) are the latest available form rather than "
     "knowledge from after the event. This is a genuine forward projection. It is "
     "still only as good as the model behind it: match outcomes are noisy, an "
     "as-of-now snapshot cannot see an injury or a late withdrawal, and the "
@@ -337,7 +329,7 @@ class ModelDisclosure(BaseModel):
     that learned to read one has learned to read both, and neither can drift
     into publishing a subset of the fields.
 
-    Every field is **required** — that is what makes disclosure structural. A
+    Every field is **required**, that is what makes disclosure structural. A
     cache file or a handler that omits any of it fails validation instead of
     serving bare probabilities.
 
@@ -369,12 +361,12 @@ class ModelDisclosure(BaseModel):
         "pipeline persists whichever of four candidate models (logistic "
         "regression, decision tree, random forest, gradient-boosted trees) "
         "scores best on the held-out season, so this can differ between "
-        "deployments built in different environments — which is why it is "
+        "deployments built in different environments, which is why it is "
         "reported rather than assumed."
     )
     adapter: str = Field(
-        description="Which ``ClassifierProb`` adapter produced ``P_clf`` — the "
-        "subject of ``classifier_limitation``."
+        description="Which ``ClassifierProb`` adapter produced ``P_clf``; this "
+        "adapter is the subject of ``classifier_limitation``."
     )
     is_forecast: bool = Field(
         description="**Machine-readable honesty flag.** ``false`` means these "
@@ -399,7 +391,7 @@ class ModelDisclosure(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
-# Cached Monte Carlo simulation (T3.3)
+# Cached Monte Carlo simulation
 # --------------------------------------------------------------------------- #
 # These three models are **also the cache file format**. ``scripts/precompute_sim.py``
 # assembles a SimulationResponse, validates it and writes its JSON; the endpoint
@@ -409,7 +401,7 @@ class ModelDisclosure(BaseModel):
 # fields means a cache file written by an older schema fails loudly on read
 # instead of being served with fields silently missing.
 class SimulationMetadata(ModelDisclosure):
-    """Provenance of a cached Monte Carlo run — what produced these numbers.
+    """Provenance of a cached Monte Carlo run, what produced these numbers.
 
     :class:`ModelDisclosure` plus the three facts that only a cached aggregate
     has: how many runs are behind the counts, the base seed that reproduces
@@ -423,8 +415,8 @@ class SimulationMetadata(ModelDisclosure):
         "with a player's tournament seed in ``SimulationPlayer.seed``.)"
     )
     workers: int = Field(
-        description="Processes used. Provenance only — the aggregate is "
-        "worker-count-independent by construction (T2.3)."
+        description="Processes used. Provenance only: the aggregate is "
+        "worker-count-independent by construction."
     )
     generated_at: datetime = Field(
         description="When the cache file was written (UTC, ISO-8601)."
@@ -432,10 +424,10 @@ class SimulationMetadata(ModelDisclosure):
 
 
 class SimulationPlayer(BaseModel):
-    """One entrant's simulated outcome — mirrors ``sim.tournament.PlayerOutcome``.
+    """One entrant's simulated outcome, mirrors ``sim.tournament.PlayerOutcome``.
 
     Both the raw **counts** and the derived **probabilities** are carried: counts
-    are what T2.3 actually stores (integers make two runs comparable for exact
+    are what the Monte Carlo runner actually stores (integers make two runs comparable for exact
     equality), and probabilities are what a client renders. Nothing here is
     computed that ``PlayerOutcome`` does not already expose.
     """
@@ -451,9 +443,9 @@ class SimulationPlayer(BaseModel):
     )
     titles: int = Field(description="Runs this entrant won.")
     matches_won: int = Field(description="Matches won across every run.")
-    p_title: float = Field(description="``titles / runs`` — P(wins the event).")
+    p_title: float = Field(description="``titles / runs``: P(wins the event).")
     expected_rounds_won: float = Field(
-        description="``matches_won / runs`` — mean matches won per run."
+        description="``matches_won / runs``: mean matches won per run."
     )
     reached: dict[str, int] = Field(
         description="Round label → runs in which the entrant contested it."
@@ -468,13 +460,11 @@ class SimulationPlayer(BaseModel):
 class SimulationResponse(BaseModel):
     """A precomputed Monte Carlo result, as cached and as served.
 
-    **Read ``metadata`` before rendering the numbers.** T3.3 published these
-    probabilities under a classifier whose feature row was 20/27 synthetic
-    constants (``ace-04-current-state.md §7`` seam 7); T3.5 closed that seam, so
-    the row is now built entirely from the pipeline's own leakage-safe state. The
-    limitation that remains is narrower and still travels *with* the numbers:
-    every input is an **as-of-now snapshot** of the loaded data, which makes a
-    simulation of an already-played draw retrospective rather than a forecast.
+    **Read ``metadata`` before rendering the numbers.** The classifier's feature
+    row is built entirely from the pipeline's own leakage-safe state. The
+    limitation that remains travels *with* the numbers: every input is an
+    **as-of-now snapshot** of the loaded data, which makes a simulation of an
+    already-played draw retrospective rather than a forecast.
     ``metadata.classifier_limitation`` (prose), ``metadata.is_forecast``
     (machine-readable) and ``metadata.mode``/``w`` (how ``P_clf`` and the point
     model are fused) are required fields of every response, not a footnote in the
@@ -489,7 +479,7 @@ class SimulationResponse(BaseModel):
     best_of: int = Field(description="3 or 5.")
     final_set_tiebreak: str = Field(description="Deciding-set rule.")
     draw_size: int = Field(
-        description="Entrants in the draw — the **full** field size, which "
+        description="Entrants in the draw: the **full** field size, which "
         "exceeds ``count`` when ``?top=`` truncated the rows."
     )
     round_labels: list[str] = Field(
@@ -497,7 +487,7 @@ class SimulationResponse(BaseModel):
         description="The draw's round labels, first round first.",
     )
     count: int = Field(
-        description="Players in ``players`` — the whole field unless ``?top=`` "
+        description="Players in ``players``: the whole field unless ``?top=`` "
         "was given."
     )
     players: list[SimulationPlayer] = Field(
@@ -512,39 +502,39 @@ class SimulationResponse(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
-# Live storybook run (T3.4)
+# Live storybook run
 # --------------------------------------------------------------------------- #
-# Wire models over ``sim.tournament``'s T2.4 storybook types. Presentation only,
+# Wire models over ``sim.tournament``'s storybook types. Presentation only,
 # in the same sense ``scripts/precompute_sim.build_payload`` is: every field is
 # read off ``StorybookResult``/``StorybookRound``/``StorybookMatch``/``PlayerRun``,
 # and nothing is re-derived from the underlying ``BracketResult`` a second time.
 class StorybookMetadata(ModelDisclosure):
     """Provenance of one live storybook run.
 
-    :class:`ModelDisclosure` — the same seam-7 disclosure ``/simulate`` carries,
-    inherited rather than restated — plus the one fact that reproduces this
+    :class:`ModelDisclosure`, the same disclosure ``/simulate`` carries,
+    inherited rather than restated, plus the one fact that reproduces this
     particular story: its ``seed``.
 
     Note what is deliberately absent: no ``runs``/``workers`` (this *is* one run,
     in-process) and no ``generated_at``. Everything here is a function of the
     draw, the seed and the startup state, so two calls with the same seed return
-    byte-identical bodies — which is what makes the URL shareable.
+    byte-identical bodies, which is what makes the URL shareable.
     """
 
     seed: int = Field(
-        description="RNG seed this story was played out under — the one the "
+        description="RNG seed this story was played out under: the one the "
         "caller passed, or the server default when they passed none. Echoed so "
         "``?seed=`` on the same URL replays this exact tournament. (Not to be "
         "confused with a player's tournament seed in ``StorybookPlayerRun.seed``.)"
     )
     # ------------------------------------------------------------------ #
-    # Where the DRAW came from — added by the draw upload feature.
+    # Where the DRAW came from, added by the draw upload feature.
     # ------------------------------------------------------------------ #
     # A concern separate from the inherited is_forecast/classifier_limitation
     # (which are about the model's knowledge). These say whether the draw itself
     # is a curated, verified example or user-submitted and unverified. Required
     # here (not on the shared base) because ``/storybook`` is always built live
-    # by the handler, so every response can set them — unlike the cached
+    # by the handler, so every response can set them, unlike the cached
     # ``/simulate`` format, whose on-disk files predate these fields and must not
     # gain a required key. ``/simulate`` never serves an uploaded draw anyway.
     content_source: str = Field(
@@ -553,18 +543,18 @@ class StorybookMetadata(ModelDisclosure):
         "submitted. Distinct from ``is_forecast``, which is about the model."
     )
     content_note: str = Field(
-        description="Plain-language note on the draw's provenance — for an "
+        description="Plain-language note on the draw's provenance: for an "
         "upload, that it is unverified and held in memory only. Render it "
         "alongside the model disclosure, not in place of it."
     )
 
 
 class StorybookMatch(BaseModel):
-    """One played-out match — mirrors ``sim.tournament.StorybookMatch``.
+    """One played-out match, mirrors ``sim.tournament.StorybookMatch``.
 
     Both ``scoreline`` and the rendered ``line`` are carried: a bracket renderer
     wants the score next to two names it positions itself, and a feed wants the
-    one-liner. ``line`` is the T2.4 dataclass's own field, not a second
+    one-liner. ``line`` is the storybook dataclass's own field, not a second
     formatting rule invented here.
     """
 
@@ -603,10 +593,10 @@ class StorybookRound(BaseModel):
 
 
 class StorybookPlayerRun(BaseModel):
-    """One entrant's tournament, summarised — mirrors ``sim.tournament.PlayerRun``.
+    """One entrant's tournament, summarised, mirrors ``sim.tournament.PlayerRun``.
 
     Included so a client never has to walk ``rounds`` to answer "how far did this
-    player get, and who beat them" — T2.4 already computed it from the bracket,
+    player get, and who beat them", the storybook run already computed it from the bracket,
     and re-deriving it here would be a second answer to the same question.
     """
 
@@ -620,7 +610,7 @@ class StorybookPlayerRun(BaseModel):
     )
     is_champion: bool = Field(description="True for the one entrant who won.")
     furthest_round: str = Field(
-        description="Label of the last round contested — so a beaten finalist "
+        description="Label of the last round contested, so a beaten finalist "
         "and the champion both read ``F``."
     )
     matches_won: int = Field(description="Matches won (``0`` for a first-round exit).")
@@ -633,7 +623,7 @@ class StorybookPlayerRun(BaseModel):
 
 
 class StorybookChampion(BaseModel):
-    """The title winner — identity only; their matches are in ``rounds``."""
+    """The title winner, identity only; their matches are in ``rounds``."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -665,7 +655,7 @@ class StorybookResponse(BaseModel):
     final_set_tiebreak: str = Field(description="Deciding-set rule.")
     draw_size: int = Field(description="Entrants in the draw.")
     match_count: int = Field(
-        description="Matches played — ``draw_size - 1`` for a full bracket."
+        description="Matches played: ``draw_size - 1`` for a full bracket."
     )
     rounds: list[StorybookRound] = Field(
         default_factory=list, description="Every round, first round first."
@@ -691,12 +681,12 @@ class UploadResponse(BaseModel):
     Returned by ``POST /tournaments/upload`` on success. It carries the
     generated, namespaced ``tournament_id`` the caller then uses to fetch the
     bracket (``/tournaments/{id}/bracket``) or run a live storybook
-    (``/tournaments/{id}/storybook``) — **not** the draw's own ``tournament_id``,
+    (``/tournaments/{id}/storybook``), **not** the draw's own ``tournament_id``,
     which stays purely descriptive so uploads can never collide with the curated
     draws.
 
     It is deliberately honest about two things the caller must know up front: the
-    draw is **ephemeral** (memory only, cleared on restart — ``ephemeral`` is
+    draw is **ephemeral** (memory only, cleared on restart, ``ephemeral`` is
     always true and ``content_note`` says so in words), and whether it can be
     simulated at all (a draw with ``Qualifier`` slots loads and lists but cannot
     be run, exactly as a curated one cannot).
@@ -719,7 +709,7 @@ class UploadResponse(BaseModel):
         "cannot be simulated."
     )
     placeholder_count: int = Field(
-        description="How many slots are placeholders — ``0`` for a simulatable "
+        description="How many slots are placeholders: ``0`` for a simulatable "
         "draw. Non-zero explains why ``is_simulatable`` is false."
     )
     is_forecast: bool = Field(
@@ -742,7 +732,7 @@ class UploadResponse(BaseModel):
 # The single-match view runs a live Monte Carlo for one matchup (see
 # sim/single_match.py and config.API_MATCH_SIM_RUNS for why that is affordable
 # live). Its disclosure reuses ModelDisclosure so the frontend renders it with
-# the same Disclosure component as /simulate and /storybook — one caveat contract
+# the same Disclosure component as /simulate and /storybook, one caveat contract
 # for everything this app publishes. The text below is single-match-specific: a
 # hypothetical matchup did not happen, so the "this draw already happened"
 # retrospective wording (CLASSIFIER_LIMITATION) does not fit it.
@@ -820,13 +810,13 @@ class TotalGamesSummary(BaseModel):
     minimum: int = Field(description="Fewest total games seen.")
     maximum: int = Field(description="Most total games seen.")
     distribution: list[tuple[int, int]] = Field(
-        description="``(total_games, count)`` pairs, ascending — the full "
+        description="``(total_games, count)`` pairs, ascending: the full "
         "histogram, so a client can draw the spread rather than only the mean."
     )
 
 
 class MatchMetadata(ModelDisclosure):
-    """Provenance of a live single-match run — what produced these numbers.
+    """Provenance of a live single-match run, what produced these numbers.
 
     :class:`ModelDisclosure` (so the frontend renders one disclosure everywhere)
     plus the two facts a live aggregate has: how many simulations are behind the
@@ -847,7 +837,7 @@ class MatchSimulateResponse(BaseModel):
 
     All three distributions come from one live Monte Carlo pass over the matchup
     (``sim.single_match.simulate_single_match``). ``analytic_win_prob_a`` is the
-    exact composed match-win probability behind the sampled ``win_prob_a`` — they
+    exact composed match-win probability behind the sampled ``win_prob_a``, they
     agree to sampling error and it is carried as a determinism/quality check.
     """
 
@@ -877,3 +867,85 @@ class MatchSimulateResponse(BaseModel):
     metadata: MatchMetadata = Field(
         description="What produced these numbers, plus the required disclosure."
     )
+
+
+# --------------------------------------------------------------------------- #
+# Elo rankings (elo-ratings branch), a standalone DISPLAY feature.
+# --------------------------------------------------------------------------- #
+# These carry the Elo leaderboards to the Rankings screen. Elo is deliberately
+# walled off from the model (see features/elo.py and tests/test_elo_isolation.py)
+# it is shown to users and feeds nothing. The cache file scripts/precompute_elo.py
+# writes is exactly a RankingsResponse, and GET /rankings reads one back, so the
+# writer and reader share this schema the way /simulate shares SimulationResponse.
+
+
+class RankedPlayer(BaseModel):
+    """One player's standing in one Elo track."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rank: int = Field(description="1-based position within this track's active list.")
+    player_id: str = Field(description="Canonical join key.")
+    player_name: str = Field(description="Display name.")
+    rating: float = Field(description="Elo rating (starts at 1500).")
+    matches: int = Field(description="Matches that moved this track's rating.")
+    last_played: date = Field(description="Date of the player's last match on this track.")
+    is_active: bool = Field(
+        description="Whether the player has played recently tour-wide. A "
+        "long-retired player can hold a high frozen rating; this flag lets the "
+        "client separate them from current form rather than show a stale peak."
+    )
+
+
+class RankingsTrack(BaseModel):
+    """One leaderboard: overall, or a single surface."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    track: str = Field(description="``overall``, ``Hard``, ``Clay`` or ``Grass``.")
+    players: list[RankedPlayer] = Field(
+        description="Players sorted by rating, highest first."
+    )
+
+
+class RankingsMetadata(BaseModel):
+    """Provenance of a rankings run."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    generated_at: datetime = Field(description="When the cache file was written (UTC).")
+    as_of: date = Field(
+        description="Latest match date in the data: the reference the active "
+        "window is measured back from."
+    )
+    active_cutoff: date = Field(
+        description="A player is active if their last match is on or after this date."
+    )
+    active_window_days: int = Field(description="Length of the active window, in days.")
+    data_through_year: int = Field(description="Latest season present in the data.")
+    n_matches: int = Field(description="Matches that contributed to the overall track.")
+    note: str = Field(
+        description="Plain-language label distinguishing this from the official "
+        "ATP ranking."
+    )
+
+
+class RankingsResponse(BaseModel):
+    """The full set of Elo leaderboards plus provenance.
+
+    Both the cache payload ``scripts/precompute_elo.py`` writes and the body
+    ``GET /rankings`` returns.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    tracks: list[RankingsTrack] = Field(
+        description="One leaderboard per track (overall + each surface)."
+    )
+    metadata: RankingsMetadata = Field(description="How and from what these were computed.")
+
+
+# The one-line honesty label a user needs (not an over-explanation), this Elo is
+# ours, not the official ATP ranking. Kept here so the precompute writes it and
+# the client can render it without a second copy.
+RANKINGS_NOTE = "Ace's own rating, not the official ATP ranking."

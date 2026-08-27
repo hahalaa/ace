@@ -1,5 +1,5 @@
 /**
- * The recent-simulations log — a localStorage history of the user's own results,
+ * The recent-simulations log, a localStorage history of the user's own results,
  * scoped to this one browser. No React, no network, no backend: a result that
  * completes is recorded here the way a browser records a page you visited, and
  * the dashboard reads it back to offer a quick way in again.
@@ -8,7 +8,7 @@
  * runs (curated draws and uploads alike), because each is a specific result a
  * user might want to revisit: a match outcome, a tournament champion. Bracket and
  * title-odds screens are browsing views, not a memorable result, so they are not
- * logged — see the RecentSimulations component and the task report.
+ * logged, see the RecentSimulations component and the task report.
  *
  * **Reproduction reuses the app's URL-state model exactly.** Each entry stores the
  * relative `?view=…&seed=…` search string the existing views already read, built
@@ -70,7 +70,7 @@ const STORAGE_KEY = 'ace.recent-simulations.v1';
  */
 export const HISTORY_CAP = 25;
 
-/** True if `value` is a well-formed entry — guards against corrupt or foreign data. */
+/** True if `value` is a well-formed entry, guards against corrupt or foreign data. */
 function isEntry(value: unknown): value is HistoryEntry {
   if (value === null || typeof value !== 'object') return false;
   const e = value as Record<string, unknown>;
@@ -85,7 +85,7 @@ function isEntry(value: unknown): value is HistoryEntry {
 }
 
 /**
- * The stored history, newest first — or an empty list if nothing is stored, the
+ * The stored history, newest first, or an empty list if nothing is stored, the
  * store is unreadable, or the payload is not what we wrote.
  */
 export function readHistory(): HistoryEntry[] {
@@ -147,7 +147,7 @@ export function clearHistory(): void {
 }
 
 // --------------------------------------------------------------------------
-// Recording completed results — the two call sites' one-liners live here so the
+// Recording completed results, the two call sites' one-liners live here so the
 // URL and summary shapes stay in one place and are tested without a component.
 // --------------------------------------------------------------------------
 

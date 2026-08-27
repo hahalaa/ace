@@ -1,4 +1,4 @@
-"""Tests for ``/tournaments/{id}/simulate`` and the precompute script (T3.3).
+"""Tests for ``/tournaments/{id}/simulate`` and the precompute script.
 
 Nothing here touches the vendored CSVs or the shipped draws: the app is pointed
 at ``tests/fixtures/draws/`` and a **fixture cache directory**, and the
@@ -8,7 +8,7 @@ exists to prove, beyond the happy path:
 * **The handler never simulates.** Structurally (the module imports no
   simulation entry point), behaviourally (raising traps on ``monte_carlo`` /
   ``simulate_bracket`` / the point engine, with a control proving the traps are
-  live), and by construction — the injected ``ApiContext`` carries
+  live), and by construction, the injected ``ApiContext`` carries
   a stub one-column ``data`` frame and ``estimator=object()``, so any live
   reconciliation would blow up rather than quietly succeed (see the ``context``
   fixture for exactly where).
@@ -47,7 +47,7 @@ from api.schemas import (
 from features.serve import PlayerSkill, SkillTable
 from sim.draw import load_draw
 
-# scripts/ is not on pyproject's ``pythonpath = ["src"]`` — same hack
+# scripts/ is not on pyproject's ``pythonpath = ["src"]``, same hack
 # tests/test_refresh_data.py uses.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../scripts")))
 
@@ -97,7 +97,7 @@ def context(skill_table: SkillTable) -> ApiContext:
     Both seams a live reconciliation would have to cross are broken on purpose,
     and the *first* one is what actually trips: ``data`` is a one-column stub, so
     ``cli/simulate_match.make_classifier_prob`` raises ``KeyError: 'p1_name'``
-    while building its name-keyed feature row — **before** reaching the
+    while building its name-keyed feature row, **before** reaching the
     ``estimator.predict_proba`` call at ``cli/simulate_match.py:199``. ``estimator``
     is a bare ``object()`` (no ``predict_proba``) as the backstop behind that,
     for a caller that somehow arrived with a usable frame.
@@ -139,7 +139,7 @@ def empty_cache_client(context: ApiContext, tmp_path: Path):
 
 @pytest.fixture
 def cached_payload() -> dict:
-    """The fixture cache file, as raw JSON — the endpoint's expected output."""
+    """The fixture cache file, as raw JSON, the endpoint's expected output."""
     return json.loads((FIXTURE_CACHE / "toy_open_2026.json").read_text())
 
 
@@ -159,14 +159,14 @@ class StubClassifier:
 
 
 # --------------------------------------------------------------------------- #
-# GET /tournaments/{id}/simulate — cached results
+# GET /tournaments/{id}/simulate, cached results
 # --------------------------------------------------------------------------- #
 def test_simulate_returns_the_cached_results(client, cached_payload):
     """Acceptance: with a cache file present, the parsed results are returned.
 
     Field by field against the file itself, not merely a 200: the endpoint's
     entire job is to hand back what the precompute script computed, so any
-    divergence — a dropped round, a re-derived probability — is a defect.
+    divergence, a dropped round, a re-derived probability, is a defect.
     """
     response = client.get("/tournaments/toy_open_2026/simulate")
     assert response.status_code == 200
@@ -207,7 +207,7 @@ def test_simulate_players_are_sorted_by_title_probability(client):
 
 
 def test_simulate_metadata_makes_the_result_traceable(client, cached_payload):
-    """Acceptance: runs, seed, data year — plus mode/w — travel with the numbers."""
+    """Acceptance: runs, seed, data year, plus mode/w, travel with the numbers."""
     metadata = client.get("/tournaments/toy_open_2026/simulate").json()["metadata"]
 
     assert metadata["runs"] == 100
@@ -229,11 +229,11 @@ def test_simulate_response_discloses_the_model_limitation(client):
     reading the repository's docs, and without parsing prose: hence a boolean
     flag alongside the sentence, and the reconciliation mode next to both.
 
-    T3.5 changed what the sentence says, not whether it is required: the
+    The current adapter changed what the sentence says, not whether it is required: the
     seam-7 defect it used to describe (20 synthetic features) is fixed, and the
     text now discloses the as-of-now snapshot caveat that remains. The redesign
-    then split that disclosure in two — a one-line ``classifier_limitation``
-    summary plus the full ``classifier_limitation_detail`` account — so the
+    then split that disclosure in two, a one-line ``classifier_limitation``
+    summary plus the full ``classifier_limitation_detail`` account, so the
     response body still carries the whole thing, checked here on both fields.
     """
     metadata = client.get("/tournaments/toy_open_2026/simulate").json()["metadata"]
@@ -268,7 +268,7 @@ def test_simulate_rejects_a_cache_file_missing_its_disclosure(
     """Disclosure is structural: strip *any* disclosure field and the file stops
     being servable.
 
-    This is what makes the requirement enforceable rather than a convention —
+    This is what makes the requirement enforceable rather than a convention,
     ``SimulationMetadata`` gives none of these fields a default, so an older or
     hand-edited cache missing any of them fails validation instead of publishing
     bare probabilities. Parametrised over each disclosure field individually so
@@ -321,7 +321,7 @@ def test_simulate_top_beyond_the_field_returns_everyone(client):
 
 
 def test_simulate_top_must_be_at_least_one(client):
-    """T2.5's ``--top 0`` "list everyone" sentinel does not transfer: over HTTP,
+    """The tournament CLI's ``--top 0`` "list everyone" sentinel does not transfer: over HTTP,
     *omitting* the parameter already means "everyone", so 0 is a malformed
     request rather than a second spelling of the default."""
     assert client.get("/tournaments/toy_open_2026/simulate?top=0").status_code == 422
@@ -356,14 +356,14 @@ def test_missing_cache_response_starts_no_work(empty_cache_client, monkeypatch):
     assert empty_cache_client.get(
         "/tournaments/toy_open_2026/simulate"
     ).status_code == 425
-    # Still missing afterwards — nothing was generated on the side.
+    # Still missing afterwards, nothing was generated on the side.
     assert empty_cache_client.get(
         "/tournaments/toy_open_2026/simulate"
     ).status_code == 425
 
 
 # --------------------------------------------------------------------------- #
-# Placeholder draws — T3.3's answer to T3.2's open question
+# Placeholder draws, `/simulate`'s answer to the tournament endpoints' open question
 # --------------------------------------------------------------------------- #
 def test_simulate_placeholder_draw_returns_409(client):
     """A draw with unfilled slots is refused cleanly, naming every offender."""
@@ -383,9 +383,9 @@ def test_simulate_placeholder_draw_returns_409(client):
 
 
 def test_simulate_409_agrees_with_what_simulate_bracket_refuses(client, skill_table):
-    """The 409 tracks T2.2's actual rule rather than a second opinion.
+    """The 409 tracks the simulator's actual rule rather than a second opinion.
 
-    The endpoint reads ``DrawSlot.is_placeholder`` (T2.1's flag) instead of
+    The endpoint reads ``DrawSlot.is_placeholder`` (the draw validator's flag) instead of
     importing ``sim.tournament``'s private refusal, so this test pins the two to
     the same verdict: the draw the API 409s on is exactly the draw the simulator
     itself will not run, and the draw it serves is one the simulator accepts.
@@ -404,7 +404,7 @@ def test_simulate_409_agrees_with_what_simulate_bracket_refuses(client, skill_ta
 def test_placeholder_409_precedes_the_cache_check(context, tmp_path, cached_payload):
     """Simulability is a property of the draw, not of what is on disk.
 
-    Even with a cache file sitting there for it, a placeholder draw answers 409 —
+    Even with a cache file sitting there for it, a placeholder draw answers 409,
     so the verdict for a given draw never depends on whether someone hand-wrote
     a file the precompute script would have refused to produce.
     """
@@ -423,12 +423,12 @@ def test_placeholder_409_precedes_the_cache_check(context, tmp_path, cached_payl
 
 
 def test_placeholder_draw_is_still_listed_and_its_bracket_still_served(client):
-    """T3.3 answers simulability at ``/simulate`` and changes nothing in T3.2.
+    """`/simulate` answers simulability at ``/simulate`` and changes nothing in the tournament endpoints.
 
     The alternatives were a ``simulatable`` flag on ``/tournaments`` or filtering
     such draws out of the registry; both were rejected (see the endpoint
-    docstring), so this pins that T3.2's behaviour — and its own test — still
-    holds after T3.3.
+    docstring), so this pins that the tournament endpoints' behaviour, and its own test, still
+    holds after `/simulate` lands.
     """
     listed = client.get("/tournaments").json()
     assert "qualifier_open_2026" in {t["tournament_id"] for t in listed["tournaments"]}
@@ -449,11 +449,11 @@ def test_placeholder_draw_is_still_listed_and_its_bracket_still_served(client):
 def test_simulate_unknown_id_404_groups_ids_by_what_can_be_simulated(client):
     """Unknown id → 404, and the id list does not overstate what is simulatable.
 
-    ``/bracket`` lists every registered id together, correctly — a file that
+    ``/bracket`` lists every registered id together, correctly, a file that
     failed validation is fetchable there as a 422. Simulation is different in
     *two* ways, so three groups are named apart: a valid placeholder-free draw,
     a valid draw still awaiting entrants, and a file that never loaded. The
-    middle group is the one a flat list gets wrong — ``qualifier_open_2026``
+    middle group is the one a flat list gets wrong, ``qualifier_open_2026``
     loads and lists perfectly well and still cannot be simulated.
     """
     response = client.get("/tournaments/no_such_event/simulate")
@@ -479,7 +479,7 @@ def test_simulate_invalid_draw_file_returns_422_with_the_problems(client):
     detail = response.json()["detail"]
     assert detail["source"] == "unresolvable_open.json"
     assert detail["problems"]
-    # The same body /bracket returns for the same file — one shape, not two.
+    # The same body /bracket returns for the same file, one shape, not two.
     assert detail == client.get(
         "/tournaments/unresolvable_open/bracket"
     ).json()["detail"]
@@ -528,7 +528,7 @@ def _trap(name):
 
 
 # Every simulation entry point, patched at the module that **holds the reference
-# the caller resolves** — not necessarily the one that defines it. T2.2/T2.3 used
+# the caller resolves**, not necessarily the one that defines it. the simulator's used
 # the same pattern (and the same care) to prove ``outcome_only`` never reaches the
 # point engine: ``sim/tournament.py`` imported ``simulate_reconciled_match`` by
 # name, so patching ``sim.reconcile``'s copy would silently miss.
@@ -546,7 +546,7 @@ SIM_TRAPS = (
 def test_simulate_handler_never_runs_a_live_simulation(client, monkeypatch):
     """Acceptance, proved rather than timed: no simulation runs in the request.
 
-    Fast is not the claim — *never* is. Every simulation entry point raises for
+    Fast is not the claim, *never* is. Every simulation entry point raises for
     the duration, and the endpoint still answers in full, repeatedly.
     """
     for module, name in SIM_TRAPS:
@@ -563,7 +563,7 @@ def test_simulate_handler_never_runs_a_live_simulation(client, monkeypatch):
     ("module", "name"), SIM_TRAPS, ids=[name for _, name in SIM_TRAPS]
 )
 def test_each_simulation_trap_is_live(module, name, monkeypatch, skill_table):
-    """Control for the test above — a trap that silently misses would prove nothing.
+    """Control for the test above, a trap that silently misses would prove nothing.
 
     Each patched symbol must be the one the rest of the codebase actually
     resolves (patched at the holding module, not the defining one), so patching
@@ -588,19 +588,19 @@ def test_each_simulation_trap_is_live(module, name, monkeypatch, skill_table):
 def test_api_main_imports_no_monte_carlo_entry_point():
     """The structural half: ``api/main.py`` cannot run a Monte Carlo.
 
-    Traps prove the code path is not taken today; this proves there is no path —
+    Traps prove the code path is not taken today; this proves there is no path,
     the module holds no reference to the aggregate simulator at all, which is why
     the "cached results only" rule cannot be broken by an accidental edit that
     resolves a name at import time.
 
-    **Narrowed by T3.4, deliberately.** Until then the assertion was that
+    **Narrowed deliberately.** The assertion was once that
     ``api/main.py`` referenced *no* simulation entry point whatsoever;
     ``/storybook`` now runs one bracket live, so ``storybook_run`` is imported
     and called here on purpose (the Phase 3 rule bounds the *size* of a live run,
-    not its existence — see the endpoint docstring). What must stay untrue is the
+    not its existence, see the endpoint docstring). What must stay untrue is the
     thing the rule actually forbids: a 5,000-run aggregate, or the raw bracket
     loop it is built from, reachable from a request. The positive assertion below
-    keeps this test honest — if ``storybook_run`` ever stops being called from
+    keeps this test honest, if ``storybook_run`` ever stops being called from
     here, this file should be tightened back, not left permissive.
     """
     source = Path("src/api/main.py").read_text(encoding="utf-8")
@@ -619,7 +619,7 @@ def test_api_main_imports_no_monte_carlo_entry_point():
     ):
         assert forbidden not in code, forbidden
 
-    # The one live entry point T3.4 admits, and nothing broader from its module.
+    # The one live entry point admitted, and nothing broader from its module.
     assert "storybook_run(" in code
     assert "from sim.tournament import StorybookResult, storybook_run" in code
 
@@ -642,7 +642,7 @@ def test_cache_path_for_refuses_ids_that_are_not_plain_filenames(bad_id, tmp_pat
 
 
 # --------------------------------------------------------------------------- #
-# TournamentEntry.is_simulatable — the one definition both consumers use
+# TournamentEntry.is_simulatable, the one definition both consumers use
 # --------------------------------------------------------------------------- #
 def test_entry_is_simulatable_distinguishes_loadable_from_runnable(skill_table):
     """"Valid" and "simulatable" are three states, not two."""
@@ -654,7 +654,7 @@ def test_entry_is_simulatable_distinguishes_loadable_from_runnable(skill_table):
 
     assert runnable.is_valid and runnable.is_simulatable
     assert runnable.placeholder_slots == ()
-    # Loads and lists, but cannot be run — the case a two-state view gets wrong.
+    # Loads and lists, but cannot be run, the case a two-state view gets wrong.
     assert awaiting.is_valid and not awaiting.is_simulatable
     assert [slot.player for slot in awaiting.placeholder_slots] == [
         "Qualifier",
@@ -672,7 +672,7 @@ def test_entry_is_simulatable_distinguishes_loadable_from_runnable(skill_table):
 def stub_precompute(monkeypatch, context):
     """Run the script's ``main`` without the vendored pipeline or a real model.
 
-    Only the two expensive/IO-bound seams are replaced — the startup context and
+    Only the two expensive/IO-bound seams are replaced, the startup context and
     the classifier adapter. Everything else (registry lookup, ``monte_carlo``,
     payload assembly, the file write) is the real thing.
     """
@@ -751,7 +751,7 @@ def test_precompute_reconcile_mode_override_is_recorded(stub_precompute, tmp_pat
 
 
 def test_precompute_output_is_servable_end_to_end(stub_precompute, tmp_path, context):
-    """The script writes what the endpoint reads — one format, proved by use."""
+    """The script writes what the endpoint reads, one format, proved by use."""
     assert precompute_sim.main(
         [
             "--draw", "toy_open_2026",
@@ -776,7 +776,7 @@ def test_precompute_output_is_servable_end_to_end(stub_precompute, tmp_path, con
 
 
 def test_precompute_is_deterministic_for_a_seed(stub_precompute, tmp_path):
-    """CLAUDE.md's determinism rule: same seed → same file (bar the timestamp)."""
+    """The determinism rule: same seed → same file (bar the timestamp)."""
     args = [
         "--draw", "toy_open_2026",
         "--runs", "25",
@@ -797,7 +797,7 @@ def test_precompute_is_deterministic_for_a_seed(stub_precompute, tmp_path):
 def test_precompute_refuses_a_placeholder_draw_without_writing(
     stub_precompute, tmp_path, capsys
 ):
-    """T2.2's refusal, surfaced as a message and a non-zero exit — no cache file.
+    """the simulator's refusal, surfaced as a message and a non-zero exit, no cache file.
 
     The same verdict the API gives as a 409, from the same underlying rule.
     """
@@ -859,8 +859,8 @@ def test_precompute_invalid_draw_file_reports_the_problems(
 def test_precompute_payload_reuses_montecarloresult_fields(skill_table):
     """``build_payload`` presents; it does not recompute.
 
-    Every published number is read off ``MonteCarloResult``/``PlayerOutcome`` —
-    the same renderer/data separation T2.4 and T2.5 keep — so the API cannot
+    Every published number is read off ``MonteCarloResult``/``PlayerOutcome``,
+    the same renderer/data separation the CLIs keep, so the API cannot
     disagree with the simulator about its own results.
     """
     draw = load_draw(FIXTURE_DRAWS / "toy_open.json", skill_table)

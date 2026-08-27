@@ -1,12 +1,12 @@
-"""Regression guards for the container build (T5.1).
+"""Regression guards for the container build.
 
-These do not build an image — that is the documented manual/CI step in
-``DEPLOYING.md`` (and T5.2's job). What they pin is the handful of facts that are
+These do not build an image, that is a manual step. What they
+pin is the handful of facts that are
 *silently* wrong when broken: an image that builds and runs perfectly while
 serving a bundle pointed at the wrong API, or a build that quietly inherits a
 developer's model pickle instead of producing one. Each assertion below
 corresponds to a trap recorded in ``ace-04-current-state.md`` §7 seam 9 or in
-the T5.1 notes of ``ace-phase-5-infra.md``.
+the notes in ``ace-phase-5-infra.md``.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ API_HOST_PORT = 8000
 
 
 def _read(path: Path) -> str:
-    assert path.exists(), f"{path.name} is missing — T5.1 creates it"
+    assert path.exists(), f"{path.name} is missing"
     return path.read_text()
 
 
@@ -58,8 +58,8 @@ def _dockerfile_stages() -> list[str]:
 def _dockerfile_instructions() -> str:
     """The Dockerfile with comment lines dropped and continuations joined.
 
-    The header comments discuss `vite preview`, `ENV` and the prune at length —
-    precisely to explain what the file does *not* do — so every assertion about
+    The header comments discuss `vite preview`, `ENV` and the prune at length,
+    precisely to explain what the file does *not* do, so every assertion about
     behaviour has to read instructions, never prose.
     """
     text = _read(DOCKERFILE).replace("\\\n", " ")
@@ -81,7 +81,7 @@ def _environment_keys(service: dict) -> set[str]:
 
     Compose accepts a mapping (``KEY: value``) *or* a list (``- KEY=value``).
     A membership test against the raw value silently passes on the list form,
-    which is the more common idiom — so normalise before asserting.
+    which is the more common idiom, so normalise before asserting.
     """
     env = service.get("environment") or {}
     if isinstance(env, dict):
@@ -90,7 +90,7 @@ def _environment_keys(service: dict) -> set[str]:
 
 
 # --------------------------------------------------------------------------- #
-# .dockerignore — leanness, and the two load-bearing exclusions.
+# .dockerignore, leanness, and the two load-bearing exclusions.
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize(
     "pattern",
@@ -101,7 +101,7 @@ def test_dockerignore_keeps_the_context_lean(pattern: str) -> None:
 
 
 def test_dockerignore_excludes_the_frontend_env_file() -> None:
-    """The trap T4.5 verified: ``vite build`` reads ``.env``, not only ``vite dev``.
+    """The trap:  ``vite build`` reads ``.env``, not only ``vite dev``.
 
     ``frontend/.env`` is gitignored but sits on every developer machine holding
     ``http://localhost:8000``. A ``COPY frontend/ .`` that picked it up would
@@ -118,7 +118,7 @@ def test_dockerignore_excludes_the_regenerated_artefacts(pattern: str) -> None:
     """The two gitignored, runtime-required artefacts must not leak in.
 
     They are produced by the builder stage. Excluding them from the context is
-    what makes every build behave like a clean checkout — otherwise a developer
+    what makes every build behave like a clean checkout, otherwise a developer
     machine holding both would ship an image whose provenance nobody knows, and
     a genuinely clean CI build would be the first to discover the difference.
     """
@@ -126,7 +126,7 @@ def test_dockerignore_excludes_the_regenerated_artefacts(pattern: str) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Dockerfile — stage shape and the artefact resolution.
+# Dockerfile, stage shape and the artefact resolution.
 # --------------------------------------------------------------------------- #
 def test_api_is_the_default_build_target() -> None:
     """``docker build .`` must produce the API image (the acceptance criterion)."""
@@ -140,7 +140,7 @@ def test_builder_stage_regenerates_both_gitignored_artefacts() -> None:
     """Resolution (a): regenerate, rather than copy-and-hope.
 
     ``outputs/tennis_model.pkl`` and ``data/cache/*.json`` are absent from every
-    checkout, so the build has to produce them or the image does not work —
+    checkout, so the build has to produce them or the image does not work,
     the API fails fast without the model and answers 425 without the cache.
     """
     text = _read(DOCKERFILE)
@@ -152,10 +152,10 @@ def test_builder_stage_regenerates_both_gitignored_artefacts() -> None:
 
 
 def test_frontend_image_serves_static_files_and_never_runs_vite_preview() -> None:
-    """T4.5's explicit finding: ``vite preview`` is a dev command, not a server.
+    """Explicit finding: ``vite preview`` is a dev command, not a server.
 
     The built artefact is static files, so the frontend stage is a builder plus
-    a file server — not a node image running preview.
+    a file server, not a node image running preview.
     """
     assert re.search(
         r"^FROM\s+nginx:\S+\s+AS\s+frontend\s*$", _read(DOCKERFILE), re.MULTILINE
@@ -171,7 +171,7 @@ def test_frontend_api_url_is_a_build_arg_in_the_dockerfile() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# docker-compose.yml — the wiring T4.5 said must not be done with `environment:`.
+# docker-compose.yml, the wiring that must not be done with `environment:`.
 # --------------------------------------------------------------------------- #
 def test_compose_defines_api_and_frontend() -> None:
     services = _compose()["services"]
@@ -183,7 +183,7 @@ def test_compose_passes_the_api_url_as_a_build_arg_not_an_environment_entry() ->
 
     Vite inlines ``VITE_API_BASE_URL`` at build time and the minifier constant-
     folds the runtime lookup away, so an ``environment:`` entry does nothing at
-    all — the image would keep whatever URL it was built with, and the mistake
+    all, the image would keep whatever URL it was built with, and the mistake
     is invisible until someone loads the page.
     """
     frontend = _compose()["services"]["frontend"]
@@ -199,10 +199,10 @@ def test_dockerfile_does_not_restate_the_build_arg_as_env() -> None:
     """`ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}` looks harmless and is not.
 
     BuildKit already exposes a declared ARG to the stage's RUN steps, so the
-    line adds nothing — but it turns *unset* into *set to the empty string*,
+    line adds nothing, but it turns *unset* into *set to the empty string*,
     which silences the unset-value warning `vite.config.ts` exists to emit, and
     it puts a phantom runtime knob into the image metadata for a value that was
-    frozen at build time. Written once during T5.1 and removed; pinned here.
+    frozen at build time. Written once and removed; pinned here.
     """
     instructions = _dockerfile_instructions()
     assert "ARG VITE_API_BASE_URL" in instructions
@@ -213,14 +213,14 @@ def test_runtime_prune_is_chained_to_an_import_guard_that_exercises_xgboost() ->
     """The prune's safety net, and the one thing that must never be edited away.
 
     The ``runtime-deps`` stage uninstalls packages from the venv the shipped
-    image runs on — including every ``nvidia*`` distribution, matched by a
+    image runs on, including every ``nvidia*`` distribution, matched by a
     *pattern*, so a future dependency could be caught by it. The guard is what
     turns "removed something xgboost needed" into a failed build instead of a
     container that dies on startup. Verified live: pruning ``scipy`` with the
     guard fails the build at this line; pruning it without the guard builds
     clean and the container then exits 3 at startup.
 
-    Chained with ``&&`` on purpose — a separate ``RUN`` would still fail, but a
+    Chained with ``&&`` on purpose, a separate ``RUN`` would still fail, but a
     guard that can drift into a different layer from the prune it guards is a
     guard waiting to be reordered away.
     """
@@ -235,7 +235,7 @@ def test_compose_frontend_origin_is_cors_allowed_by_the_api() -> None:
 
     ``config.API_ALLOWED_ORIGINS`` is an explicit allow-list and never ``*``, so
     a frontend served on a port that is not on it loads fine and then fails
-    every fetch — surfacing as the generic "could not reach the ace API" panel,
+    every fetch, surfacing as the generic "could not reach the ace API" panel,
     because a browser hides the real cause.
     """
     ports = _compose()["services"]["frontend"]["ports"]

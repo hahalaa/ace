@@ -85,7 +85,7 @@
   color: var(--ink-mid);
 }
 
-/* Visually hidden but focusable and in the tab order — the accessible control. */
+/* Visually hidden but focusable and in the tab order, the accessible control. */
 .fileInput {
   position: absolute;
   width: 1px;

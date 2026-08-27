@@ -1,5 +1,5 @@
 {
-  "note": "TEST FIXTURE (T3.2) — well-formed JSON that fails T2.1 validation on two counts: two entrant names are unknown to the skill table, and best_of is not 3 or 5. Two problems on purpose, so the API can be shown surfacing the validator's whole accumulated list rather than the first failure.",
+  "note": "TEST FIXTURE: well-formed JSON that fails validation on two counts: two entrant names are unknown to the skill table, and best_of is not 3 or 5. Two problems on purpose, so the API can be shown surfacing the validator's whole accumulated list rather than the first failure.",
   "tournament_id": "unresolvable_open_2026",
   "name": "Unresolvable Open 2026",
   "surface": "Hard",

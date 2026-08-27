@@ -92,9 +92,9 @@ describe('Dashboard', () => {
   });
 
   // Regression guard for the "arrows do nothing" report: drive the toolbar with a
-  // genuine bubbling KeyboardEvent dispatched at the *focused element* — the exact
+  // genuine bubbling KeyboardEvent dispatched at the *focused element*, the exact
   // path a physical keypress takes (target = document.activeElement, bubbling up to
-  // the toolbar's listener) — never a direct call of the handler. document.activeElement
+  // the toolbar's listener), never a direct call of the handler. document.activeElement
   // must actually move, not just an internal state flag. Verified live with real
   // OS-level key events too; this locks the behaviour into the suite.
   it('moves real focus on a dispatched (not hand-called) arrow keydown', () => {
@@ -104,7 +104,7 @@ describe('Dashboard', () => {
     expect(document.activeElement).toBe(matchCard());
 
     // Each dispatch is wrapped in act() so React flushes the roving-index state
-    // between keypresses — the same task boundary a browser gives two physical
+    // between keypresses, the same task boundary a browser gives two physical
     // key presses. The events themselves are genuine bubbling KeyboardEvents.
     act(() => {
       document.activeElement!.dispatchEvent(
@@ -121,7 +121,7 @@ describe('Dashboard', () => {
     expect(document.activeElement).toBe(matchCard());
   });
 
-  it('pins the accent to no card at rest — both share identical styling', () => {
+  it('pins the accent to no card at rest, both share identical styling', () => {
     // Bug: the gold accent used to be statically class-applied to the featured
     // card, so keyboard focus moving to the other card was invisible. Neither
     // card may carry a distinguishing accent class now; the accent is a :hover /

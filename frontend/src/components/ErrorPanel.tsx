@@ -1,8 +1,8 @@
 /**
- * One panel per distinguishable failure — the single place T4.1's typed errors
+ * One panel per distinguishable failure, the single place the client's typed errors
  * become something a person can read.
  *
- * Extracted from `Bracket.tsx` by T4.3, which needs the same branching plus one
+ * Extracted from `Bracket.tsx`, which needs the same branching plus one
  * more case (`425 cache_missing`). A second copy would have meant a second set
  * of headings drifting out of step with the first, which is the same argument
  * that keeps one fetch wrapper and one set of wire types in `src/api/`.
@@ -24,8 +24,9 @@ import styles from './panel.module.css';
 export interface ErrorPanelProps {
   /** Whatever the client threw. Narrowed here, not by the caller. */
   error: unknown;
-  /** The id being loaded — names the thing that 404'd. */
-  tournamentId: string;
+  /** The id being loaded, names the thing that 404'd. Omitted by tournament-free
+   *  views (the rankings board), which have no id to name. */
+  tournamentId?: string;
 }
 
 export default function ErrorPanel({ error, tournamentId }: ErrorPanelProps) {

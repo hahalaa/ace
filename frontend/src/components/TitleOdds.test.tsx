@@ -5,7 +5,7 @@
  *
  * **The 8-draw case is necessarily mocked, and that is not a shortcut.** The
  * shipped draws are all 128-slot, and a draw holding a `Qualifier` is refused by
- * T3.3 (409 `draw_not_simulatable`) with no cache, so the only cached simulation
+ * `/simulate` (409 `draw_not_simulatable`) with no cache, so the only cached simulation
  * is the 128 draw. A mocked payload is the only way to exercise the small-draw
  * column derivation at all, which is exactly the regression a hardcoded
  * three-column table would survive.
@@ -41,11 +41,11 @@ afterEach(() => {
 });
 
 // --------------------------------------------------------------------------
-// Fixtures — shaped exactly like `data/cache/usopen_2024_atp_full.json`.
+// Fixtures, shaped exactly like `data/cache/usopen_2024_atp_full.json`.
 // --------------------------------------------------------------------------
 
 // The one-line summary the reader always sees, and the full account behind the
-// collapsed toggle — the two-field split `api.schemas.ModelDisclosure` ships.
+// collapsed toggle, the two-field split `api.schemas.ModelDisclosure` ships.
 const SUMMARY =
   'Not a forecast. This draw already happened, so the model is scoring a result it could have seen.';
 const LIMITATION =
@@ -183,7 +183,7 @@ describe('column derivation', () => {
   });
 
   it('yields no columns for a draw with nothing between round one and the title', () => {
-    // No such draw ships today — the smallest is 8 — but `slice(1)` is the kind
+    // No such draw ships today, the smallest is 8, but `slice(1)` is the kind
     // of expression that turns into an off-by-one at the boundary, and a table
     // that renders a stray column or throws on a 2-slot payload is worse than
     // one that renders none.
@@ -213,7 +213,7 @@ describe('column derivation', () => {
 });
 
 // --------------------------------------------------------------------------
-// The two payload sizes — the ticket's headline regression.
+// The two payload sizes, the ticket's headline regression.
 // --------------------------------------------------------------------------
 
 describe('rendering a 128-draw payload', () => {
@@ -235,7 +235,7 @@ describe('rendering a 128-draw payload', () => {
 
 describe('rendering an 8-draw payload', () => {
   // The regression a hardcoded QF/SF/F table would pass and a 128 one would not.
-  it('renders only SF and F — not six empty columns', async () => {
+  it('renders only SF and F, not six empty columns', async () => {
     await renderOdds(eightDraw());
     expect(headers()).toEqual(['#', 'Seed', 'Player', 'SF', 'F', 'Title', 'E[W]']);
     for (const dropped of ['R128', 'R64', 'R32', 'R16']) {
@@ -257,7 +257,7 @@ describe('rendering an 8-draw payload', () => {
 });
 
 describe('rendering a degenerate payload', () => {
-  // Hypothetical — the smallest draw shipped is 8 — but the header row, the
+  // Hypothetical, the smallest draw shipped is 8, but the header row, the
   // body cells and the expanded card's `colSpan` are all derived from the same
   // column list, so a zero-length one has to be a rendering case, not a crash.
   it('renders a single-round draw with no survival columns at all', async () => {
@@ -299,7 +299,7 @@ describe('rendering a degenerate payload', () => {
 // --------------------------------------------------------------------------
 // The disclosure and the bottom stats strip: dropped from this screen. The
 // wire fields (`SimulationMetadata`'s `ModelDisclosure` base) still travel
-// in the response for any non-browser consumer — only the browser's
+// in the response for any non-browser consumer, only the browser's
 // rendering of them is gone, which is what these tests pin.
 // --------------------------------------------------------------------------
 
@@ -316,7 +316,7 @@ describe('disclosure', () => {
   it('moves the table up with no leftover divider or spacing artifact', async () => {
     await renderOdds(eightDraw());
     const table = screen.getByRole('table');
-    // The heading is the only thing above the table now — nothing sits
+    // The heading is the only thing above the table now, nothing sits
     // between them, so the table wrap is the header's very next sibling.
     expect(table.closest('div')?.previousElementSibling?.tagName).toBe('HEADER');
   });
@@ -384,7 +384,7 @@ describe('player card', () => {
 });
 
 // --------------------------------------------------------------------------
-// Failures — "not simulated yet" must not read like "no data".
+// Failures, "not simulated yet" must not read like "no data".
 // --------------------------------------------------------------------------
 
 describe('loading and error states', () => {
@@ -429,7 +429,7 @@ describe('loading and error states', () => {
 
     expect(panel.dataset.errorKind).toBe('cache-missing');
     expect(panel.textContent).toContain('No simulation has been run');
-    // Verbatim and copyable — an operator is meant to paste this.
+    // Verbatim and copyable, an operator is meant to paste this.
     expect(within(panel).getByText(command)).toBeDefined();
     expect(screen.queryByRole('table')).toBeNull();
   });

@@ -53,7 +53,7 @@
 /* `position: relative; z-index: 2` keeps the player-picker dropdown (absolutely
    positioned inside this block) above the results below. The `--kf-rise`
    entrance animation applies a transform while it plays, turning both this block
-   and `.results` into stacking contexts — that traps the dropdown's own z-index
+   and `.results` into stacking contexts, that traps the dropdown's own z-index
    inside `.controls`, so without an explicit order the later-sibling `.results`
    paints over it. Pinning controls above results fixes it at every animation
    state, theme and zoom level. */
@@ -217,7 +217,7 @@
   box-shadow: var(--shadow-1);
 }
 
-/* A small physical press — the button gives under the click, then settles. */
+/* A small physical press, the button gives under the click, then settles. */
 @media (prefers-reduced-motion: no-preference) {
   .primary:not(:disabled):active {
     translate: 0 1px;
@@ -352,7 +352,7 @@
 
 /* The result's headline number: the fill grows from the left on arrival rather
    than snapping to width, so the odds read as being drawn. The React-set inline
-   width is untouched — this scales the already-sized fill, so the final state
+   width is untouched, this scales the already-sized fill, so the final state
    is identical. `transition: width` above still carries any later change. */
 @media (prefers-reduced-motion: no-preference) {
   .winFill {
@@ -485,7 +485,7 @@
 
 /* --- Loading ---------------------------------------------------------- */
 /* The pulsing dot marks this as deliberate, live activity rather than a
-   frozen panel — no explanation of why a given request takes as long as it
+   frozen panel, no explanation of why a given request takes as long as it
    does, just a plain "something is happening" signal. */
 .loadingLine {
   display: flex;

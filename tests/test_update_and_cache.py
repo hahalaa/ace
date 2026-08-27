@@ -1,8 +1,8 @@
-"""Tests for scripts/update_and_cache.py — the T5.3 orchestrator.
+"""Tests for scripts/update_and_cache.py, the refresh orchestrator.
 
 No network, no training, no Monte Carlo: every expensive phase is a spy, and
 what is under test is the **sequencing and the aborts**. That is the whole point
-of the script — the two things it wraps (``refresh_data``, ``precompute_sim``)
+of the script, the two things it wraps (``refresh_data``, ``precompute_sim``)
 are already covered by their own suites, and neither of them can tell that a
 half-finished refresh must not become a published cache.
 
@@ -35,7 +35,7 @@ import update_and_cache as uac  # noqa: E402
 
 
 # --------------------------------------------------------------------------- #
-# Fixtures — the smallest CSV that passes verification.
+# Fixtures, the smallest CSV that passes verification.
 # --------------------------------------------------------------------------- #
 def _csv(rows: int = 3, *, date: str = "20260105", drop: str = "") -> str:
     """A vendored-shaped year file with ``rows`` matches."""
@@ -78,7 +78,7 @@ def _args(tmp_path: Path, *extra: str):
 def spies(monkeypatch):
     """Replace every expensive phase with a call recorder.
 
-    Returns the shared ``calls`` list — its *order* is what several tests
+    Returns the shared ``calls`` list, its *order* is what several tests
     assert, since "refresh before precompute" is the property under test.
     """
     calls: list[str] = []
@@ -96,14 +96,21 @@ def spies(monkeypatch):
         calls.append(f"precompute:{argv[argv.index('--draw') + 1]}")
         return 0
 
+    def fake_elo(argv):
+        # A no-op so the shared expensive-phase order assertions (which track
+        # refresh/train/precompute) stay unchanged and hermetic; the Elo phase's
+        # own ordering and fatal-on-failure behaviour is covered separately below.
+        return 0
+
     monkeypatch.setattr(refresh_data, "refresh", fake_refresh)
     monkeypatch.setattr(uac, "train_model", fake_train)
     monkeypatch.setattr(precompute_sim, "main", fake_precompute)
+    monkeypatch.setattr(uac.precompute_elo, "main", fake_elo)
     return calls
 
 
 # --------------------------------------------------------------------------- #
-# Phase 1 — a failed refresh must abort the run.
+# Phase 1, a failed refresh must abort the run.
 # --------------------------------------------------------------------------- #
 def test_partial_refresh_aborts_before_precompute(tmp_path, spies, monkeypatch):
     """The ticket's safety criterion, stated as a test.
@@ -145,7 +152,7 @@ def test_a_crashing_refresh_stops_the_run_cleanly(tmp_path, spies, monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
-# Phase 2 — a 200 response is not data.
+# Phase 2, a 200 response is not data.
 # --------------------------------------------------------------------------- #
 def test_truncated_download_is_caught_by_the_row_count_guard(tmp_path, spies, monkeypatch):
     raw = tmp_path / "raw"
@@ -206,7 +213,7 @@ def test_a_vendor_schema_change_is_caught(tmp_path, spies, monkeypatch):
 
 
 def test_a_date_format_change_is_caught(tmp_path, spies, monkeypatch):
-    """`data/loader.py` coerces unparseable dates to NaT — silently, and fatally.
+    """`data/loader.py` coerces unparseable dates to NaT, silently, and fatally.
 
     Every leakage-safe feature in the project is built by iterating in date
     order, so an all-NaT column is worse than a missing file.
@@ -253,7 +260,7 @@ def test_verification_reports_every_problem_at_once(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# Phase 3 — change detection (the "no empty commits" gate).
+# Phase 3, change detection (the "no empty commits" gate).
 # --------------------------------------------------------------------------- #
 def test_unchanged_data_skips_retrain_and_precompute(tmp_path, spies):
     """Byte-identical downloads ⇒ nothing to retrain, nothing to publish.
@@ -308,7 +315,7 @@ def test_a_brand_new_year_counts_as_changed(tmp_path, spies):
 
 
 # --------------------------------------------------------------------------- #
-# --no-refresh — the offline path.
+# --no-refresh, the offline path.
 # --------------------------------------------------------------------------- #
 def test_no_refresh_never_touches_the_network(tmp_path, spies, monkeypatch):
     """The manual "just re-simulate draw X" path must not re-download 13 seasons."""
@@ -330,7 +337,7 @@ def test_no_refresh_never_touches_the_network(tmp_path, spies, monkeypatch):
 
 
 def test_no_refresh_still_trains_when_no_model_exists(tmp_path, spies, monkeypatch):
-    """A clean checkout (CI) has no pickle — `outputs/` is gitignored."""
+    """A clean checkout (CI) has no pickle, `outputs/` is gitignored."""
     monkeypatch.setattr(config, "MODEL_PATH", tmp_path / "absent.pkl")
     monkeypatch.setattr(refresh_data, "refresh", lambda *a, **k: pytest.fail("no net"))
     _write_years(tmp_path / "raw", [2025, 2026])
@@ -353,7 +360,7 @@ def test_retrain_never_without_a_model_aborts(tmp_path, spies, monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
-# Phase 4 — precompute, and what a partial failure means.
+# Phase 4, precompute, and what a partial failure means.
 # --------------------------------------------------------------------------- #
 def test_one_failing_draw_still_attempts_the_rest_and_fails_the_run(
     tmp_path, spies, monkeypatch
@@ -459,13 +466,13 @@ def test_refreshing_past_config_end_year_aborts(tmp_path, spies, monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
-# train_model — the staleness fix that has to happen before precompute.
+# train_model, the staleness fix that has to happen before precompute.
 # --------------------------------------------------------------------------- #
 def test_train_model_deletes_the_stale_pickle_before_retraining(tmp_path, monkeypatch):
     """`predictor.py` loads an existing pickle and never checks it (§4, seam 5).
 
     Retraining without the delete would reload the old fit and publish new-data
-    numbers from it — silently.
+    numbers from it, silently.
     """
     joblib = pytest.importorskip("joblib")
     model = tmp_path / "tennis_model.pkl"
@@ -564,7 +571,7 @@ def test_bad_year_range_is_rejected(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# Target discovery — reuses the API's registry, and never writes a draw file.
+# Target discovery, reuses the API's registry, and never writes a draw file.
 # --------------------------------------------------------------------------- #
 def test_discover_targets_uses_the_registrys_own_simulatable_rule(monkeypatch):
     """One definition of "simulatable" (`TournamentEntry.is_simulatable`).
@@ -593,3 +600,64 @@ def test_discover_targets_uses_the_registrys_own_simulatable_rule(monkeypatch):
     assert targets == ["full_draw"]
     assert any("awaiting" in s and "placeholder" in s for s in skipped)
     assert any("broken_file" in s and "failed validation" in s for s in skipped)
+
+
+# --------------------------------------------------------------------------- #
+# Phase 3b, Elo rankings (a display feature, regenerated on the same cadence).
+# --------------------------------------------------------------------------- #
+def test_elo_regenerates_after_retrain_and_before_the_draw_precompute(
+    tmp_path, spies, monkeypatch
+):
+    """Elo sits between the retrain and the tournament precompute, and its cache
+    dir is threaded through, it needs neither the model nor the draws, only the
+    refreshed data, so it runs once the run is past the change gate."""
+    captured: dict[str, list[str]] = {}
+
+    def recording_elo(argv):
+        spies.append("elo")
+        captured["argv"] = list(argv)
+        return 0
+
+    monkeypatch.setattr(uac.precompute_elo, "main", recording_elo)
+    _write_years(tmp_path / "raw", [2025, 2026])
+
+    summary = uac.orchestrate(_args(tmp_path, "--force"))
+
+    assert summary.ok is True
+    assert summary.elo_regenerated is True
+    assert spies == ["refresh", "train", "elo", "precompute:some_draw"]
+    # The run's cache dir is passed through, so rankings land beside the sim cache.
+    assert captured["argv"][captured["argv"].index("--cache-dir") + 1] == str(
+        tmp_path / "cache"
+    )
+
+
+def test_a_failing_elo_precompute_stops_the_run_before_the_draw_precompute(
+    tmp_path, spies, monkeypatch
+):
+    """data/cache/ is committed as one unit, so a broken rankings file must stop
+    the whole run rather than be published beside fresh tournament caches."""
+    monkeypatch.setattr(uac.precompute_elo, "main", lambda argv: 1)
+    _write_years(tmp_path / "raw", [2025, 2026])
+
+    summary = uac.orchestrate(_args(tmp_path, "--force"))
+
+    assert summary.ok is False
+    assert summary.stopped_after == "elo"
+    assert summary.elo_regenerated is False
+    # Nothing after the Elo phase ran, no draw was precomputed.
+    assert not any(call.startswith("precompute:") for call in spies)
+
+
+def test_a_crashing_elo_precompute_stops_the_run_cleanly(tmp_path, spies, monkeypatch):
+    def boom(argv):
+        raise RuntimeError("bad rating frame")
+
+    monkeypatch.setattr(uac.precompute_elo, "main", boom)
+    _write_years(tmp_path / "raw", [2025, 2026])
+
+    summary = uac.orchestrate(_args(tmp_path, "--force"))
+
+    assert summary.ok is False
+    assert summary.stopped_after == "elo"
+    assert "bad rating frame" in summary.message

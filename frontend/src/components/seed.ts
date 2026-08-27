@@ -1,16 +1,16 @@
 /**
- * The storybook seed and the URL that carries it — no React, on the
+ * The storybook seed and the URL that carries it, no React, on the
  * `rounds.ts`/`errors.ts`/`overlay.ts` precedent that component files export
  * only components.
  *
- * `/storybook` returns a byte-identical body for the same id and seed (T3.4),
+ * `/storybook` returns a byte-identical body for the same id and seed,
  * which is the entire basis of a shareable link. Everything that decides *which*
  * seed runs therefore lives here, in four lines that can be read at once and
- * tested without mounting anything — rather than scattered through an effect
+ * tested without mounting anything, rather than scattered through an effect
  * where a stray `Math.random()` on a render path would be invisible.
  */
 
-/** `config.API_STORYBOOK_SEED_MAX` — the server rejects anything above it. */
+/** `config.API_STORYBOOK_SEED_MAX`, the server rejects anything above it. */
 export const SEED_MAX = 2 ** 32 - 1;
 
 /**
@@ -32,8 +32,8 @@ export function readSeed(search: string): number | null {
 /**
  * A fresh seed in the server's range, never equal to `previous`.
  *
- * "Re-run" must produce a *different* story, so re-drawing the current seed —
- * which would re-fetch the identical bracket — is excluded rather than left to
+ * "Re-run" must produce a *different* story, so re-drawing the current seed,
+ * which would re-fetch the identical bracket, is excluded rather than left to
  * chance.
  */
 export function nextSeed(previous: number | null): number {

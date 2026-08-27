@@ -2,7 +2,7 @@
 
 ``pythonpath = ["src"]`` in pyproject.toml puts ``src/`` on the import path, so
 tests import project modules the same way the runtime pipeline does
-(``import config``, ``import data.loader``) — no per-file sys.path hacks.
+(``import config``, ``import data.loader``), no per-file sys.path hacks.
 """
 from pathlib import Path
 

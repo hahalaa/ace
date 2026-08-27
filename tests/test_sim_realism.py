@@ -1,9 +1,9 @@
-"""Tests for scripts/validate_sim.py — the T1.9 simulation-realism harness.
+"""Tests for scripts/validate_sim.py, the simulation-realism harness.
 
 A smaller, **seeded** version of the validation the script runs directly. Its job
 is to catch *gross* breakage (a simulator that stops producing plausible match
 shapes at all, or that loses determinism), **not** to enforce tight statistical
-agreement with historical data — that rigour lives in ``validate_sim.py`` itself,
+agreement with historical data, that rigour lives in ``validate_sim.py`` itself,
 run manually. So the bands here are deliberately generous: each brackets *both*
 the current simulated value and the historical value, so the test stays green
 now and would remain green if the point model later improves toward history (the
@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../s
 import validate_sim as V  # noqa: E402
 from sim.match import simulate_match_bo3, simulate_match_bo5  # noqa: E402
 
-# A narrow, recent slice — enough real matchups to sample, cheap to load.
+# A narrow, recent slice, enough real matchups to sample, cheap to load.
 _START, _END = 2024, 2026
 _SEED = 4242
 _N = 600
@@ -184,7 +184,7 @@ def test_confound_gap_stable_on_recent_pool(loaded):
     recent_gap, recent_n = V.mean_point_gap(recent, table)
     assert full_n > 0 and recent_n > 0
     # Both compressed (well below the ~0.10+ gaps that reproduce history) and
-    # near-equal — the stale-snapshot confound does not explain the compression.
+    # near-equal, the stale-snapshot confound does not explain the compression.
     assert full_gap < 0.10 and recent_gap < 0.10
     assert abs(full_gap - recent_gap) < 0.03
 

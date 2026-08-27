@@ -1,38 +1,22 @@
-# Ignore the virtual environment folder
 venv/
 env/
 __pycache__/
 
-# Ignore Mac system files
 .DS_Store
 
-# Ignore generated outputs
 outputs/
 !outputs/.gitkeep
 
-# Precomputed Monte Carlo caches (T3.3) are generated artefacts — regenerate
-# them with scripts/precompute_sim.py. The directory itself is tracked.
 data/cache/*.json
 !data/cache/.gitkeep
 
-# Ignore stray raw data blobs, but keep the vendored per-year files under data/raw/
 *.csv
 !data/raw/*.csv
 !data/raw/.gitkeep
-# ...and the hand-written test fixtures (T0.5).
 !tests/fixtures/*.csv
-# ...and the static, hand-downloaded market-odds snapshot (T6.1). Committed on
-# purpose: it is evaluation-only input that no script fetches, so if it is not in
-# git it does not exist. See scripts/benchmark_vs_market.py for its provenance.
 !data/benchmarks/*.csv
 !data/benchmarks/.gitkeep
 
-# Local environment files, both sides of the repo. frontend/.gitignore already
-# covers `.env` and `*.local`, but not `.env.production` / `.env.development` —
-# and `vite build` reads every one of them, so a stray file bakes the wrong API
-# URL into a shipped bundle. Belt-and-braces here so the guard does not depend
-# on which directory someone creates the file in. `.env.example` is the tracked
-# documentation copy and is exempted.
 .env
 .env.*
 frontend/.env
@@ -40,7 +24,6 @@ frontend/.env.*
 !.env.example
 !frontend/.env.example
 
-# Claude Code
 CLAUDE.md
 ace-startup-guide.md
 .claude/

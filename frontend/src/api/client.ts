@@ -15,8 +15,8 @@
  *     distinction the API deliberately does not make, and would have to guess
  *     which of `strategy`/`query` each branch is allowed to keep.
  *   * **Errors carry structure, not prose.** Every non-2xx becomes an
- *     {@link ApiError} holding the status, the parsed body, the `detail`, and —
- *     when the API sent one — the machine-readable `detail.reason` and the draw
+ *     {@link ApiError} holding the status, the parsed body, the `detail`, and,
+ *     when the API sent one, the machine-readable `detail.reason` and the draw
  *     validator's `problems` list. Rendering a friendly message is a later
  *     ticket's job; it must not require re-fetching or re-parsing prose.
  *   * **No base URL is baked in.** It comes from `VITE_API_BASE_URL`, read at
@@ -35,6 +35,9 @@ import type {
   MatchSimulateResponse,
   NotSimulatableDetail,
   PlayerSearchResponse,
+  RankingsMissingDetail,
+  RankingsProblemDetail,
+  RankingsResponse,
   SimulationResponse,
   StorybookResponse,
   TournamentListResponse,
@@ -48,7 +51,7 @@ import type {
 // Errors
 // --------------------------------------------------------------------------
 
-/** The API base URL is missing or blank — see `.env.example`. */
+/** The API base URL is missing or blank, see `.env.example`. */
 export class ApiConfigError extends Error {
   constructor(message: string) {
     super(message);
@@ -72,7 +75,7 @@ export class ApiNetworkError extends Error {
  *
  * `message` is for a developer (console, test failure). A UI should branch on
  * {@link ApiError.status} and {@link ApiError.reason} and render from
- * {@link ApiError.detail} — that is why all of it is retained rather than
+ * {@link ApiError.detail}, that is why all of it is retained rather than
  * flattened into a string.
  */
 export class ApiError extends Error {
@@ -88,7 +91,7 @@ export class ApiError extends Error {
    *
    * Shape varies by endpoint and is deliberately not normalised: a 404 detail
    * is a bare string, a request-validation 422 is an array, and the draw/cache
-   * failures are objects — `ApiErrorDetail` in `./types` enumerates all six.
+   * failures are objects, `ApiErrorDetail` in `./types` enumerates all six.
    *
    * Typed `unknown` rather than `ApiErrorDetail` because a failure that never
    * reached the app (a proxy's HTML, a crash page) is none of them, and
@@ -98,7 +101,7 @@ export class ApiError extends Error {
    * `typeof` check for the 404.
    */
   readonly detail: unknown;
-  /** `detail.reason` when present — the machine-readable discriminator. */
+  /** `detail.reason` when present, the machine-readable discriminator. */
   readonly reason: ApiErrorReason | null;
   /** The draw validator's problem list, when this failure carried one. */
   readonly problems: string[] | null;
@@ -122,12 +125,14 @@ export class ApiError extends Error {
   }
 }
 
-/** Detail type each `reason` code comes with — see the error bodies in `./types`. */
+/** Detail type each `reason` code comes with, see the error bodies in `./types`. */
 interface DetailForReason {
   draw_not_simulatable: NotSimulatableDetail;
   cache_missing: CacheMissingDetail;
   cache_unreadable: CacheProblemDetail;
   cache_stale: CacheProblemDetail;
+  rankings_missing: RankingsMissingDetail;
+  rankings_unreadable: RankingsProblemDetail;
   upload_not_found: UploadNotFoundDetail;
   draw_invalid: UploadDrawInvalidDetail;
   unsupported_media_type: UploadProblemDetail;
@@ -181,7 +186,7 @@ function extractProblems(detail: unknown): string[] | null {
   return problems.map(String);
 }
 
-/** A one-line summary for logs and test failures — never for the UI. */
+/** A one-line summary for logs and test failures, never for the UI. */
 function errorMessage(status: number, statusText: string, detail: unknown): string {
   const head = `ace API request failed (${status} ${statusText})`;
   if (typeof detail === 'string' && detail) return `${head}: ${detail}`;
@@ -236,8 +241,8 @@ export function buildUrl(path: string, params: QueryParams = {}): string {
 /**
  * Send one request to `url`, parse JSON, throw on anything that is not a 2xx.
  *
- * Shared by {@link get} and {@link uploadDraw} so the error handling — network
- * failure → {@link ApiNetworkError}, non-2xx → structured {@link ApiError} — is
+ * Shared by {@link get} and {@link uploadDraw} so the error handling, network
+ * failure → {@link ApiNetworkError}, non-2xx → structured {@link ApiError}, is
  * one implementation, not one per HTTP method.
  *
  * The return type is asserted, not validated: `T` mirrors an `extra="forbid"`
@@ -280,7 +285,7 @@ async function request<T>(url: string, init: RequestInit): Promise<T> {
  *
  * `async`, so a synchronous throw from `buildUrl` (a missing base URL →
  * {@link ApiConfigError}) surfaces as a rejected promise, not a throw at the
- * call site — every caller `await`s and expects to catch, never to try/catch
+ * call site, every caller `await`s and expects to catch, never to try/catch
  * the call itself.
  */
 async function get<T>(
@@ -299,26 +304,26 @@ async function get<T>(
 // Endpoints
 // --------------------------------------------------------------------------
 
-/** `GET /health` — liveness plus the provenance of the loaded dataset. */
+/** `GET /health`, liveness plus the provenance of the loaded dataset. */
 export function getHealth(options?: RequestOptions): Promise<HealthResponse> {
   return get<HealthResponse>('/health', {}, options);
 }
 
 /**
- * `GET /players?query=` — fuzzy player search.
+ * `GET /players?query=`, fuzzy player search.
  *
  * The parameter is **`query`**, not `q`. One 200 body covers all three resolver
  * outcomes; inspect it rather than expecting a thrown error:
  *
- *   * `count === 1` — a unique match.
- *   * `count > 1` — ambiguous; `players` holds every candidate, in resolver order.
- *   * `count === 0` — nothing matched (`strategy` is `null`). Not an error.
+ *   * `count === 1`, a unique match.
+ *   * `count > 1`, ambiguous; `players` holds every candidate, in resolver order.
+ *   * `count === 0`, nothing matched (`strategy` is `null`). Not an error.
  *
  * A blank or whitespace-only query is the one failure: a 422 from validation.
  * This is passed through rather than pre-empted, so the client keeps no second
  * copy of the server's validation rule.
  *
- * The response is **unpaginated** — `?query=a` returns ~1,220 players — so a
+ * The response is **unpaginated**, `?query=a` returns ~1,220 players, so a
  * type-ahead should debounce and pass `options.signal` to drop superseded
  * requests.
  */
@@ -329,13 +334,28 @@ export function searchPlayers(
   return get<PlayerSearchResponse>('/players', { query }, options);
 }
 
-/** `GET /tournaments` — every draw file, split into `tournaments` and `invalid`. */
+/**
+ * `GET /rankings`, precomputed Elo leaderboards (overall + per surface).
+ *
+ * A display-only rating, **not** the official ATP ranking. Nothing is computed
+ * per request; the server reads a cache file written by
+ * `scripts/precompute_elo.py`. Each player carries an `is_active` flag so the UI
+ * can separate current form from a long-retired player's frozen peak.
+ *
+ * @throws {ApiError} 425 `rankings_missing` (the cache has not been generated) ·
+ *   422 `rankings_unreadable` (the cache file is corrupt).
+ */
+export function getRankings(options?: RequestOptions): Promise<RankingsResponse> {
+  return get<RankingsResponse>('/rankings', {}, options);
+}
+
+/** `GET /tournaments`, every draw file, split into `tournaments` and `invalid`. */
 export function getTournaments(options?: RequestOptions): Promise<TournamentListResponse> {
   return get<TournamentListResponse>('/tournaments', {}, options);
 }
 
 /**
- * `GET /tournaments/{id}/bracket` — the resolved draw, every slot in order.
+ * `GET /tournaments/{id}/bracket`, the resolved draw, every slot in order.
  *
  * Placeholder slots are served, not refused; only the simulation endpoints
  * reject them.
@@ -355,13 +375,13 @@ export function getBracket(
 }
 
 /**
- * `GET /tournaments/{id}/simulate` — precomputed Monte Carlo probabilities.
+ * `GET /tournaments/{id}/simulate`, precomputed Monte Carlo probabilities.
  *
  * Nothing is simulated per request; the server reads a cache file written by
  * `scripts/precompute_sim.py`.
  *
  * @param top Return only the `top` most likely champions. **Omit it for the
- *   whole field — `top: 0` is a 422, not "all"** (unlike the CLI's `--top 0`).
+ *   whole field, `top: 0` is a 422, not "all"** (unlike the CLI's `--top 0`).
  *   `draw_size` still reports the full field, so truncation stays visible.
  * @throws {ApiError} 404 unknown id · 422 invalid draw file or unreadable/stale
  *   cache · 409 `draw_not_simulatable` · 425 `cache_missing`, whose detail
@@ -380,7 +400,7 @@ export function getSimulate(
 }
 
 /**
- * `GET /tournaments/{id}/storybook` — one bracket played out live, for one seed.
+ * `GET /tournaments/{id}/storybook`, one bracket played out live, for one seed.
  *
  * The **only** endpoint that simulates per request (~0.5–1.5 s for a 128 draw).
  * Same id + same seed → a byte-identical body, which is what makes the URL
@@ -390,7 +410,7 @@ export function getSimulate(
  *   seed that ran is echoed in `metadata.seed` either way, so any response can
  *   be turned into an explicit shareable URL.
  * @throws {ApiError} 404 unknown id · 422 invalid draw file · 409
- *   `draw_not_simulatable`. There is no 425 — nothing is cached.
+ *   `draw_not_simulatable`. There is no 425, nothing is cached.
  */
 export function getStorybook(
   tournamentId: string,
@@ -405,7 +425,7 @@ export function getStorybook(
 }
 
 /**
- * `POST /tournaments/upload` — submit a draw JSON and get a generated id back.
+ * `POST /tournaments/upload`, submit a draw JSON and get a generated id back.
  *
  * The `drawJson` string is sent verbatim as the request body, so the server
  * runs its own validation on exactly what the user provided (a malformed file
@@ -433,7 +453,7 @@ export async function uploadDraw(
 }
 
 /**
- * `POST /match/simulate` — one matchup simulated live, aggregated.
+ * `POST /match/simulate`, one matchup simulated live, aggregated.
  *
  * The featured single-match path. Unlike `/simulate` (cached), this runs a live
  * Monte Carlo for exactly one match, which the server budgets deliberately (a

@@ -1,7 +1,7 @@
-"""Calibration / reliability check on the held-out season (T1.8, ``§6``).
+"""Calibration / reliability check on the held-out season (``§6``).
 
 The headline "is the model honest?" artefact. Bins the classifier's predicted
-``P(P1 wins)`` on ``config.TEST_YEAR`` (2025 — the decoupled held-out season, **not**
+``P(P1 wins)`` on ``config.TEST_YEAR`` (2025, the decoupled held-out season, **not**
 ``END_YEAR``) into deciles, compares predicted vs realised win rate, computes the
 Brier score, and saves the reliability curve to ``config.CALIBRATION_PLOT``
 (``outputs/calibration.png``).
@@ -17,7 +17,7 @@ exactly the authoritative match-win probability under the default
 ``RECONCILE_MODE = "classifier_anchor"`` (there the reconciled prob *equals*
 ``P_clf``). Under ``"blend"`` the authoritative prob shifts by ``(1−w)·(P_point −
 P_clf)`` per match; recalibrating that blended curve is out of this ticket's tight
-scope (it needs the skill table + per-row name→id resolution — a T1.9-scale job).
+scope (it needs the skill table + per-row name→id resolution, a substantial job).
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ class CalibrationResult:
 def brier_score(probs, outcomes) -> float:
     """Mean squared error between predicted probabilities and 0/1 outcomes.
 
-    ``Brier = mean((p − y)²)`` — lower is better; 0 is perfect. Pure and array-
+    ``Brier = mean((p − y)²)``, lower is better; 0 is perfect. Pure and array-
     based so it is trivially testable on a fixture.
 
     Args:
@@ -141,7 +141,7 @@ def plot_calibration(result: CalibrationResult, brier: float, save_path=config.C
 
     import matplotlib
 
-    matplotlib.use("Agg")  # headless — no display needed
+    matplotlib.use("Agg")  # headless, no display needed
     import matplotlib.pyplot as plt
 
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
@@ -165,7 +165,7 @@ def plot_calibration(result: CalibrationResult, brier: float, save_path=config.C
     ax.set_xlabel("Predicted P(P1 wins)")
     ax.set_ylabel("Empirical win rate")
     ax.set_title(
-        f"Reliability curve — TEST_YEAR {config.TEST_YEAR}\nBrier score = {brier:.4f}"
+        f"Reliability curve, TEST_YEAR {config.TEST_YEAR}\nBrier score = {brier:.4f}"
     )
     ax.legend(loc="upper left")
     fig.tight_layout()

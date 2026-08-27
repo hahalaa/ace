@@ -1,4 +1,4 @@
-"""Tests for sim/single_match.py — the single-match live aggregate.
+"""Tests for sim/single_match.py, the single-match live aggregate.
 
 Reuses the tiny 2-player skill table + constant-classifier stubs from the
 reconciliation tests, so these exercise the aggregation logic (counting,
@@ -111,7 +111,7 @@ def test_total_games_summary_is_consistent():
 
 
 # --------------------------------------------------------------------------- #
-# Determinism — a shared seed must replay identically
+# Determinism, a shared seed must replay identically
 # --------------------------------------------------------------------------- #
 def test_same_seed_is_identical():
     a = _run(seed=11)
@@ -149,7 +149,7 @@ def test_classifier_anchor_target_is_p_clf():
 
 
 # --------------------------------------------------------------------------- #
-# Failure modes — fail loudly, never a silent default
+# Failure modes, fail loudly, never a silent default
 # --------------------------------------------------------------------------- #
 def test_unknown_player_raises():
     with pytest.raises(ValueError):
@@ -200,7 +200,7 @@ def test_solve_reconciled_serve_probs_stays_in_bounds():
 def test_solves_reconciliation_once_per_aggregate_not_per_run():
     # The whole point of the solve_reconciled_serve_probs extraction: δ is a ~3 ms
     # bisection, so simulate_single_match must solve it ONCE and loop only the
-    # scoreline draw — not re-solve on every simulated match. A per-run solve is
+    # scoreline draw, not re-solve on every simulated match. A per-run solve is
     # correctness-preserving (identical results, just ~40x slower), so only a
     # call-count assertion catches that regression. Same spy pattern as
     # test_reconcile.py::test_simulate_reconciled_match_resolves_each_name_once.
@@ -208,12 +208,12 @@ def test_solves_reconciliation_once_per_aggregate_not_per_run():
         SM, "solve_reconciled_serve_probs", wraps=solve_reconciled_serve_probs
     ) as spy:
         _run(n_runs=50)
-    # Once for the aggregate, regardless of n_runs — not once per match.
+    # Once for the aggregate, regardless of n_runs, not once per match.
     assert spy.call_count == 1
 
 
 def test_solve_reconciled_serve_probs_makes_no_rng_draws(monkeypatch):
-    # Pure model composition — it must not touch the global RNG.
+    # Pure model composition, it must not touch the global RNG.
     def _boom(*args, **kwargs):
         raise AssertionError("solve_reconciled_serve_probs must not use np.random")
 

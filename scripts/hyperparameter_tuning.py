@@ -34,7 +34,7 @@ curse:
     on <TEST_YEAR and touches 2025 + the market benchmark exactly once.
 
 Primary metric is BRIER (a proper scoring rule, and what the whole downstream --
-reconciliation, calibration, the T6.1 market benchmark -- is judged on, and what
+reconciliation, calibration, the market benchmark -- is judged on, and what
 all three prior experiments decided on). Accuracy is reported alongside because
 train.py's best-of-four actually SELECTS on accuracy; the tension is noted in the
 write-up.

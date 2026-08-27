@@ -3,7 +3,7 @@ Data loading utilities for ATP tennis match data.
 
 Reads the vendored per-year CSVs under ``data/raw/`` (see ``config.RAW_DATA_DIR``).
 This module performs **no network access**: refreshing the raw files is an
-explicit, separate action handled by ``scripts/refresh_data.py`` (T0.1). The
+explicit, separate action handled by ``scripts/refresh_data.py``. The
 runtime pipeline only ever reads the local vendored files.
 """
 import config
@@ -19,7 +19,7 @@ def load_atp_data(start_year: int, end_year: int) -> pd.DataFrame:
     ``data/raw/`` CSVs, concatenate them, add a ``year`` column, and return a
     single DataFrame.
 
-    ``tourney_date`` is parsed to datetime here — once, centrally — so every
+    ``tourney_date`` is parsed to datetime here, once, centrally, so every
     downstream caller sees a consistent dtype (see ace-04-current-state.md §6).
 
     Args:
@@ -31,7 +31,7 @@ def load_atp_data(start_year: int, end_year: int) -> pd.DataFrame:
 
     Raises:
         FileNotFoundError: If any year's vendored file is missing. The data is
-            offline by contract, so the loader never fetches it — run
+            offline by contract, so the loader never fetches it, run
             ``scripts/refresh_data.py`` instead.
     """
     yearly_dfs = []
@@ -43,7 +43,7 @@ def load_atp_data(start_year: int, end_year: int) -> pd.DataFrame:
         if not path.exists():
             raise FileNotFoundError(
                 f"Missing vendored data file for {year}: {path}. "
-                f"The pipeline reads local data only — refresh it with "
+                f"The pipeline reads local data only. Refresh it with "
                 f"`python scripts/refresh_data.py --start {start_year} --end {end_year}`."
             )
 

@@ -6,7 +6,7 @@ cross-ticket audit (2026-07-19): on closed/empty stdin, ``input()`` raised
 the ``while True`` loop spun forever (~120k iterations/sec, unbounded output).
 The fix is an explicit ``except EOFError: ... break`` ahead of the broad handler.
 
-The test mirrors the audit's reproduction — feed the REPL closed/empty stdin —
+The test mirrors the audit's reproduction, feed the REPL closed/empty stdin,
 but runs it in a daemon thread with a hard join timeout so that if the bug ever
 regresses the suite fails fast instead of hanging (a Python thread can't be
 force-killed, hence the daemon + is_alive check rather than a bare call).
@@ -50,7 +50,7 @@ def test_repl_exits_promptly_on_closed_stdin(monkeypatch):
     t.join(timeout=5.0)
 
     assert finished.is_set(), (
-        "REPL did not exit within 5s on closed stdin — EOFError infinite loop "
+        "REPL did not exit within 5s on closed stdin, EOFError infinite loop "
         "has regressed (missing `except EOFError` before the broad handler)."
     )
 
@@ -61,7 +61,7 @@ def test_repl_breaks_on_first_eof_without_relooping(monkeypatch):
     A bounded, deterministic complement to the timeout test: a fake ``input``
     counts calls and, if the loop ever re-enters after the first EOFError,
     raises a ``BaseException`` subclass that the broad ``except Exception``
-    cannot swallow — so a regression surfaces as a hard error, not a hang.
+    cannot swallow, so a regression surfaces as a hard error, not a hang.
     """
 
     class _LoopGuard(BaseException):

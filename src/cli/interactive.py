@@ -107,7 +107,7 @@ def resolve_player_name(input_name: str, all_names: list[str]) -> str | None:
       - "F. Lastname" or "F Lastname" format
       - Partial/Fuzzy string matching
 
-    Thin CLI wrapper over the pure resolver in ``common.names`` (T0.6): the
+    Thin CLI wrapper over the pure resolver in ``common.names``: the
     matching lives there; this keeps the friendly ``print``-based UX by
     rendering ambiguity itself and returning a plain matched name (or ``None``).
     """
@@ -123,8 +123,8 @@ def ambiguity_message(input_name: str, match) -> str:
     """Render an ambiguous NameMatch as the message the old resolver printed.
 
     The single home for the three candidate-list templates, so every CLI entry
-    point (the REPL below, T1.10's simulate_match) surfaces ambiguity the same
-    way. Pure — returns the string and lets the caller decide where it goes.
+    point (the REPL below, the simulate_match CLI) surfaces ambiguity the same
+    way. Pure, returns the string and lets the caller decide where it goes.
     """
     if match.strategy is MatchStrategy.FUZZY:
         return f"Did you mean: {', '.join(match.candidates)}?"
@@ -139,10 +139,10 @@ def _print_ambiguity(input_name: str, match) -> None:
     """Print the ambiguity message (the REPL's rendering of it)."""
     print(ambiguity_message(input_name, match))
 
-# The three history lookups below moved to common/classifier_adapter.py in T3.5,
-# for the same reason resolve_player_name's matching moved to common/names.py in
-# T0.6: the API's ClassifierProb adapter needs them and may not import cli/.
-# What stays here is what is genuinely CLI — the H2H *message*. The lookups
+# The three history lookups below live in common/classifier_adapter.py, for the
+# same reason resolve_player_name's matching lives in common/names.py: the API's
+# ClassifierProb adapter needs them and may not import cli/.
+# What stays here is what is genuinely CLI, the H2H *message*. The lookups
 # themselves are one implementation, called from two layers.
 def get_latest(name: str, data: pd.DataFrame):
     """

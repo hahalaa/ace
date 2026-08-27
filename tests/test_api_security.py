@@ -3,7 +3,7 @@ rate limit, and a path-traversal regression guard for ``cache_path_for``.
 
 These cover the behaviour added by the security review (2026-08-12). The app is
 built through ``create_app``'s injection seams (fixture draws + a stub
-classifier) so nothing here touches the vendored dataset or the pinned model —
+classifier) so nothing here touches the vendored dataset or the pinned model,
 the same pattern ``tests/test_api_storybook.py`` uses.
 """
 
@@ -210,7 +210,7 @@ def test_storybook_is_rate_limited_but_other_routes_are_not(context, monkeypatch
 
 
 # --------------------------------------------------------------------------- #
-# Path-traversal regression guard (re-verifies T3.3's cache_path_for)
+# Path-traversal regression guard (re-verifies `/simulate`'s cache_path_for)
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize(
     "malicious",
@@ -234,12 +234,12 @@ def test_cache_path_for_contains_literal_names_inside_cache_dir(tmp_path):
 
 # --------------------------------------------------------------------------- #
 # Deployed rate-limit value (the end-to-end test above overrides it, so nothing
-# otherwise pins what actually ships — a silent bump to a huge value would pass
+# otherwise pins what actually ships, a silent bump to a huge value would pass
 # every other test).
 # --------------------------------------------------------------------------- #
 def test_shipped_storybook_rate_limit_is_sane():
     count, window = _parse_rate(config.API_STORYBOOK_RATE_LIMIT)
-    # A real, small per-IP cap on the one compute-heavy endpoint — not disabled
+    # A real, small per-IP cap on the one compute-heavy endpoint, not disabled
     # by being set absurdly high, and a well-formed spec the limiter can parse.
     assert 1 <= count <= 60
     assert window in (1, 60, 3600, 86400)
@@ -247,7 +247,7 @@ def test_shipped_storybook_rate_limit_is_sane():
 
 # --------------------------------------------------------------------------- #
 # The docs-vs-strict CSP decision must key on the ROUTED path, not on
-# request.url (which is rebuilt from the spoofable Host header —
+# request.url (which is rebuilt from the spoofable Host header,
 # PYSEC-2026-161/248). We can at least pin that a normal non-docs route gets the
 # strict policy and only the real /docs family gets the relaxed one.
 # --------------------------------------------------------------------------- #
@@ -261,7 +261,7 @@ def test_relaxed_csp_is_scoped_to_docs_only(client):
 # --------------------------------------------------------------------------- #
 # Unhandled 500s bypass the header middleware (ServerErrorMiddleware sits outside
 # it), so a catch-all handler must re-attach the headers AND keep the body
-# generic — no internal detail may leak.
+# generic, no internal detail may leak.
 # --------------------------------------------------------------------------- #
 def test_unhandled_500_carries_headers_and_a_non_leaking_body(context, monkeypatch):
     secret = "SECRET-INTERNAL-abc123"
@@ -327,7 +327,7 @@ def test_concurrent_live_sims_over_the_cap_get_503(context, monkeypatch):
     """A burst of concurrent /storybook calls beyond the cap is shed with 503.
 
     Uses a classifier stub that blocks until the test releases it, so the
-    admitted requests genuinely hold their slots while the rest arrive — which is
+    admitted requests genuinely hold their slots while the rest arrive, which is
     what forces the gate to shed rather than serialise. Distinct client keys per
     request rule the per-IP rate limiter out as the cause.
     """

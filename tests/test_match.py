@@ -1,4 +1,4 @@
-"""Tests for src/sim/match.py — the T1.3 game layer.
+"""Tests for src/sim/match.py, the game layer.
 
 Covers ace-03-tennis-math.md §2 (analytic hold probability) and §5
 (point-by-point game simulation). The analytic form is checked against an
@@ -45,7 +45,7 @@ def enumerate_hold_prob(p: float, deuce_cycles: int = 400) -> float:
       in ``C(3+k, k)`` orders, each with probability ``p⁴ q^k``.
     - Deuce is reached at 3–3 in ``C(6, 3)`` orders (prob ``C(6,3) p³q³``). From
       deuce, the server wins after ``n`` split cycles (each a 1–1 exchange, prob
-      ``2pq``) followed by winning two straight (``p²``) — summed as a truncated
+      ``2pq``) followed by winning two straight (``p²``), summed as a truncated
       geometric series rather than collapsed algebraically.
 
     Args:
@@ -68,7 +68,7 @@ def enumerate_hold_prob(p: float, deuce_cycles: int = 400) -> float:
 
 
 # ---------------------------------------------------------------------------
-# hold_prob — analytic §2
+# hold_prob, analytic §2
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("p", [0.5, 0.55, 0.6, 0.62, 0.66, 0.7, 0.75, 0.8, 0.9])
@@ -98,7 +98,7 @@ def test_hold_prob_rejects_out_of_range(bad):
 
 
 # ---------------------------------------------------------------------------
-# simulate_game — point-by-point §5
+# simulate_game, point-by-point §5
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("p", [0.3, 0.5, 0.62, 0.75])
@@ -117,7 +117,7 @@ def test_simulate_game_produces_valid_scores(p):
 
 @pytest.mark.parametrize("p", [0.5, 0.62, 0.75])
 def test_empirical_hold_rate_matches_analytic(p):
-    """Seeded Monte Carlo hold rate ≈ hold_prob(p) — ties §5 back to §2."""
+    """Seeded Monte Carlo hold rate ≈ hold_prob(p), ties §5 back to §2."""
     rng = np.random.default_rng(7)
     n = 60000
     wins = sum(simulate_game(p, rng).server_won for _ in range(n))
@@ -144,14 +144,14 @@ def test_different_seeds_can_differ():
 
 
 # ---------------------------------------------------------------------------
-# simulate_tiebreak — point-by-point §4
+# simulate_tiebreak, point-by-point §4
 # ---------------------------------------------------------------------------
 
 def test_tiebreak_serve_schedule_matches_1_2_2_2():
     """§4: first server serves point 0, then serve alternates every 2 points.
 
     Asserts the server per point directly (not just the final score) for the
-    first 12 points, for both possible first servers — the real A, BB, AA, BB, …
+    first 12 points, for both possible first servers, the real A, BB, AA, BB, …
     pattern.
     """
     # first_server = 0 -> A BB AA BB AA BB
@@ -179,7 +179,7 @@ def test_tiebreak_win_by_two_and_target_reached():
 
 def test_tiebreak_can_end_exactly_at_target():
     """A tiebreak can end at exactly `target` points (e.g. 7–0..7–5), not only
-    beyond it — pins the win condition at `>= target` and rejects `> target`
+    beyond it, pins the win condition at `>= target` and rejects `> target`
     (first-to-8), which would never produce a winner on exactly 7 points."""
     rng = np.random.default_rng(20260720)
     saw_exact = False
@@ -192,7 +192,7 @@ def test_tiebreak_can_end_exactly_at_target():
 
 
 def test_tiebreak_long_breaker_possible():
-    """A long win-by-2 tiebreak (e.g. 12–10) can occur — target is not a cap."""
+    """A long win-by-2 tiebreak (e.g. 12–10) can occur, target is not a cap."""
     rng = np.random.default_rng(1)
     max_points = 0
     for _ in range(20000):
@@ -229,7 +229,7 @@ def test_tiebreak_symmetry_equal_p_is_fifty_fifty():
 
 
 def test_tiebreak_supports_target_10():
-    """target=10 is honoured — the winner needs at least 10 points."""
+    """target=10 is honoured, the winner needs at least 10 points."""
     rng = np.random.default_rng(99)
     res = simulate_tiebreak(0.6, 0.6, first_server=0, target=10, rng=rng)
     assert max(res.pts_first, res.pts_other) >= 10
@@ -274,7 +274,7 @@ class _RecordingRNG:
     ``simulate_tiebreak`` consumes exactly one ``rng.random()`` per point, so the
     recorded draw stream, aligned to the §4 serving schedule via
     :func:`_tiebreak_server`, lets a test reconstruct which player served each
-    point and whether that server won it — the per-point evidence that the public
+    point and whether that server won it, the per-point evidence that the public
     :class:`TiebreakResult` (two aggregate totals) cannot expose. Only ``random``
     is used by the tiebreak point loop, so only it needs wrapping.
     """
@@ -298,15 +298,15 @@ def test_tiebreak_applies_each_servers_own_probability_per_point():
     pins the **probability** selection but only for whole *games* within a set (it
     spies ``simulate_game``). Neither asserts that, inside ``simulate_tiebreak``'s
     own point loop, the serving player's own probability is the one applied. That
-    selection — ``p_first_wins = p_server_first if server == first_server else
-    1 - p_other`` (``sim/match.py``) — calls no spy-able sub-function and surfaces
+    selection, ``p_first_wins = p_server_first if server == first_server else
+    1 - p_other`` (``sim/match.py``), calls no spy-able sub-function and surfaces
     only two aggregate totals, so it was otherwise reachable only through
     aggregate win-rate symmetry, which cannot distinguish a per-point swap/blend.
 
     Strategy: give the two players clearly distinct serve-win probabilities
     (strong 0.90 vs weak 0.40), record the per-point Bernoulli draws (one
-    ``rng.random()`` per point), align them to the §4 schedule, and reconstruct —
-    under the CORRECT server→probability mapping — who won each point on serve.
+    ``rng.random()`` per point), align them to the §4 schedule, and reconstruct,
+    under the CORRECT server→probability mapping, who won each point on serve.
 
     Two assertions, of different strength:
 
@@ -325,13 +325,13 @@ def test_tiebreak_applies_each_servers_own_probability_per_point():
     Sample size / tolerance: 5,000 tiebreaks at this asymmetry run short (~8
     points each), yielding well over 15,000 serve points per player. For the weak
     server (p=0.40, the wider-variance case) that gives a standard error of
-    ``sqrt(0.4·0.6/15000) ≈ 0.004``, so the ``abs=0.02`` band is ~5 SE — loose
+    ``sqrt(0.4·0.6/15000) ≈ 0.004``, so the ``abs=0.02`` band is ~5 SE, loose
     enough never to flake, yet an order of magnitude tighter than the shift a real
     bug causes (a swap moves an own-serve rate by ~0.30–0.50; a mean-blend moves
     both to ~0.75). The anchor in (1) is the primary bug catcher; a pure
     statistical reconstruction would be insensitive to the engine's mapping (the
     draws are uniform and independent of the schedule), so (1) is what ties the
-    reconstruction — and hence the rate readout — to the engine's actual behaviour.
+    reconstruction, and hence the rate readout, to the engine's actual behaviour.
     """
     P_STRONG, P_WEAK = 0.90, 0.40
     # The engine's own threshold per point (sim/match.py): the strong player is
@@ -385,7 +385,7 @@ def test_tiebreak_applies_each_servers_own_probability_per_point():
 
 
 # ---------------------------------------------------------------------------
-# _set_server — game-by-game serve rotation (§3) + the cross-set contract
+# _set_server, game-by-game serve rotation (§3) + the cross-set contract
 # ---------------------------------------------------------------------------
 
 def test_set_server_alternates_each_game():
@@ -416,7 +416,7 @@ def test_cross_set_serve_continuity_formula():
     ``next_a_serves_first = (_set_server(games_a + games_b, a_serves_first) == 0)``.
     Under continuous rotation this must flip iff the set's total games is odd.
     Exercise it on a genuine even-total set (a forced 6–0, total 6) and a genuine
-    odd-total set (a real 7–6 tiebreak, total 13) — enough because ``_set_server``
+    odd-total set (a real 7–6 tiebreak, total 13), enough because ``_set_server``
     is a fully characterized parity function.
     """
     def next_a_serves_first(res, a_serves_first):
@@ -437,12 +437,12 @@ def test_cross_set_serve_continuity_formula():
 
 
 # ---------------------------------------------------------------------------
-# simulate_set — point-by-point set (§3/§5)
+# simulate_set, point-by-point set (§3/§5)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("a_serves_first", [True, False])
 def test_simulate_set_ends_on_a_legal_score(a_serves_first):
-    """Every set ends 6–x (x≤4), 7–5, or 7–6 — and never beyond."""
+    """Every set ends 6–x (x≤4), 7–5, or 7–6, and never beyond."""
     rng = np.random.default_rng(20260720)
     for _ in range(4000):
         res = simulate_set(0.63, 0.6, a_serves_first, tb_target=7, rng=rng)
@@ -499,7 +499,7 @@ def _find_tiebreak_set(a_serves_first, tb_target=7, max_seeds=500):
 def test_simulate_set_tiebreak_at_6_6_records_score(a_serves_first):
     """A 6–6 set is decided by a tiebreak: game score is 7–6 and tb_score is set.
 
-    Also checks the tiebreak point totals are internally consistent — the set
+    Also checks the tiebreak point totals are internally consistent, the set
     winner is the player with more tiebreak points, and the loser's total is
     ``min(tb_score)`` (the ``7-6(x)`` parenthetical).
     """
@@ -560,7 +560,7 @@ def test_simulate_set_server_alternates_via_captured_probabilities(monkeypatch):
 
     Spying on ``simulate_game`` records the point-win probability handed to each
     game. With distinct per-server probabilities, the recorded sequence must
-    alternate ``p_a, p_b, p_a, …`` (A serving first) — proving serve alternates
+    alternate ``p_a, p_b, p_a, …`` (A serving first), proving serve alternates
     correctly and that the right player's probability is used each game.
     """
     seen_p = []
@@ -590,7 +590,7 @@ def test_simulate_set_tb_target_10_every_winner_reaches_ten():
     Collects many 6–6 tiebreak sets and asserts the *winner's* tiebreak points
     are ≥10 on **every** one. A genuine target-10 breaker can never end with a
     winner below 10 (e.g. 7–5 is impossible), whereas a target-7 breaker ends
-    7–x constantly — so this kills a ``tb_target``-hardcoded-to-7 mutant, which
+    7–x constantly, so this kills a ``tb_target``-hardcoded-to-7 mutant, which
     a single ``max(tb_score) >= 10`` check does not (a long 7-target win-by-2
     breaker can coincidentally reach 10+).
     """
@@ -647,7 +647,7 @@ def test_simulate_set_rejects_degenerate_p(tb_target, kwargs):
     """Degenerate 0/1 serving probabilities raise for both players, both modes.
 
     Mirrors :func:`simulate_tiebreak`'s ``(0, 1)`` guard. Applied regardless of
-    ``tb_target`` so the int (tiebreak) path is protected too — and, crucially,
+    ``tb_target`` so the int (tiebreak) path is protected too, and, crucially,
     so an advantage set (``tb_target=None``) rejects a degenerate ``p`` up front
     rather than looping forever (no tiebreak exists to terminate it).
     """
@@ -664,7 +664,7 @@ def test_simulate_set_rejects_degenerate_p(tb_target, kwargs):
 
 
 # ---------------------------------------------------------------------------
-# simulate_match_bo3 — best-of-3 match (§5, T1.6)
+# simulate_match_bo3, best-of-3 match (§5)
 # ---------------------------------------------------------------------------
 
 def _fake_set_sequence(monkeypatch, winners, captured):
@@ -720,7 +720,7 @@ def test_balanced_p_is_fifty_fifty_with_realistic_set_split():
     """Equal players → ~50/50 winner and ~50% straight-sets (2–0) matches.
 
     With independent 50/50 sets, P(2–0) = P(same player wins the first two
-    sets) = 0.5 exactly, and P(2–1) = 0.5 — a realistic, analytically-pinned
+    sets) = 0.5 exactly, and P(2–1) = 0.5, a realistic, analytically-pinned
     split, not a hand-tuned constant.
     """
     rng = np.random.default_rng(20260722)
@@ -741,7 +741,7 @@ def test_final_set_rule_applied_only_to_deciding_set(monkeypatch):
 
     Forces a 2–1 match (A, B, A) with a fake ``simulate_set`` and asserts the
     ``tb_target`` handed to each set: the standard target for the first two, the
-    rule-specific target for the deciding third — for every enum value including
+    rule-specific target for the deciding third, for every enum value including
     ``"advantage"`` (``None``). A bug applying the rule to an earlier set, or the
     standard target to the decider, is caught here.
     """
@@ -762,7 +762,7 @@ def test_advantage_deciding_set_is_a_real_no_tiebreak_set():
     """A real ``"advantage"`` match: the deciding set never tiebreaks and can
     extend past 7 games (e.g. 8–6, 10–8), while a *non-deciding* set in the same
     format still uses the standard 7-point tiebreak (so ``tb_score`` can appear
-    there). Not an untested enum pass-through — the deciding set is exercised.
+    there). Not an untested enum pass-through, the deciding set is exercised.
     """
     saw_extended = False
     checked = 0
@@ -804,12 +804,12 @@ def test_deciding_set_10pt_tiebreak_is_recorded():
 
 @pytest.mark.parametrize("first_server", [0, 1])
 def test_serve_continuity_across_set_boundaries_uses_t15_formula(first_server, monkeypatch):
-    """The a_serves_first handed to each set follows the exact T1.5 contract.
+    """The a_serves_first handed to each set follows the exact serve-continuity contract.
 
     Wraps the real ``simulate_set`` to record ``(a_serves_first, SetResult)`` per
     set, then asserts the first set starts with ``first_server`` and every
     subsequent set's first server equals
-    ``_set_server(prev.games_a + prev.games_b, prev_a_serves_first) == 0`` — the
+    ``_set_server(prev.games_a + prev.games_b, prev_a_serves_first) == 0``, the
     documented formula, reused rather than re-derived. A Bo3 is always ≥2 sets,
     so at least one boundary is exercised for each ``first_server``.
     """
@@ -862,7 +862,7 @@ def test_simulate_match_bo3_rejects_bad_args(kwargs):
 
 
 # ---------------------------------------------------------------------------
-# simulate_match_bo5 — best-of-5 match (§5, T1.7)
+# simulate_match_bo5, best-of-5 match (§5)
 # ---------------------------------------------------------------------------
 
 def test_bo5_match_ends_when_a_player_reaches_three_sets():
@@ -900,7 +900,7 @@ def test_bo5_balanced_p_has_plausible_length_distribution():
 
     With independent 50/50 sets and first-to-3, the match length distribution is
     exact, not hand-tuned: P(3 sets) = 2·(½)³ = 0.25, P(4) = 2·C(3,1)·(½)⁴ =
-    0.375, P(5) = 2·C(4,2)·(½)⁵ = 0.375. (Full statistical validation is T1.9;
+    0.375, P(5) = 2·C(4,2)·(½)⁵ = 0.375. (Full statistical validation is the realism harness;
     this is just a plausibility pin.)
     """
     rng = np.random.default_rng(20260722)
@@ -922,7 +922,7 @@ def test_bo5_final_set_rule_applied_only_to_fifth_set(monkeypatch):
 
     Forces a 3–2 match (A, B, A, B, A) with a fake ``simulate_set`` and asserts
     the ``tb_target`` handed to each set: the standard target for the first four,
-    the rule-specific target for the deciding fifth — for every enum value
+    the rule-specific target for the deciding fifth, for every enum value
     including ``"advantage"`` (``None``). Catches a rule applied to an earlier
     set, or the standard target leaking into the decider.
     """
@@ -947,12 +947,12 @@ def test_bo5_deciding_condition_only_fires_at_two_sets_all(monkeypatch):
     Directly pins the ``sets_a == sets_b == sets_to_win - 1`` condition at the
     Bo5 boundary (2–2), mirroring how the Bo3 test pins its 1–1 boundary:
       - A 3–1 match (never reaches 2–2) must apply the *standard* target to all
-        four sets — the rule target appears nowhere.
+        four sets, the rule target appears nowhere.
       - A 3–2 match applies the rule target on the 5th set only.
     A helper that computed ``deciding`` off the wrong count (e.g. an early set, or
     2–2 collapsing wrongly) would be caught here.
     """
-    # 3–1: A, B, A, A — decider never reached, so no set sees the rule target.
+    # 3–1: A, B, A, A, decider never reached, so no set sees the rule target.
     captured: list[dict] = []
     _fake_set_sequence(monkeypatch, [0, 1, 0, 0], captured)
     res = simulate_match_bo5(0.6, 0.6, 0, "10pt_at_6_6", np.random.default_rng(0))
@@ -971,8 +971,8 @@ def test_bo5_deciding_condition_only_fires_at_two_sets_all(monkeypatch):
 def test_bo5_deciding_set_10pt_tiebreak_is_recorded():
     """A 10-point deciding (5th-set) tiebreak is applied and its score recorded.
 
-    The winner's tiebreak points are ≥10 — impossible under a 7-point breaker's
-    7–x endings short of deuce — confirming the rule reaches the 5th set.
+    The winner's tiebreak points are ≥10, impossible under a 7-point breaker's
+    7–x endings short of deuce, confirming the rule reaches the 5th set.
     """
     for seed in range(8000):
         res = simulate_match_bo5(0.9, 0.9, 0, "10pt_at_6_6", np.random.default_rng(seed))
@@ -987,7 +987,7 @@ def test_bo5_deciding_set_10pt_tiebreak_is_recorded():
 
 @pytest.mark.parametrize("first_server", [0, 1])
 def test_bo5_serve_continuity_across_set_boundaries_uses_t15_formula(first_server, monkeypatch):
-    """The a_serves_first handed to each Bo5 set follows the exact T1.5 contract.
+    """The a_serves_first handed to each Bo5 set follows the exact serve-continuity contract.
 
     Same spy as the Bo3 continuity test, but a Bo5 has ≥2 boundaries, so more of
     the running rotation is exercised.
@@ -1041,14 +1041,14 @@ def test_simulate_match_bo5_rejects_bad_args(kwargs):
 
 
 # ---------------------------------------------------------------------------
-# _simulate_match — shared helper (extraction correctness, §5, T1.7)
+# _simulate_match, shared helper (extraction correctness, §5)
 # ---------------------------------------------------------------------------
 
 def test_shared_helper_collapses_to_bo3_when_sets_to_win_is_two():
     """``_simulate_match(2, …)`` is byte-for-byte the public Bo3 for the same seed.
 
     Direct evidence that ``simulate_match_bo3`` genuinely delegates to the shared
-    helper and that the deciding condition collapses to T1.6's exact 1–1 case
+    helper and that the deciding condition collapses to the exact 1–1 deciding-set case
     when ``sets_to_win == 2``.
     """
     for seed in range(200):

@@ -1,25 +1,25 @@
-"""Tests for scripts/benchmark_vs_market.py — the T6.1 market benchmark.
+"""Tests for scripts/benchmark_vs_market.py, the market benchmark.
 
 Three things are under test, in descending order of how badly a regression would
 hurt:
 
 1. **The hard boundary.** ``tennis-data.co.uk`` data must never reach
    ``preprocess.py``, ``features/``, ``sim/`` or any training/fitting code. That
-   is checked by *static analysis* over every module in the repo — an AST walk
-   for imports plus a source scan for the vendor and its constants — not by
+   is checked by *static analysis* over every module in the repo, an AST walk
+   for imports plus a source scan for the vendor and its constants, not by
    asserting it in prose. See :class:`TestNoReverseDependency`.
 2. **The de-vigging arithmetic**, against the ticket's worked example with the
    expected numbers computed by hand *in the test*, as exact fractions, so the
    test would still fail if the implementation and the assertion were both wrong
    in the same way.
 3. **The name join**, on a fixture carrying both a resolvable and an
-   unresolvable name, asserting each takes its own path — matched vs.
+   unresolvable name, asserting each takes its own path, matched vs.
    logged-and-skipped. The unhappy path is the one that matters: silently
    dropping rows is exactly how a benchmark comes to compare two different match
    sets and report it as one.
 
 Nothing here loads the vendored CSVs, trains anything, or reads the committed
-odds snapshot's contents — every frame is hand-built.
+odds snapshot's contents, every frame is hand-built.
 
 ``scripts/`` is not on pyproject's ``pythonpath = ["src"]``, so the sys.path hack
 from ``tests/test_update_and_cache.py`` is repeated here.
@@ -47,7 +47,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 # --------------------------------------------------------------------------- #
-# Fixtures — a two-match market snapshot and the model rows it joins to.
+# Fixtures, a two-match market snapshot and the model rows it joins to.
 # --------------------------------------------------------------------------- #
 RESOLVABLE = "Carlos Alcaraz"
 ALSO_RESOLVABLE = "Jannik Sinner"
@@ -57,7 +57,7 @@ UNRESOLVABLE_RAW = "Zzyzx Q."
 
 
 # A pair the market fixture never mentions. Its row exists so the model frame is
-# strictly LARGER than the matched set — without it `model_rows` and
+# strictly LARGER than the matched set, without it `model_rows` and
 # `model_rows.loc[matched_index]` are the same object and the same-match-set
 # guarantee cannot be tested at all (see
 # TestRunBenchmark::test_model_is_scored_on_exactly_the_matched_rows).
@@ -103,14 +103,14 @@ def market_rows() -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------------- #
-# 1. De-vigging — hand-computed expectations
+# 1. De-vigging, hand-computed expectations
 # --------------------------------------------------------------------------- #
 class TestDevig:
     def test_ticket_worked_example_1_50_vs_2_80(self):
         """odds 1.50 / 2.80 -> 28/43 and 15/43, computed here as exact fractions.
 
         By hand: 1/1.50 = 2/3 and 1/2.80 = 5/14 are the raw implied
-        probabilities. They sum to 2/3 + 5/14 = 28/42 + 15/42 = 43/42 > 1 — the
+        probabilities. They sum to 2/3 + 5/14 = 28/42 + 15/42 = 43/42 > 1, the
         overround is 1/42 = 0.0238, i.e. 2.38%. Removing it proportionally:
 
             p_winner = (2/3) / (43/42) = (2/3) * (42/43) = 28/43 = 0.6511627907
@@ -163,7 +163,7 @@ class TestDevig:
 
 
 # --------------------------------------------------------------------------- #
-# 2. Query-form rewriting — formatting only, all matching stays in common.names
+# 2. Query-form rewriting, formatting only, all matching stays in common.names
 # --------------------------------------------------------------------------- #
 class TestQueryForms:
     def test_surname_initial_is_transposed_for_the_initials_strategy(self):
@@ -190,7 +190,7 @@ class TestQueryForms:
 
 
 # --------------------------------------------------------------------------- #
-# 3. Name resolution — both paths, on the same index
+# 3. Name resolution, both paths, on the same index
 # --------------------------------------------------------------------------- #
 class TestResolveMarketName:
     @pytest.fixture
@@ -227,7 +227,7 @@ class TestResolveMarketName:
 
 
 # --------------------------------------------------------------------------- #
-# 4. The join — matched vs. logged-and-skipped
+# 4. The join, matched vs. logged-and-skipped
 # --------------------------------------------------------------------------- #
 class TestJoin:
     def test_resolvable_row_is_matched_and_unresolvable_row_is_logged(
@@ -313,7 +313,7 @@ class TestJoin:
 
 
 # --------------------------------------------------------------------------- #
-# 5. Snapshot loading — never fetches, fails with instructions
+# 5. Snapshot loading, never fetches, fails with instructions
 # --------------------------------------------------------------------------- #
 class TestSnapshotLoading:
     def test_missing_snapshot_names_the_manual_step(self, tmp_path):
@@ -330,7 +330,7 @@ class TestSnapshotLoading:
         """The acceptance criterion's artefact, checked as an artefact."""
         assert config.BENCHMARK_ODDS_SNAPSHOT.exists(), (
             "The static odds snapshot is missing; it is a committed, one-time "
-            "manual download — see scripts/benchmark_vs_market.py."
+            "manual download, see scripts/benchmark_vs_market.py."
         )
         header = config.BENCHMARK_ODDS_SNAPSHOT.read_text().splitlines()[0].split(",")
         for column in ("Date", "Winner", "Loser", "B365W", "B365L", "PSW", "PSL"):
@@ -404,7 +404,7 @@ class TestRunBenchmark:
         The fixture deliberately carries a third model row (Djokovic–Medvedev)
         that no market row mentions, so ``model_rows`` is strictly larger than
         the matched set and "scored the model on everything" is a *distinguishable*
-        mistake. Asserting on the estimator's own input catches that directly —
+        mistake. Asserting on the estimator's own input catches that directly,
         relying on ``brier_score``'s length check would only catch it by accident,
         and not at all when the two sets happen to be the same size.
         """
@@ -492,7 +492,7 @@ class TestRunBenchmark:
 
 
 # --------------------------------------------------------------------------- #
-# 7. The hard boundary — verified statically, not asserted
+# 7. The hard boundary, verified statically, not asserted
 # --------------------------------------------------------------------------- #
 BENCHMARK_MODULE = "benchmark_vs_market"
 
@@ -544,14 +544,14 @@ class TestNoReverseDependency:
             if any(m.split(".")[0] == BENCHMARK_MODULE for m in _imported_modules(path))
         ]
         assert offenders == [], (
-            f"{offenders} import {BENCHMARK_MODULE}. T6.1 is evaluation-only: the "
+            f"{offenders} import {BENCHMARK_MODULE}. The benchmark is evaluation-only: the "
             "dependency must stay one-way."
         )
 
     def test_no_module_mentions_the_vendor_or_the_snapshot(self):
         """No training-path module may name tennis-data.co.uk or the snapshot file.
 
-        Docs and comments are allowed to *discuss* the source — this checks code
+        Docs and comments are allowed to *discuss* the source, this checks code
         and paths, so the needles are the vendor host and the on-disk artefacts.
         """
         needles = ("tennis-data.co.uk", "tennis_data_atp", "data/benchmarks")
@@ -574,11 +574,11 @@ class TestNoReverseDependency:
 
         ``config.py`` is imported by ``preprocess.py``, so the BENCHMARK_* names
         are technically *reachable* from the training path. This asserts nothing
-        there reaches for them — which is what "no market data in training" means
+        there reaches for them, which is what "no market data in training" means
         operationally once the constants live in config by convention.
         """
         constants = [n for n in dir(config) if n.startswith("BENCHMARK_")]
-        assert constants, "expected the T6.1 constants to exist in config"
+        assert constants, "expected the benchmark constants to exist in config"
 
         offenders: list[str] = []
         for path in _python_sources():
@@ -591,7 +591,7 @@ class TestNoReverseDependency:
         assert offenders == [], f"BENCHMARK_* referenced outside the benchmark: {offenders}"
 
     def test_refresh_and_scheduled_paths_do_not_touch_the_benchmark(self):
-        """T6.1 must not have been wired into T0.1's refresh or T5.3's cron."""
+        """The benchmark must not have been wired into the data refresh or the scheduled cron."""
         for relative in (
             "scripts/refresh_data.py",
             "scripts/update_and_cache.py",
@@ -609,6 +609,6 @@ class TestNoReverseDependency:
         assert "config" in tops
         assert {"model", "common"} <= tops
         # It must not reach for the raw loader / preprocessor itself: the
-        # held-out rows come from T1.8's harness, one definition of the split.
+        # held-out rows come from reconciliation's harness, one definition of the split.
         assert "data" not in tops
         assert "features" not in tops

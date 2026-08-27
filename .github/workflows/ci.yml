@@ -1,13 +1,12 @@
-# Ace CI (T5.2) — lint + test on every push and pull request.
+# Ace CI, lint + test on every push and pull request.
 #
 # Source-level checks only. Both jobs run against a clean checkout, which is the
 # point: the two runtime artefacts the app needs (`outputs/tennis_model.pkl` and
 # `data/cache/*.json`) are gitignored and in no checkout, and nothing here needs
-# them — `tests/test_reconcile.py::test_load_pinned_classifier_records_identity`
+# them, `tests/test_reconcile.py::test_load_pinned_classifier_records_identity`
 # skips itself when the pickle is absent, and every other test builds what it
 # needs from the vendored CSVs in `data/raw/` or from `tests/fixtures/`.
-# Container build + `/health` smoke-test is a separate concern; the manual step
-# is documented in `DEPLOYING.md` ("CI check"), see T5.1.
+# Container build + `/health` smoke-test is a separate concern, run manually.
 name: CI
 
 on:
@@ -78,7 +77,7 @@ jobs:
 
       # VITE_API_BASE_URL is deliberately left UNSET here. It is inlined at
       # build time, so there is no correct value for CI to supply, and the build
-      # warns-but-succeeds without one by design (T4.5) — the resulting bundle
+      # warns-but-succeeds without one by design, the resulting bundle
       # renders the ApiConfigError panel, which is the intended runtime signal.
       # Passing a dummy URL would only train people to satisfy the check.
       - name: Build

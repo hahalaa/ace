@@ -1,4 +1,4 @@
-"""Offline Monte Carlo precompute (T3.3) — fills the cache the API serves.
+"""Offline Monte Carlo precompute, fills the cache the API serves.
 
 A full 128 × 5,000 job takes ~29 s, and Phase 3's global rules forbid running
 one inside a request handler. So the expensive half happens here, offline, and
@@ -7,7 +7,7 @@ one inside a request handler. So the expensive half happens here, offline, and
     python scripts/precompute_sim.py --draw usopen_2024_atp_full --runs 5000 --seed 0
 
 ``--draw`` takes a **tournament id**, the same id ``GET /tournaments`` lists and
-``/tournaments/{id}/bracket`` accepts, resolved through ``api/registry.py`` — the
+``/tournaments/{id}/bracket`` accepts, resolved through ``api/registry.py``, the
 module kept free of FastAPI imports precisely so an offline script could use it
 without importing the web app. The output goes to
 ``data/cache/<tournament_id>.json`` (``api.registry.cache_path_for``, the one
@@ -20,24 +20,18 @@ registry is built from the skill table that produced. Nothing inside the run loo
 reloads anything; ``sim.tournament.monte_carlo`` owns the per-job ``prob_cache``.
 
 --------------------------------------------------------------------------------
-The classifier adapter (T3.3 disclosed a defective one; T3.5 replaced it)
+The classifier adapter
 --------------------------------------------------------------------------------
-``api/deps.py`` deliberately builds **no** ``ClassifierProb`` adapter — it loads
-the estimator and both histories and stops — so whoever runs a simulation builds
+``api/deps.py`` deliberately builds **no** ``ClassifierProb`` adapter, it loads
+the estimator and both histories and stops, so whoever runs a simulation builds
 one from those materials. This script is such a caller.
 
-Until T3.5 the only adapter available was ``cli.simulate_match``'s, built on
-``cli/interactive.build_feature_row``, which populated 7 of the 27
-``config.MODEL_FEATURES`` from real state and filled the other 20 — every
-recent-form column — with synthetic constants. T3.3 ran it knowingly and
-disclosed the consequence rather than fixing it (out of scope for a Size-M
-endpoint ticket). **T3.5 built the real-feature adapter in
-``common/classifier_adapter.py`` and this script now uses it**: all 27 features
+The adapter is ``common/classifier_adapter.py``: all 27 ``config.MODEL_FEATURES``
 come from the pipeline's own leakage-safe state, the rolling ones from
-``features.rolling.build_rolling_form_table``. ``ace-04-current-state.md §7``
-seam 7 is closed.
+``features.rolling.build_rolling_form_table`` (``ace-04-current-state.md §7``
+seam 7 is closed).
 
-Disclosure stays structural, because a narrower caveat remains and because the
+Disclosure stays structural, because a caveat remains and because the
 shape has proved useful: ``mode``/``w``, an ``is_forecast`` flag and a
 plain-language ``classifier_limitation`` are **required** fields of
 ``api.schemas.SimulationMetadata``, written into every cache file and served in
@@ -48,14 +42,13 @@ an *as-of-now* snapshot: simulating an already-played draw (such as the shipped
 at the time, which makes the output retrospective rather than a forecast.
 
 The mode is ``config.SIM_CLI_RECONCILE_MODE`` (``"blend"``), the same value both
-CLIs use — kept after T3.5 as a modelling choice (the point model keeps half the
-say) rather than as the seam-7 mitigation it started as. ``--reconcile-mode``
-overrides it, and whatever is used is recorded in the file.
+CLIs use, a modelling choice (the point model keeps half the say).
+``--reconcile-mode`` overrides it, and whatever is used is recorded in the file.
 
-**Placeholder draws are refused, by T2.2's own check.** ``monte_carlo`` rejects a
+**Placeholder draws are refused, by the simulator's own check.** ``monte_carlo`` rejects a
 draw containing ``Qualifier``/``Bye`` slots and names every offending slot; this
 script prints that message and exits non-zero rather than writing a cache file.
-The API's matching behaviour is a 409 — see ``api/main.py``.
+The API's matching behaviour is a 409, see ``api/main.py``.
 """
 
 from __future__ import annotations
@@ -89,7 +82,7 @@ from sim.tournament import MonteCarloResult, monte_carlo  # noqa: E402
 # consumer can tell which model produced the numbers (see the module docstring).
 # It must stay equal to what api/main.adapter_name() derives from
 # config.API_CLASSIFIER_ADAPTER, so /simulate and /storybook cannot publish
-# different models while claiming the same one — pinned by
+# different models while claiming the same one, pinned by
 # tests/test_api_storybook.py.
 ADAPTER = "common.classifier_adapter.make_classifier_prob"
 
@@ -97,12 +90,12 @@ ADAPTER = "common.classifier_adapter.make_classifier_prob"
 # written here: the live ``/storybook`` publishes probabilities from the same
 # adapter and must say the same thing about them, and ``api/schemas.py`` is the
 # one module both this script and the API can reach. Deliberately plain-language
-# and self-contained — an API consumer will not have read
+# and self-contained, an API consumer will not have read
 # ace-04-current-state.md.
 
 
 # --------------------------------------------------------------------------- #
-# Cache payload — the schema in api/schemas.py is the format.
+# Cache payload, the schema in api/schemas.py is the format.
 # --------------------------------------------------------------------------- #
 def build_payload(
     result: MonteCarloResult,
@@ -121,9 +114,9 @@ def build_payload(
     Presentation over already-built data: every number comes from
     :class:`~sim.tournament.MonteCarloResult` and its
     :class:`~sim.tournament.PlayerOutcome`\\ s (counts, ``p_title``,
-    ``p_reach``, ``expected_rounds_won``, the draw's own ``round_labels``) — the
-    same renderer/data separation T2.4 and T2.5 keep. Nothing is recomputed and
-    no new statistic is invented here.
+    ``p_reach``, ``expected_rounds_won``, the draw's own ``round_labels``), the
+    same renderer/data separation the storybook and tournament CLIs keep.
+    Nothing is recomputed and no new statistic is invented here.
 
     Args:
         result: The completed aggregate, players already sorted by title
@@ -134,8 +127,7 @@ def build_payload(
         generated_at: Write timestamp; defaults to now (UTC).
         adapter: Which ``ClassifierProb`` adapter produced ``P_clf``.
         classifier_limitation: The one-line disclosure summary (see the module
-            docstring: the seam-7 defect is fixed; the as-of-now snapshot
-            caveat remains).
+            docstring: the model state is an as-of-now snapshot).
         classifier_limitation_detail: The full technical account behind that
             summary, so the cache file carries the complete disclosure.
         is_forecast: Whether these numbers may be presented as a prediction.
@@ -212,14 +204,14 @@ def write_cache(
 
 
 # --------------------------------------------------------------------------- #
-# Id resolution — the registry's own catalogue, rendered for a terminal.
+# Id resolution, the registry's own catalogue, rendered for a terminal.
 # --------------------------------------------------------------------------- #
 def _known_ids_message(registry: TournamentRegistry) -> str:
     """List what *is* addressable, grouped by what can actually be simulated.
 
     The groups are kept apart on purpose, and by the same rule the API's 404
     uses (``TournamentEntry.is_simulatable``). Lumping a draw that failed
-    validation — or one still holding ``Qualifier`` slots — in with the working
+    validation, or one still holding ``Qualifier`` slots, in with the working
     ones reads as though this script could run it, when in fact nothing but
     editing the file will make it so.
     """
@@ -280,7 +272,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--seed",
         type=int,
         default=config.MC_SEED,
-        help=f"Base seed — the same seed reproduces the file (default: "
+        help=f"Base seed; the same seed reproduces the file (default: "
              f"{config.MC_SEED}).",
     )
     parser.add_argument(
@@ -288,7 +280,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=("blend", "classifier_anchor"),
         default=config.SIM_CLI_RECONCILE_MODE,
         help=f"Reconciliation mode; recorded in the cache metadata (default: "
-             f"{config.SIM_CLI_RECONCILE_MODE} — see the module docstring).",
+             f"{config.SIM_CLI_RECONCILE_MODE}; see the module docstring).",
     )
     parser.add_argument(
         "--draws-dir",
@@ -330,7 +322,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(
-        f"Simulating {entry.draw.name} — {args.runs:,} runs, seed {args.seed}, "
+        f"Simulating {entry.draw.name}: {args.runs:,} runs, seed {args.seed}, "
         f"reconciliation {args.reconcile_mode}…"
     )
     try:
@@ -340,15 +332,14 @@ def main(argv: list[str] | None = None) -> int:
             classifier,
             n_runs=args.runs,
             seed=args.seed,
-            # Single-process. T3.5's adapter *is* picklable (a module-level
-            # class, not a closure), so seam 8's stated barrier is gone — but
-            # exposing workers>1 still owns its own re-verification, and the
-            # measured 128 × 5,000 job is 29 s single-threaded anyway.
+            # Single-process. The adapter is picklable (a module-level class, not a
+            # closure), but exposing workers>1 owns its own re-verification (seam 8),
+            # and the measured 128 × 5,000 job is 29 s single-threaded anyway.
             workers=1,
             mode=args.reconcile_mode,
         )
     except ValueError as exc:
-        # Chiefly T2.2's placeholder refusal, which names every offending slot.
+        # Chiefly the simulator's placeholder refusal, which names every offending slot.
         print(f"{exc}")
         return 1
 

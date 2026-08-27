@@ -1,11 +1,11 @@
-"""Regression guards for .github/workflows/refresh-and-simulate.yml (T5.3).
+"""Regression guards for .github/workflows/refresh-and-simulate.yml.
 
 Same remit as ``tests/test_ci_workflow.py``: these do not run the workflow, they
 pin the handful of facts that are **silently** wrong when broken. This workflow
 is the only one in the repo that can write to the default branch, unattended, so
 the list is longer:
 
-* ``git add data/cache`` without ``-f`` is a no-op against ``.gitignore:15`` —
+* ``git add data/cache`` without ``-f`` is a no-op against ``.gitignore:15``,
   the job goes green, opens a PR, and the "fresh" cache never leaves the runner.
 * a commit gate keyed on a git diff would fire on every run, because every cache
   file's ``generated_at`` moves.
@@ -30,7 +30,7 @@ JOB = "refresh"
 
 
 def _text() -> str:
-    assert WORKFLOW.exists(), f"{WORKFLOW.name} is missing — T5.3 creates it"
+    assert WORKFLOW.exists(), f"{WORKFLOW.name} is missing"
     return WORKFLOW.read_text()
 
 
@@ -42,7 +42,7 @@ def _workflow() -> dict[str, Any]:
 
 
 def _triggers(workflow: dict[str, Any]) -> dict[str, Any]:
-    """The ``on:`` block — read under either spelling (YAML 1.1 makes it ``True``)."""
+    """The ``on:`` block, read under either spelling (YAML 1.1 makes it ``True``)."""
     for key in ("on", True):
         if key in workflow:
             return workflow[key] or {}
@@ -89,15 +89,15 @@ def test_refreshing_and_precomputing_are_separable_inputs() -> None:
 def test_the_cache_is_force_added_past_the_gitignore_rule() -> None:
     """`.gitignore:15` ignores `data/cache/*.json`; a plain add is a silent no-op.
 
-    The rule is kept — it protects developer machines from committing a local
-    cache by accident — so this workflow is the single deliberate exception.
+    The rule is kept, it protects developer machines from committing a local
+    cache by accident, so this workflow is the single deliberate exception.
     """
     commands = _run_commands()
 
     assert "git add -f data/cache" in commands
     gitignore = (REPO_ROOT / ".gitignore").read_text().splitlines()
     assert "data/cache/*.json" in gitignore, (
-        "the ignore rule was removed — then the -f above is pointless and the "
+        "the ignore rule was removed, then the -f above is pointless and the "
         "protection it deliberately preserved is gone"
     )
 
@@ -161,7 +161,7 @@ def test_permissions_are_scoped_to_what_the_pr_flow_needs() -> None:
 
 
 def test_it_opens_a_pull_request_rather_than_pushing_to_the_default_branch() -> None:
-    """The T5.3 decision: a reviewable diff before the demo's numbers change."""
+    """The design decision: a reviewable diff before the demo's numbers change."""
     commands = _run_commands()
 
     assert "gh pr create" in commands
@@ -171,7 +171,7 @@ def test_it_opens_a_pull_request_rather_than_pushing_to_the_default_branch() -> 
 
 
 def test_the_checkout_fetches_every_ref_so_the_lease_is_meaningful() -> None:
-    """`fetch-depth: 0` is load-bearing, not a nicety — and cheap to "optimise" away.
+    """`fetch-depth: 0` is load-bearing, not a nicety, and cheap to "optimise" away.
 
     The push is `--force-with-lease`, which with no explicit value leases against
     the *remote-tracking ref* for the destination branch. A shallow/single-ref

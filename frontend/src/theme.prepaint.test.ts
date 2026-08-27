@@ -5,7 +5,7 @@
  * The bug: the pre-paint theme script lived INLINE in index.html, but the
  * deployed CSP (render.yaml) is `script-src 'self'` with no 'unsafe-inline' and
  * no hash. On Render the inline script was silently blocked, so `data-theme` was
- * never stamped — every navigation painted the dark CSS default (theme "reset"),
+ * never stamped, every navigation painted the dark CSS default (theme "reset"),
  * and the toggle read a stored 'light' and mounted with an inverted label. It
  * passed every local check because `vite preview` / dev send no CSP.
  *
@@ -55,9 +55,9 @@ describe('pre-paint theme script survives the deployed CSP', () => {
     expect(themeInit).toContain("setAttribute('data-theme'");
   });
 
-  it("the CSP is script-src 'self' with no 'unsafe-inline' — so external is load-bearing", () => {
+  it("the CSP is script-src 'self' with no 'unsafe-inline', so external is load-bearing", () => {
     // If this ever relaxed to 'unsafe-inline', an inline script would work again
-    // and this whole guard would be moot — assert it has NOT, so the external
+    // and this whole guard would be moot, assert it has NOT, so the external
     // file stays genuinely required rather than incidental.
     expect(renderYaml).toMatch(/script-src 'self'/);
     const cspBlock = renderYaml.slice(

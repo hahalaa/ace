@@ -63,7 +63,7 @@ afterEach(() => {
 });
 
 // --------------------------------------------------------------------------
-// getHealth — the simplest round trip, and the one a UI polls to decide
+// getHealth, the simplest round trip, and the one a UI polls to decide
 // whether the API is up at all.
 // --------------------------------------------------------------------------
 
@@ -82,14 +82,14 @@ describe('getHealth', () => {
     expect(url.pathname).toBe('/health');
     expect(url.search).toBe('');
     expect(result).toEqual(health);
-    // data_through_year is the observed max season, not config.END_YEAR — a
+    // data_through_year is the observed max season, not config.END_YEAR, a
     // client deciding whether a probability is current reads this one.
     expect(result.data_through_year).toBe(2026);
   });
 });
 
 // --------------------------------------------------------------------------
-// searchPlayers — request shape and parsed response
+// searchPlayers, request shape and parsed response
 // --------------------------------------------------------------------------
 
 const ALCARAZ_SEARCH: PlayerSearchResponse = {
@@ -268,7 +268,7 @@ describe('getSimulate', () => {
     expect(result.players[0].p_reach['R128']).toBeUndefined();
     // Round-survival columns follow the CLI precedent: every label after the first.
     expect(result.round_labels.slice(1)).toEqual(['SF', 'F']);
-    // The disclosure survives the round trip — T4.3 has to render all of these.
+    // The disclosure survives the round trip, the odds screen renders all of these.
     expect(result.metadata.is_forecast).toBe(false);
     expect(result.metadata.classifier_limitation).toContain('Not a forecast');
     expect(result.metadata.classifier_limitation_detail).toContain('feature row');
@@ -380,7 +380,7 @@ describe('error handling', () => {
     const error = (await getBracket('broken').catch((thrown: unknown) => thrown)) as ApiError;
 
     expect(error.status).toBe(422);
-    // No reason code on this body — mirrored faithfully rather than invented.
+    // No reason code on this body, mirrored faithfully rather than invented.
     expect(error.reason).toBeNull();
     expect(error.problems).toEqual([
       'draw_size 7 is not a power of two',
@@ -398,7 +398,7 @@ describe('error handling', () => {
     expect(error.problems).toBeNull();
   });
 
-  it('throws ApiNetworkError — not ApiError — when the request never lands', async () => {
+  it('throws ApiNetworkError, not ApiError, when the request never lands', async () => {
     // A rejected fetch is what offline / DNS failure / a refused connection /
     // a blocked CORS preflight all look like: there is no response at all, so
     // there is no status to branch on. A UI has to tell that apart from a 4xx.

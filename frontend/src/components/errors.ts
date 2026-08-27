@@ -1,5 +1,5 @@
 /**
- * Narrowing a thrown client error into the panel that should render it — pure,
+ * Narrowing a thrown client error into the panel that should render it, pure,
  * no React, so the branch table is testable without mounting anything.
  *
  * Split out of `ErrorPanel.tsx` on the `rounds.ts` precedent: component files
@@ -23,8 +23,12 @@ export interface PanelContent {
   command?: string;
 }
 
-/** Narrow `error` to the panel it should render. */
-export function describeError(error: unknown, tournamentId: string): PanelContent {
+/** Narrow `error` to the panel it should render.
+ *
+ * `tournamentId` names the thing that 404'd when a tournament view is loading; it
+ * is optional so tournament-free views (the rankings board) can reuse the same
+ * panel without inventing an id. */
+export function describeError(error: unknown, tournamentId?: string): PanelContent {
   const fallbackMessage = error instanceof Error ? error.message : String(error);
 
   if (error instanceof ApiConfigError) {
@@ -44,7 +48,33 @@ export function describeError(error: unknown, tournamentId: string): PanelConten
   }
 
   if (!isApiError(error)) {
-    return { kind: 'unknown', heading: 'Could not load this tournament', message: fallbackMessage };
+    return {
+      kind: 'unknown',
+      heading: tournamentId === undefined
+        ? 'Could not load this page'
+        : 'Could not load this tournament',
+      message: fallbackMessage,
+    };
+  }
+
+  // The rankings cache has not been generated yet. The server hands back the
+  // exact precompute command, shown to be copied, the same shape as a missing
+  // simulation cache.
+  if (hasReason(error, 'rankings_missing')) {
+    return {
+      kind: 'rankings-missing',
+      heading: 'The rankings have not been generated yet',
+      message: error.detail.message,
+      command: error.detail.command,
+    };
+  }
+
+  if (hasReason(error, 'rankings_unreadable')) {
+    return {
+      kind: 'rankings-unreadable',
+      heading: 'The rankings could not be read',
+      message: error.detail.message,
+    };
   }
 
   // Nothing has been simulated yet. The server hands back the exact precompute

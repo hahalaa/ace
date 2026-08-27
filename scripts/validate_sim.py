@@ -1,4 +1,4 @@
-"""Simulation validation harness (T1.9) — "does the physics look right?".
+"""Simulation validation harness, "does the physics look right?".
 
 Confirms the point-by-point match simulator (``sim/match.py``, driven by the
 ``sim/points.py`` point model and the ``features/serve.py`` skill table) produces
@@ -8,38 +8,38 @@ realistic *match shapes* before Phase 2 builds tournaments on top of it
 * the **historical** distribution of match shapes computed from the vendored
   ``data/raw`` CSVs (Grand Slam best-of-5, and best-of-3 tour matches), and
 * the **simulated** distribution produced by running many matches at *realistic*
-  point-win probabilities — drawn from the actual snapshot skill table over real
+  point-win probabilities, drawn from the actual snapshot skill table over real
   historical matchups, so the validation reflects the population the simulator
   will be run against in Phase 2.
 
 Metrics (per format):
 
-* **Set-count distribution** — bo5: share of matches ending 3–0 / 3–1 / 3–2
+* **Set-count distribution**, bo5: share of matches ending 3–0 / 3–1 / 3–2
   sets; bo3: 2–0 vs 2–1.
 * **Games per set**, **tiebreak frequency**, **break rate**.
 
 What is validated here is the **emergent behaviour of the actual point-by-point
-simulator** (``simulate_match_bo3`` / ``simulate_match_bo5``) — *not* the
-analytic match-win composition from T1.8, and *not* the reconciled model. The
+simulator** (``simulate_match_bo3`` / ``simulate_match_bo5``), *not* the
+analytic match-win composition, and *not* the reconciled model. The
 raw point model is measured as-is; see the finding below.
 
 Determinism: every simulated quantity is drawn from a single
 ``numpy.random.default_rng(seed)`` (``--seed``), so a run is fully reproducible.
 
-**Break rate — measurement note.** ``MatchResult`` deliberately carries only the
+**Break rate, measurement note.** ``MatchResult`` deliberately carries only the
 game *score* of each set, not a per-game hold/break log, so break rate cannot be
 read back off a finished match. Because ``§5`` holds ``p`` constant within a
 match (no momentum/fatigue), a match's service games are i.i.d.
 ``simulate_game(p)`` draws per server, so we measure break rate at the game layer
 by drawing a handful of standalone ``simulate_game`` games on each matchup's two
-serve probabilities — the identical primitive the set/match layers use. This is
+serve probabilities, the identical primitive the set/match layers use. This is
 the emergent match break rate, not a separate model.
 
 Retirements/walkovers (``RET`` / ``W/O`` / ``def.``) are excluded from the
-historical side, matching how T1.1's skill table already excludes them, so the
+historical side, matching how the skill table already excludes them, so the
 historical and simulated populations are apples-to-apples. (``parse_match_score``
-over-counts a pre-retirement partial set — ``ace-02-data-schema.md`` data-quality
-note — so this harness parses scores itself and drops those matches outright.)
+over-counts a pre-retirement partial set, ``ace-02-data-schema.md`` data-quality
+note, so this harness parses scores itself and drops those matches outright.)
 
 Run directly to print the full side-by-side report::
 
@@ -47,8 +47,8 @@ Run directly to print the full side-by-side report::
     python scripts/validate_sim.py --n-matches 40000 --seed 20260725
 
 Exit status is non-zero if a **hard-tolerance** metric (the set-count
-distribution or games-per-set) falls outside its documented band — the T1.9
-gate. See ``tests/test_sim_realism.py`` for the seeded, generous-band CI version.
+distribution or games-per-set) falls outside its documented band. See
+``tests/test_sim_realism.py`` for the seeded, generous-band CI version.
 
 --------------------------------------------------------------------------------
 FINDING (surfaced by this harness; see ``§7``)
@@ -57,27 +57,27 @@ At the current point-probability derivation, the simulated best-of-5 set-count
 distribution does **not** match historical Slam data: the simulator produces too
 few straight-set matches and too many five-setters (≈+10pp of matches go the
 distance). Best-of-3 shows the same, milder, skew. ``§7`` names this exact
-symptom — "if 5-setters are far too rare/common, your ``p`` derivation or
-clamping is off" — and attributes it upstream to the point model (**T1.1/T1.2**),
-**not** to this ticket's code. The mechanism is *skill-gap compression*: heavy
+symptom, "if 5-setters are far too rare/common, your ``p`` derivation or
+clamping is off", and attributes it upstream to the point model (the skill
+table and point-win derivation), **not** to this harness. The mechanism is
+*skill-gap compression*: heavy
 empirical-Bayes shrinkage (``config.SERVE_SHRINKAGE_K``) plus the additive
 serve/return model leave the two players' point-win probabilities clustered near
 the surface baseline (observed mean ``|pA − pB| ≈ 0.05``), so matches play out
-more evenly than real ones — more tiebreaks, longer sets, more deciders. Tiebreak
+more evenly than real ones, more tiebreaks, longer sets, more deciders. Tiebreak
 frequency (elevated) and games-per-set (elevated) point the same way; break rate
 stays plausible. This is **not** a stale-snapshot artifact: the snapshot table
 scores every historical matchup with the *latest* known skills, so an old
-matchup is scored with present-day skills — but restricting the simulated pool to
+matchup is scored with present-day skills, but restricting the simulated pool to
 recent (``>= CONFOUND_SINCE_YEAR``) matchups, where those skills are ~
 contemporaneous, reproduces essentially the same gap (mean ``|pA − pB| ≈ 0.047``
 vs ``≈0.048`` on the full pool) and the same set-count skew. The ``CONFOUND
 CONTROL`` block runs that filtered re-run alongside the main comparison so the
-harness makes this robustness argument itself. Per the ticket brief, this is
-reported faithfully rather than
-hidden behind a loosened tolerance; the tolerance below is deliberately generous
+harness makes this robustness argument itself. This is reported faithfully
+rather than hidden behind a loosened tolerance; the tolerance below is deliberately generous
 and the discrepancy still exceeds it by an order of magnitude over sampling
-noise. It is expected to narrow once T1.8 reconciliation widens effective skill
-gaps (anchoring scorelines to the classifier), and/or T1.1/T1.2 revisit
+noise. It is expected to narrow once reconciliation widens effective skill gaps
+(anchoring scorelines to the classifier), and/or the point model revisits
 shrinkage/clamping.
 """
 from __future__ import annotations
@@ -135,11 +135,11 @@ BO3_FINAL_SET_RULE = "7pt_at_6_6"
 # error of a per-bucket share difference is
 #     SE = sqrt( p(1-p)/n_hist + p(1-p)/n_sim )
 # which for p≈0.4, n_hist≈6_000, n_sim≈40_000 is ≈0.007. SETCOUNT_ABS_TOL is set
-# to 0.05 — ~7×SE — a deliberately *generous* model-adequacy band, far wider than
+# to 0.05, ~7×SE, a deliberately *generous* model-adequacy band, far wider than
 # sampling noise, so a PASS means genuine agreement and a FAIL means a real
 # modelling error rather than a tightly-tuned band. (The bo5 discrepancies this
 # harness observes are ≈0.09–0.13 across the failing buckets, i.e. ≈13.9–19.1×SE,
-# well past even this band — see the module FINDING.)
+# well past even this band, see the module FINDING.)
 SETCOUNT_ABS_TOL = 0.05
 # Games-per-set: per-set game counts have SD≈2.4; over thousands of sets the SE
 # of the mean is <0.05, so 0.5 games is again a generous absolute band. (A few
@@ -147,7 +147,7 @@ SETCOUNT_ABS_TOL = 0.05
 # at this tolerance.)
 GPS_ABS_TOL = 0.5
 # Tiebreak frequency and break rate are checked against a *plausible range* (per
-# the acceptance criteria — "in a plausible range"), not a tight tolerance vs
+# the acceptance criteria, "in a plausible range"), not a tight tolerance vs
 # historical. Historical Slam values are ≈0.18 (tb) and ≈0.20 (break); these
 # bands bracket both the historical and a reasonable simulated spread.
 TB_FREQ_PLAUSIBLE = (0.10, 0.32)
@@ -167,7 +167,7 @@ class ShapeMetrics:
 
     Attributes:
         n_matches: Number of matches the set-count distribution is over.
-        setcount: ``{n_sets: share}`` — share of matches decided in ``n_sets``
+        setcount: ``{n_sets: share}``, share of matches decided in ``n_sets``
             sets (bo5: 3/4/5; bo3: 2/3). Shares sum to 1.
         games_per_set: Mean games per set (a 7–6 tiebreak set counts as 13).
         tb_freq: Share of sets that reached a tiebreak.
@@ -221,7 +221,7 @@ def parse_completed_sets(score: object) -> list[tuple[int, int, bool]] | None:
     Returns ``None`` for an unparseable or non-string score. Tiebreak tokens
     (``7-6(5)``, ``7-6(10-8)``) are recognised by the parenthetical and counted
     as a played tiebreak; their game score is used as-is (7–6). Tokens flagged
-    ``RET``/``W/O``/``def.`` never reach here — such matches are excluded whole.
+    ``RET``/``W/O``/``def.`` never reach here, such matches are excluded whole.
     """
     if not isinstance(score, str) or not score.strip():
         return None
@@ -243,11 +243,11 @@ def historical_shape_metrics(
     Args:
         raw: The raw winner/loser match frame from :func:`load_atp_data`.
         mask: Boolean row selector for the population (e.g. Slam best-of-5).
-        best_of: ``5`` or ``3`` — determines the valid set-count buckets
+        best_of: ``5`` or ``3``, determines the valid set-count buckets
             (3/4/5 or 2/3); matches with any other count are dropped as malformed.
 
     Returns:
-        A :class:`ShapeMetrics` (``break_rate`` left ``None`` — measured
+        A :class:`ShapeMetrics` (``break_rate`` left ``None``, measured
         separately by :func:`historical_break_rate`).
     """
     valid_counts = {3, 4, 5} if best_of == 5 else {2, 3}
@@ -329,10 +329,10 @@ def matchup_pool(
     the simulated population reflect the real distribution of skill pairings the
     simulator faces. For bo5 this is Grand Slam matches (``tourney_level == 'G'``);
     for bo3, non–Davis-Cup best-of-3 tour matches (men's Slams are bo5-only, so
-    bo3 has no Slam sample — noted in the report).
+    bo3 has no Slam sample, noted in the report).
 
     Args:
-        since: If given, keep only matchups with ``tourney_date >= since`` — the
+        since: If given, keep only matchups with ``tourney_date >= since``, the
             recent-only pool for the stale-snapshot confound control. Requires
             ``processed["tourney_date"]`` to be datetime (the caller converts it).
     """
@@ -349,7 +349,7 @@ def matchup_pool(
 def mean_point_gap(pool: pd.DataFrame, table: SkillTable) -> tuple[float, int]:
     """Mean ``|pA − pB|`` point-win gap over **every** matchup in ``pool``.
 
-    Deterministic — no sampling, no RNG: this is the crux statistic behind the
+    Deterministic, no sampling, no RNG: this is the crux statistic behind the
     ``§7`` finding. A gap compressed toward zero (both players near the surface
     baseline) is exactly what makes simulated matches play out too evenly, so it
     is reported directly and drives the confound control.
@@ -395,7 +395,7 @@ def simulated_shape_metrics(
     Args:
         pool: Eligible matchup rows from :func:`matchup_pool`.
         table: The snapshot skill table (:func:`build_skill_table` with
-            ``as_of=None``) — the "latest known skills" the simulator will run
+            ``as_of=None``), the "latest known skills" the simulator will run
             against in Phase 2.
         match_fn: ``simulate_match_bo3`` or ``simulate_match_bo5``.
         final_set_rule: Deciding-set rule passed to ``match_fn``.
@@ -526,7 +526,7 @@ def print_report(
         return "  ".join(f"{k}:{v:.3f}" for k, v in m.setcount.items())
 
     print("=" * 74)
-    print("T1.9 SIMULATION VALIDATION — historical (data/raw) vs simulated")
+    print("SIMULATION VALIDATION: historical (data/raw) vs simulated")
     print("=" * 74)
     print(f"\nBest-of-5 (Grand Slam)   hist matches: {bo5_hist.n_matches:,}   "
           f"sim matches: {bo5_sim.n_matches:,}")
@@ -553,7 +553,7 @@ def print_confound(c: ConfoundResult) -> None:
     """Print the stale-snapshot confound control (``§7`` finding robustness)."""
     dist = "  ".join(f"{k}:{v:.3f}" for k, v in c.recent_setcount.items())
     print("\n" + "-" * 78)
-    print("CONFOUND CONTROL — stale snapshot? (bo5 Slam, recent-only re-run)")
+    print("CONFOUND CONTROL: stale snapshot? (bo5 Slam, recent-only re-run)")
     print("-" * 78)
     print(f"  full pool (all years)   mean |pA-pB|:  {c.full_gap:.4f}   "
           f"(n={c.full_n:,})")
@@ -658,12 +658,12 @@ def main(argv: list[str] | None = None) -> int:
                   f"(Δ={c.sim - c.hist:+.3f}, band |Δ|≤{float(c.bound):.3f})")
         print(
             "\nThe simulator produces too few straight-set wins and too many long\n"
-            "matches — §7's warning sign that the point-win probability derivation\n"
-            "or clamping is off (upstream: T1.1 shrinkage / T1.2), NOT this harness.\n"
+            "matches, §7's warning sign that the point-win probability derivation\n"
+            "or clamping is off (upstream: skill-table shrinkage / point model), NOT this harness.\n"
             "Root cause: skill-gap compression leaves |pA − pB| clustered near the\n"
             "surface baseline, so matches play out more evenly than real ones.\n"
             "Reported faithfully rather than hidden behind a looser band; expected\n"
-            "to narrow once T1.8 reconciliation widens effective skill gaps."
+            "to narrow once reconciliation widens effective skill gaps."
         )
         print("!" * 74)
     else:

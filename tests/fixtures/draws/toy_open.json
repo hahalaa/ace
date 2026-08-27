@@ -1,5 +1,5 @@
 {
-  "note": "TEST FIXTURE (T3.2) — a valid 8-slot draw whose entrants are the toy skill table in tests/test_api_tournaments.py. Fully resolvable, no placeholders.",
+  "note": "TEST FIXTURE: a valid 8-slot draw whose entrants are the toy skill table in tests/test_api_tournaments.py. Fully resolvable, no placeholders.",
   "tournament_id": "toy_open_2026",
   "name": "Toy Open 2026",
   "surface": "Clay",

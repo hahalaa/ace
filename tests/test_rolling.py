@@ -99,10 +99,10 @@ class TestRollingFeatures(unittest.TestCase):
 
 
 class TestRollingFormTable(unittest.TestCase):
-    """The as-of-now snapshot accessor (T3.5).
+    """The as-of-now snapshot accessor.
 
-    ``build_rolling_form_table`` exists so a caller outside the training pass —
-    the classifier adapter — can ask "what is player X's rolling form right
+    ``build_rolling_form_table`` exists so a caller outside the training pass,
+    the classifier adapter, can ask "what is player X's rolling form right
     now". The property that makes it trustworthy is that it is not a second
     implementation: it must equal what ``compute_rolling_features`` produces for
     a match played immediately after the last row of the data.
@@ -134,7 +134,7 @@ class TestRollingFormTable(unittest.TestCase):
         self.assertEqual(
             sorted(table.latest('A')), sorted(rolling.rolling_feature_names())
         )
-        # 5 metrics x 2 windows — the 20 features (10 per player) MODEL_FEATURES needs.
+        # 5 metrics x 2 windows, the 20 features (10 per player) MODEL_FEATURES needs.
         self.assertEqual(len(rolling.rolling_feature_names()), 10)
 
     def test_snapshot_uses_only_the_last_window_matches(self):

@@ -1,4 +1,4 @@
-"""Tests for the train/test year split in src/model/train.py (T0.3).
+"""Tests for the train/test year split in src/model/train.py.
 
 The split is Train: year < TEST_YEAR, Test: year == TEST_YEAR, decoupling the
 held-out season from END_YEAR so the partial 2026 season isn't the test set.

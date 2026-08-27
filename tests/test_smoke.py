@@ -1,4 +1,4 @@
-"""Smoke tests for the T0.5 scaffolding.
+"""Smoke tests for the config scaffolding.
 
 Assert the src-relative imports resolve via pyproject's ``pythonpath = ["src"]``
 (no sys.path manipulation here), and that the sample fixture is discoverable.
@@ -12,7 +12,7 @@ def test_src_modules_import():
 
 
 def test_decoupled_win_pct_constants_exist():
-    """DEFAULT_WIN_PCT's three overloads are now separate constants (T0.5)."""
+    """DEFAULT_WIN_PCT's three overloads are now separate constants."""
     import config
 
     assert config.DEFAULT_WIN_PCT == 0.5

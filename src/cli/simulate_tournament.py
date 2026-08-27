@@ -1,4 +1,4 @@
-"""Tournament simulation CLI (T2.5).
+"""Tournament simulation CLI.
 
 Run a whole draw, either as a Monte Carlo title board or as one storybook
 tournament played out with real scorelines::
@@ -8,45 +8,34 @@ tournament played out with real scorelines::
     python src/cli/simulate_tournament.py --draw data/draws/example_usopen_2024_full.json \
         --mode storybook --seed 42
 
-This module is **plumbing, not machinery**. Everything it drives already exists
-and has been audited: the draw loader/validator (T2.1, ``sim/draw.py``), the
-bracket simulator (T2.2), the Monte Carlo runner (T2.3) and the storybook run +
-renderer (T2.4), all in ``sim/tournament.py``. The startup context — the offline
-pipeline, the skill table and the ``ClassifierProb`` adapter — is
-``cli/simulate_match.build_context`` (T1.10), reused verbatim so this CLI and the
-single-match CLI cannot drift apart in how they build ``P_clf``. What is new
-here is argument parsing, the Monte Carlo table's layout, and turning the two
-failure modes a user actually hits (a missing or malformed draw file, and a draw
-that validates but contains placeholder entrants) into readable messages.
+This module is **plumbing, not machinery**. Everything it drives already exists:
+the draw loader/validator (``sim/draw.py``), the bracket simulator, the Monte
+Carlo runner and the storybook run + renderer, all in ``sim/tournament.py``. The
+startup context, the offline pipeline, the skill table and the
+``ClassifierProb`` adapter, is ``cli/simulate_match.build_context``, reused
+verbatim so this CLI and the single-match CLI cannot drift apart in how they
+build ``P_clf``. What is new here is argument parsing, the Monte Carlo table's
+layout, and turning the two failure modes a user actually hits (a missing or
+malformed draw file, and a draw that validates but contains placeholder
+entrants) into readable messages.
 
-**Reconciliation mode — ``config.SIM_CLI_RECONCILE_MODE`` (``"blend"``), not
-``config.RECONCILE_MODE``.** This is not a fresh decision; it applies the same
-value the other entry points use to a second CLI sharing the *same* adapter.
-T2.5 inherited it as T1.10's seam-7 mitigation: back then
-``cli/simulate_match.make_classifier_prob`` built its row with
-``cli/interactive.build_feature_row``, which synthesised 20 of the 27
-``config.MODEL_FEATURES``, so ``P_clf`` was form-blind and collapsed toward 0.5.
-**T3.5 fixed that** — the shared ``common/classifier_adapter.py`` builds all 27
-from the pipeline's own leakage-safe state (``ace-04-current-state.md §7`` seam 7,
-closed) — and ``"blend"`` is **kept** as a modelling choice rather than a
-workaround: it lets the point model contribute half the match-win probability,
-which is the configuration T1.9/T1.9b's scoreline-realism validation ran under.
-``sim/tournament.py`` still keeps ``mode`` a pass-through defaulting to the
-system-wide constant and says the layer that builds the adapter owns the choice;
-this module is that layer. The Monte Carlo output still carries a caveat line,
-now for the narrower reason: the model state is an as-of-now snapshot, so a
-simulation of an already-played draw is retrospective rather than a forecast.
+**Reconciliation mode, ``config.SIM_CLI_RECONCILE_MODE`` (``"blend"``), not
+``config.RECONCILE_MODE``.** It applies the same value the other entry points
+use to a second CLI sharing the *same* adapter. The shared
+``common/classifier_adapter.py`` builds all 27 ``config.MODEL_FEATURES`` from the
+pipeline's own leakage-safe state, and ``"blend"`` is a modelling choice: it lets
+the point model contribute half the match-win probability, which is the
+configuration the scoreline-realism validation ran under. ``sim/tournament.py``
+keeps ``mode`` a pass-through defaulting to the system-wide constant and says the
+layer that builds the adapter owns the choice; this module is that layer. The
+Monte Carlo output carries a caveat line: the model state is an as-of-now
+snapshot, so a simulation of an already-played draw is retrospective rather than
+a forecast.
 
-**No ``--workers`` flag (deliberate, deferred).** ``sim.tournament.monte_carlo``
-supports ``workers > 1``, and this CLI is the caller its docstring anticipates.
-T2.5 named two blockers (``ace-04-current-state.md §7`` seam 8): an unpicklable
-adapter, and a spawn-safe entry point on macOS/Windows. **The first is gone** —
-T3.5's ``common.classifier_adapter.ClassifierProbAdapter`` is a module-level
-class with a ``__call__`` and pickles (asserted in
-``tests/test_classifier_adapter.py``), so ``_require_picklable`` would no longer
-refuse. What is still owed is the rest: the spawn-safe entry point, and
-re-measuring the speedup with an adapter that calls ``predict_proba`` *inside* a
-worker. Both are out of scope here, so this module always calls
+**No ``--workers`` flag.** ``sim.tournament.monte_carlo`` supports
+``workers > 1``, but the spawn-safe entry point and re-measuring the speedup with
+an adapter that calls ``predict_proba`` *inside* a worker are an open seam
+(``ace-04-current-state.md §7`` seam 8). This module always calls
 ``monte_carlo(..., workers=1)`` and does not offer the knob. That costs little:
 the measured 128 × 5,000 job is 38.5 s single-threaded, inside the
 ``ace-01-architecture.md`` budget, and four workers only bought ~1.3× because
@@ -63,7 +52,7 @@ from pathlib import Path
 
 # Running this file directly (`python src/cli/simulate_tournament.py`) puts
 # src/cli/ on sys.path[0], not src/, so the src-relative imports below would
-# fail. Add src/ explicitly — the same bootstrap scripts/validate_sim.py and
+# fail. Add src/ explicitly, the same bootstrap scripts/validate_sim.py and
 # cli/simulate_match.py use. A no-op under pytest, which already has src/ on the
 # path via pyproject's pythonpath.
 _SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -84,9 +73,7 @@ from sim.tournament import (  # noqa: E402
 MODES = ("montecarlo", "storybook")
 
 # Printed under the Monte Carlo table. Any caller publishing Monte Carlo
-# probabilities must state the model's limitation alongside the numbers. Until
-# T3.5 that limitation was the seam-7 defect (20 of 27 features synthetic); the
-# adapter is fixed, and what this now discloses is the caveat that remains — the
+# probabilities must state the model's limitation alongside the numbers: the
 # model state is an as-of-now snapshot, so an already-played draw is simulated
 # with knowledge from after the event. Deliberately the same claim
 # api.schemas.CLASSIFIER_LIMITATION makes to API consumers. The storybook output
@@ -94,9 +81,8 @@ MODES = ("montecarlo", "storybook")
 # a single narrative bracket does not read as a published probability.
 #
 # Like CLASSIFIER_LIMITATION, this is **user-facing and must stay
-# self-contained** — it is printed to whoever ran the command, who has no
-# internal design notes to look anything up in. It carried an
-# "(ace-04-current-state.md §7)" citation until the 2026-08-09 audit.
+# self-contained**, it is printed to whoever ran the command, who has no
+# internal design notes to look anything up in.
 ADAPTER_CAVEAT = (
     "Not a forecast. This draw already happened, so the model is scoring a "
     "result it could have seen. These probabilities come from an as-of-now "
@@ -107,7 +93,7 @@ ADAPTER_CAVEAT = (
 
 
 # --------------------------------------------------------------------------- #
-# Draw loading — the file-level failure modes, rendered rather than raised.
+# Draw loading, the file-level failure modes, rendered rather than raised.
 # --------------------------------------------------------------------------- #
 @dataclass(frozen=True)
 class DrawLoad:
@@ -133,7 +119,7 @@ def _available_draws() -> str:
 def load_tournament_draw(path: str | Path, skill_table) -> DrawLoad:
     """Load and validate a draw file, turning both failure modes into text.
 
-    Reuses ``sim.draw.load_draw`` (T2.1) unchanged — no second validator — and
+    Reuses ``sim.draw.load_draw`` unchanged, no second validator, and
     renders its :class:`~sim.draw.DrawValidationError` as the accumulated
     problem list it already collected, one bullet per problem, so a
     hand-entered draw can be fixed in one pass. A missing file is reported with
@@ -141,10 +127,10 @@ def load_tournament_draw(path: str | Path, skill_table) -> DrawLoad:
 
     Args:
         path: Path to the draw JSON file.
-        skill_table: T1.1 skill table used to resolve entrant names to ids.
+        skill_table: id-keyed skill table used to resolve entrant names to ids.
 
     Returns:
-        A :class:`DrawLoad` — ``draw`` set on success, otherwise ``message``.
+        A :class:`DrawLoad`, ``draw`` set on success, otherwise ``message``.
     """
     try:
         return DrawLoad(load_draw(path, skill_table), "")
@@ -170,7 +156,7 @@ def load_tournament_draw(path: str | Path, skill_table) -> DrawLoad:
 
 
 # --------------------------------------------------------------------------- #
-# Running — thin wrappers over sim/tournament.py.
+# Running, thin wrappers over sim/tournament.py.
 # --------------------------------------------------------------------------- #
 def run_monte_carlo(
     draw: Draw,
@@ -181,7 +167,7 @@ def run_monte_carlo(
 ) -> MonteCarloResult:
     """Run the Monte Carlo job for ``draw`` using the CLI's startup context.
 
-    A pass-through to :func:`sim.tournament.monte_carlo` — the aggregation, the
+    A pass-through to :func:`sim.tournament.monte_carlo`, the aggregation, the
     per-run seeding and the whole-job ``prob_cache`` all live there. The two
     things this wrapper decides are the ones the calling layer owns: the
     reconciliation mode (see the module docstring) and ``workers=1``.
@@ -206,10 +192,9 @@ def run_monte_carlo(
         ctx.classifier,
         n_runs=n_runs,
         seed=seed,
-        # Single-process only, on purpose — see the module docstring and
-        # ace-04-current-state.md §7 seam 8. T3.5's shared adapter *is* picklable,
-        # so this is no longer a refusal we would hit anyway; exposing workers > 1
-        # still owns the spawn-safe entry point and its own re-measurement.
+        # Single-process only, on purpose, see the module docstring and
+        # ace-04-current-state.md §7 seam 8. Exposing workers > 1 owns the spawn-safe
+        # entry point and its own re-measurement.
         workers=1,
         mode=reconcile_mode,
     )
@@ -248,7 +233,7 @@ _PCT_WIDTH = 7
 
 
 def _reconciliation_label(mode: str, w: float) -> str:
-    """``"blend (w=0.5)"`` / ``"classifier_anchor"`` — as render_storybook writes it."""
+    """``"blend (w=0.5)"`` / ``"classifier_anchor"``, as render_storybook writes it."""
     return f"{mode} (w={w:g})" if mode == "blend" else mode
 
 
@@ -265,17 +250,17 @@ def format_montecarlo_table(
 
     Layout (one header block, the table, one footer):
 
-    * ``#`` — rank in title-probability order (``result.players`` is already
+    * ``#``: rank in title-probability order (``result.players`` is already
       sorted, ties broken by bracket position, so the rank is deterministic).
-    * ``Seed`` — the entrant's tournament seed as ``[1]``, blank if unseeded.
-    * ``Player`` — display name, clipped to 24 characters.
+    * ``Seed``: the entrant's tournament seed as ``[1]``, blank if unseeded.
+    * ``Player``: display name, clipped to 24 characters.
     * One percentage column per round **after the first**, headed with the
       draw's own label from ``result.round_labels``: P(the entrant contests that
       round). The first round is omitted because every entrant contests it by
-      construction — the column would read ``100.0%`` for all of them. An
+      construction, the column would read ``100.0%`` for all of them. An
       8-draw therefore shows ``SF``/``F``; a 128-draw ``R64 … F``.
-    * ``Title`` — P(wins the tournament); the sort key.
-    * ``E[W]`` — mean matches won per run (``expected_rounds_won``), the one
+    * ``Title``: P(wins the tournament); the sort key.
+    * ``E[W]``: mean matches won per run (``expected_rounds_won``), the one
       column that summarises a run in a single number.
 
     Percentages are shown to one decimal place; ``E[W]`` to two. Nothing is
@@ -298,7 +283,7 @@ def format_montecarlo_table(
     )
 
     lines = [
-        f"{result.name} — {result.surface}, best of {result.best_of}, "
+        f"{result.name}: {result.surface}, best of {result.best_of}, "
         f"{result.draw_size} entrants",
         f"{result.n_runs:,} runs · seed {result.seed} · reconciliation "
         f"{_reconciliation_label(result.mode, result.w)} · workers {result.workers}",
@@ -365,7 +350,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--seed",
         type=int,
         default=config.MC_SEED,
-        help=f"Base seed — the same seed replays the same tournament "
+        help=f"Base seed; the same seed replays the same tournament "
              f"(default: {config.MC_SEED}).",
     )
     parser.add_argument(
@@ -406,8 +391,8 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(render_storybook(run_storybook(loaded.draw, ctx, seed=args.seed)))
     except ValueError as exc:
-        # Chiefly the placeholder-entrant refusal (T2.2), which names every
-        # offending slot — worth showing in full, not as a traceback.
+        # Chiefly the placeholder-entrant refusal, which names every
+        # offending slot, worth showing in full, not as a traceback.
         print(f"{exc}")
         return 1
     return 0

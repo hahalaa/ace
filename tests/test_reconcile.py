@@ -1,8 +1,8 @@
-"""Tests for sim/reconcile.py (T1.8) — the point-model/classifier reconciliation.
+"""Tests for sim/reconcile.py, the point-model/classifier reconciliation.
 
 Covers the ticket's acceptance + testing criteria:
   * match_win_prob_point is deterministic and makes NO RNG draws (the property
-    T2.2/T2.3's outcome-only performance budget depends on).
+    the simulator's outcome-only performance budget depends on).
   * The analytic composition agrees with a point-by-point MC estimate.
   * Both reconciliation modes are implemented and config-selectable.
   * The δ-solver is numerically stable, monotone, saturates gracefully, and keeps
@@ -63,10 +63,10 @@ def _simulated_win_rate(pA, pB, best_of, rule, n, seed) -> float:
 
 
 # --------------------------------------------------------------------------- #
-# match_win_prob_point — deterministic, no RNG (the hot-path property)
+# match_win_prob_point, deterministic, no RNG (the hot-path property)
 # --------------------------------------------------------------------------- #
 def test_match_win_prob_point_has_no_rng_parameter():
-    # The signature itself must not accept an rng — it cannot draw randomness.
+    # The signature itself must not accept an rng, it cannot draw randomness.
     params = inspect.signature(R.match_win_prob_point).parameters
     assert "rng" not in params
     assert "seed" not in params
@@ -289,10 +289,10 @@ def test_unknown_surface_raises():
 
 
 # --------------------------------------------------------------------------- #
-# first_server (T2.2's backwards-compatible addition to this T1.8 entry point)
+# first_server (a backwards-compatible addition to this reconciliation entry point)
 # --------------------------------------------------------------------------- #
-# `first_server=None` must behave exactly as the pre-T2.2 code did — same result
-# *and* same RNG stream position — because every existing caller relies on it.
+# `first_server=None` must behave exactly as the earlier code did, same result
+# *and* same RNG stream position, because every existing caller relies on it.
 # The pinned branch must consume no draw at all, which is what makes that true.
 # These tests exist to pin that guarantee: without them, removing the rng draw,
 # adding one to the pinned branch, or ignoring the caller's value all pass.
@@ -327,7 +327,7 @@ def test_first_server_none_draws_exactly_one_integer_from_rng():
 
 
 def test_pinned_first_server_consumes_no_integers_draw():
-    """The new branch must NOT draw — that is what keeps T1.8's callers intact."""
+    """The new branch must NOT draw, that is what keeps reconciliation's callers intact."""
     table = make_skill_table()
     spy = _IntegersSpy(np.random.default_rng(7))
 
@@ -340,9 +340,9 @@ def test_pinned_first_server_consumes_no_integers_draw():
 
 
 def test_first_server_none_reproduces_the_pre_t2_2_rng_stream():
-    """Byte-for-byte equivalence with the T1.8 code path.
+    """Byte-for-byte equivalence with the reconciliation code path.
 
-    Pre-T2.2 the opening server was *always* ``int(rng.integers(2))``. Drawing
+    Earlier the opening server was *always* ``int(rng.integers(2))``. Drawing
     that value by hand and pinning it must give the same match and leave the
     generator in the same state as letting the default branch draw it.
     """

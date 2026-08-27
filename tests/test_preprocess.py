@@ -1,4 +1,4 @@
-"""Tests for src/data/preprocess.py — serve stats / ids carried to p1/p2 (T0.4).
+"""Tests for src/data/preprocess.py, serve stats / ids carried to p1/p2.
 
 The p1/p2 swap is driven by a hardcoded ``default_rng(seed=42)`` inside
 ``preprocess_data``. These tests deliberately do **not** recompute that mask:
@@ -75,7 +75,7 @@ def test_serve_stats_and_ids_follow_the_same_swap_as_the_target(processed):
         expected_p2_id = f"L{i}" if p1_is_winner else f"W{i}"
         assert row["p1_id"] == expected_p1_id
         assert row["p2_id"] == expected_p2_id
-        # Name must agree with id — they are swapped by the same mask.
+        # Name must agree with id, they are swapped by the same mask.
         assert row["p1_name"] == (f"Winner {i}" if p1_is_winner else f"Loser {i}")
 
         for stat in preprocess.SERVE_STAT_COLUMNS:
@@ -84,9 +84,9 @@ def test_serve_stats_and_ids_follow_the_same_swap_as_the_target(processed):
 
 
 def test_raw_score_is_carried_through(processed):
-    """The raw score string is carried through for the T1.1 skill table, which
+    """The raw score string is carried through for the skill table, which
     must exclude retirements/walkovers (has_serve_stats can't catch a mid-match
-    RET with a complete stat line). It is not swapped — score is winner-relative
+    RET with a complete stat line). It is not swapped, score is winner-relative
     but the RET/W-O/def. marker check the skill table applies is order-agnostic."""
     assert "score" in processed.columns
     assert processed["score"].tolist() == ["6-4 6-4"] * N_ROWS
@@ -97,7 +97,7 @@ def test_player_ids_stay_strings_even_when_digit_only():
 
     A file whose ids all happen to be digit-only reads back as an integer column,
     which would silently make p1_id an int and break the join with the string-keyed
-    skill table (T1.1). Ints in, strings out.
+    skill table. Ints in, strings out.
     """
     raw = _raw_matches(
         winner_id=[104631] * N_ROWS,
@@ -174,11 +174,11 @@ def test_has_serve_stats_is_false_when_a_non_svpt_column_is_missing():
 
 
 def test_target_distribution_is_unchanged_by_t0_4():
-    """Regression: golden captured from the pre-T0.4 code on this exact fixture.
+    """Regression: golden captured from the earlier code on this exact fixture.
 
-    Pins the swap mask — an extra rng draw added anywhere before it would shift
+    Pins the swap mask, an extra rng draw added anywhere before it would shift
     every downstream p1/p2 assignment and silently change the training labels.
-    Also pins the T0.5 decoupling: this golden only holds while
+    Also pins the config decoupling: this golden only holds while
     PLAYER_SWAP_THRESHOLD and PLAYER_SWAP_SEED keep their 0.5 / 42 values.
     """
     out = preprocess.preprocess_data(_raw_matches(n=8))
@@ -189,8 +189,8 @@ def test_target_distribution_is_unchanged_by_t0_4():
 def test_swap_is_driven_by_the_config_threshold(monkeypatch):
     """The p1/p2 swap must read config.PLAYER_SWAP_THRESHOLD, not a hardcoded 0.5.
 
-    Decoupling DEFAULT_WIN_PCT into PLAYER_SWAP_THRESHOLD (T0.5) is only safe if
-    preprocess actually consults the new constant — a rename that left a literal
+    Decoupling DEFAULT_WIN_PCT into PLAYER_SWAP_THRESHOLD is only safe if
+    preprocess actually consults the new constant, a rename that left a literal
     0.5 behind would pass a same-value test but silently ignore the constant.
     Drive the threshold to its extremes: > every draw in [0, 1) means every row
     swaps (p1 = loser, target 0); > nothing means no row swaps (p1 = winner,
@@ -208,8 +208,8 @@ def test_swap_is_driven_by_the_config_threshold(monkeypatch):
 
 
 def test_swap_seed_comes_from_config(monkeypatch):
-    """Changing config.PLAYER_SWAP_SEED changes the mask — proves the seed is
-    config-sourced (T0.5) rather than the previously hardcoded 42."""
+    """Changing config.PLAYER_SWAP_SEED changes the mask, proves the seed is
+    config-sourced rather than the previously hardcoded 42."""
     baseline = preprocess.preprocess_data(_raw_matches(n=8))["target"].tolist()
 
     monkeypatch.setattr(config, "PLAYER_SWAP_SEED", 1234)
@@ -220,7 +220,7 @@ def test_swap_seed_comes_from_config(monkeypatch):
 
 
 def test_existing_classifier_columns_are_unchanged(processed):
-    """The baseline columns preprocess emitted before T0.4 still come through."""
+    """The baseline columns preprocess emitted earlier still come through."""
     for col in [
         "tourney_date", "surface", "tourney_level", "target",
         "p1_name", "p1_rank", "p1_age", "p2_name", "p2_rank", "p2_age",

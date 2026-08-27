@@ -1,4 +1,4 @@
-"""Tests for src/features/serve.py — the T1.1 serve/return skill table.
+"""Tests for src/features/serve.py, the serve/return skill table.
 
 The skill table keys on ``player_id`` and aggregates per-match serve stats into
 recency- and volume-weighted, empirical-Bayes-shrunk rates per surface. These
@@ -130,7 +130,7 @@ def test_low_sample_player_is_shrunk_toward_baseline():
 
 
 def test_high_sample_player_barely_shrinks():
-    """Large volume overwhelms the k-point prior — rate stays near raw."""
+    """Large volume overwhelms the k-point prior, rate stays near raw."""
     mu = config.SURFACE_MU["Hard"]
     rows = [_row("2024-05-01", "Hard", "X", "O1", p1_won=7000, p1_svpt=10000, p2_won=64, p2_svpt=100)]
     st = serve.build_skill_table(_frame(rows))
@@ -174,7 +174,7 @@ def test_retirement_and_walkover_rows_are_excluded():
 
 
 def test_null_id_rows_are_skipped():
-    """A row with a missing player id can't be keyed — drop it (both sides)."""
+    """A row with a missing player id can't be keyed, drop it (both sides)."""
     rows = [_row("2024-05-01", "Hard", None, "O1", p1_won=60, p1_svpt=100, p2_won=64, p2_svpt=100)]
     st = serve.build_skill_table(_frame(rows))
     # Neither the null-id player nor the opponent (whose only match this was) is aggregated.

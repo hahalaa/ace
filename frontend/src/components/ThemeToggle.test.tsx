@@ -4,7 +4,7 @@
  * button, that clicking it flips the painted theme and persists the choice, and
  * that its accessible name and pressed-state track the current theme.
  *
- * Keyboard operability is asserted at the semantic level — the control is a
+ * Keyboard operability is asserted at the semantic level, the control is a
  * native <button>, which the platform makes focusable and Enter/Space-operable
  * for free. (The live keyboard walk-through is done in the browser; jsdom does
  * not turn key events into clicks.)
@@ -37,7 +37,7 @@ describe('ThemeToggle', () => {
   it('renders a native button in the tab order (keyboard-operable)', () => {
     render(<ThemeToggle />);
     const button = screen.getByRole('button');
-    // A real <button> — not a div with a click handler — is focusable and
+    // A real <button>, not a div with a click handler, is focusable and
     // Enter/Space-operable by the platform, with no tabindex hack.
     expect(button.tagName).toBe('BUTTON');
     expect(button.getAttribute('type')).toBe('button');
@@ -64,8 +64,8 @@ describe('ThemeToggle', () => {
   //
   // The gap that let the persistence bug ship twice: the prior tests only ever
   // clicked an already-mounted component (click-RESPONSE correctness). None
-  // simulated a fresh load — a component mounting against pre-existing DOM/
-  // storage state — which is what every real navigation is (each screen is a
+  // simulated a fresh load, a component mounting against pre-existing DOM/
+  // storage state, which is what every real navigation is (each screen is a
   // full document load). These tests cover initial-STATE correctness on mount.
 
   it('a genuine first visit (empty storage, no attribute) mounts on dark', () => {
@@ -83,10 +83,10 @@ describe('ThemeToggle', () => {
     // attribute is painted (page shows the dark CSS default), yet 'light' is in
     // storage from an earlier choice. A correct toggle reflects the PIXELS
     // (dark), not the stored preference. The old currentTheme() fell back to the
-    // stored value and mounted claiming light — an inverted label over a dark
+    // stored value and mounted claiming light, an inverted label over a dark
     // page. This test fails on that old code and passes on the fix.
     window.localStorage.setItem(THEME_STORAGE_KEY, 'light');
-    // deliberately NO data-theme attribute — the pre-paint script did not run
+    // deliberately NO data-theme attribute, the pre-paint script did not run
     render(<ThemeToggle />);
     const button = screen.getByRole('button');
     expect(button.getAttribute('aria-label')).toBe('Switch to light theme');
@@ -96,7 +96,7 @@ describe('ThemeToggle', () => {
   it('on a correct second load (pre-paint stamped light), mounts showing light', () => {
     // What a real navigation looks like once the pre-paint script runs under CSP:
     // it reads storage and stamps the attribute before React mounts. The toggle
-    // then reflects light immediately on that fresh mount — no click needed.
+    // then reflects light immediately on that fresh mount, no click needed.
     window.localStorage.setItem(THEME_STORAGE_KEY, 'light');
     document.documentElement.setAttribute('data-theme', 'light');
     render(<ThemeToggle />);

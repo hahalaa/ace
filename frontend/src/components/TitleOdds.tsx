@@ -6,19 +6,19 @@
  * is `["R128", … "F"]` for a 128 draw and `["QF","SF","F"]` for an 8 draw, so a
  * table with fixed reach-QF/SF/F columns silently drops six columns on the one
  * and renders empty cells on the other. The columns rendered are
- * `round_labels.slice(1)` — **the first round is skipped**, following T2.5's CLI
+ * `round_labels.slice(1)`, **the first round is skipped**, following the CLI
  * precedent, because every entrant contests round one by construction and a
  * column of `100.0%` carries no information. `p_reach` is keyed by those same
  * labels, so cell lookup is by label and never by position.
  *
  * **The disclosure still travels on the wire, just not in this view.**
  * `metadata.is_forecast` and `metadata.classifier_limitation` remain *required*
- * fields (`api.schemas.ModelDisclosure`) for any non-browser consumer — this
+ * fields (`api.schemas.ModelDisclosure`) for any non-browser consumer, this
  * screen simply stopped rendering them; the backend contract is unchanged.
  *
  * **Sorting is re-applied, not assumed.** The server already sorts by title
  * probability (ties by bracket position) and this sorts by the same key rather
- * than trusting array order — the same discipline `rounds.ts` applies to
+ * than trusting array order, the same discipline `rounds.ts` applies to
  * `position`, and it costs one comparison per row.
  */
 

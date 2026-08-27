@@ -4,18 +4,18 @@ Builds the id-keyed skill table the point-based simulator (Phase 1+) reads:
 serve-points-won (``spw``) and return-points-won (``rpw``) rates, **per surface**,
 **recency- and volume-weighted**, computed leakage-safely. This is the analogue
 of ``engineering.py``'s incremental ``surface_history``/``h2h_history`` builders,
-but keyed on **``player_id``** (the id side of the name/id seam — see
+but keyed on **``player_id``** (the id side of the name/id seam, see
 ``ace-04-current-state.md §7``), not on player name.
 
-Feeds ``ace-03-tennis-math.md §1``'s point-win model (T1.2): that formula needs
-``spw_server``, ``rpw_returner`` and the surface baseline ``μ`` — all produced
+Feeds ``ace-03-tennis-math.md §1``'s point-win model (``§1``): that formula needs
+``spw_server``, ``rpw_returner`` and the surface baseline ``μ``, all produced
 here. This module only *computes and stores* those rates; it does not itself turn
-them into a point-win probability (that is T1.2).
+them into a point-win probability (that is the point model).
 
-Leakage-safety — two modes over one entry point:
+Leakage-safety, two modes over one entry point:
   * **snapshot** (``as_of=None``, the primary deliverable): aggregate *all* rows
     in ``df``, with recency measured back from the latest match date. This is the
-    "latest known skills" table used to simulate a *future* tournament — every
+    "latest known skills" table used to simulate a *future* tournament, every
     row it uses predates the thing being simulated, so it carries no look-ahead.
   * **as-of** (``as_of=<date>``, for backtesting): use only matches strictly
     **before** ``as_of``, with recency measured back from ``as_of``. Lets a past
@@ -23,12 +23,12 @@ Leakage-safety — two modes over one entry point:
 
 Design decisions worth stating:
   * The surface baseline ``μ`` used for shrinkage and the unknown-player default
-    is the fixed, data-derived tour average in ``config.SURFACE_MU`` — a global
+    is the fixed, data-derived tour average in ``config.SURFACE_MU``, a global
     constant, not a player-specific quantity, so reading it introduces no
     per-matchup leakage. ``compute_surface_mu`` is how those config numbers were
     derived; re-run it if the data range changes.
   * Only ``Hard``/``Clay``/``Grass`` rows are aggregated. ``Carpet`` and
-    ``Unknown``/NaN surfaces are excluded outright — they never leak into a real
+    ``Unknown``/NaN surfaces are excluded outright, they never leak into a real
     surface's totals (``ace-02-data-schema.md`` "Surface handling").
   * Rows without a usable serve line (``has_serve_stats`` False) and
     retirements/walkovers (``RET``/``W/O``/``def.`` in ``score``) are skipped.
@@ -57,7 +57,7 @@ class PlayerSkill:
         spw: Serve-points-won rate, recency+volume weighted then shrunk toward
             the surface baseline ``μ`` (empirical Bayes). In ``[0, 1]``.
         rpw: Return-points-won rate, same weighting/shrinkage. In ``[0, 1]``.
-        n_serve_pts: Total (raw, unweighted) serve points in the sample — the
+        n_serve_pts: Total (raw, unweighted) serve points in the sample, the
             sample size the shrinkage uses. ``0`` for a default profile.
         n_return_pts: Total (raw, unweighted) return points in the sample.
     """
@@ -72,7 +72,7 @@ class SkillTable:
     """Id-keyed serve/return skills with an unknown-player default.
 
     Construct via :func:`build_skill_table`. Lookups key on ``player_id``; names
-    resolve to ids through the shared resolver (``common/names.py``, T0.6).
+    resolve to ids through the shared resolver (``common/names.py``).
     """
 
     def __init__(
@@ -115,8 +115,8 @@ class SkillTable:
         """The resolvable name→id index behind :meth:`resolve_name` (read-only).
 
         Exposed for callers that need the resolver's *structured* result rather
-        than this class's single-id convenience — notably the API's ``/players``
-        search (T3.1), which surfaces an ambiguous query's candidate list
+        than this class's single-id convenience, notably the API's ``/players``
+        search, which surfaces an ambiguous query's candidate list
         instead of collapsing it to ``None``. ``len(name_index.names)`` is the
         searchable player universe: every display name seen in the source frame,
         including players with no usable serve line (they resolve to an id and
@@ -132,7 +132,7 @@ class SkillTable:
         return self._name_index
 
     def resolve_name(self, name: str) -> str | None:
-        """Resolve a display name to a ``player_id`` (thin adapter over T0.6).
+        """Resolve a display name to a ``player_id`` (thin adapter over the shared resolver).
 
         Returns ``None`` when nothing matches or the query is ambiguous (the
         caller cannot disambiguate through this adapter).
@@ -171,7 +171,7 @@ def compute_surface_mu(df: pd.DataFrame) -> dict[str, float]:
     Pools both players' serve points over all eligible rows on each surface:
     ``μ = Σ(1stWon + 2ndWon) / Σ svpt``. This is how the canonical
     ``config.SURFACE_MU`` numbers (and the table in ``ace-02-data-schema.md``)
-    were derived — re-run it if the vendored data range changes.
+    were derived, re-run it if the vendored data range changes.
     """
     rows = _eligible_rows(df)
     mu: dict[str, float] = {}
@@ -220,7 +220,7 @@ def _long_perspective(
             "w_s_pts": weights * s_pts.to_numpy(),
             "w_r_won": weights * r_won.to_numpy(),
             "w_r_pts": weights * r_pts.to_numpy(),
-            # Raw (unweighted) point totals — the sample size shrinkage keys on.
+            # Raw (unweighted) point totals, the sample size shrinkage keys on.
             "n_serve_pts": s_pts.to_numpy(),
             "n_return_pts": r_pts.to_numpy(),
         }
@@ -231,7 +231,7 @@ def _build_name_to_id(df: pd.DataFrame) -> dict[str, str]:
     """Map each display name to its most-frequent non-null ``player_id``.
 
     Built from every row (both p1/p2 sides) so resolution stays broad even for
-    players with no usable serve line — they resolve to an id and then fall back
+    players with no usable serve line, they resolve to an id and then fall back
     to the default profile. On the rare name collision, the id that appears most
     often wins (deterministic tie-break: first in that order)."""
     frames = []
@@ -258,8 +258,7 @@ def build_skill_table(
 
     Consumes the output of ``preprocess.preprocess_data`` (needs ``p1_id``/
     ``p2_id``, ``p1_name``/``p2_name``, ``surface``, ``tourney_date`` (datetime),
-    ``score``, ``has_serve_stats`` and the per-player serve columns carried by
-    T0.4). Aggregates per ``(player_id, surface)`` with recency + volume weighting
+    ``score``, ``has_serve_stats`` and the per-player serve columns carried through preprocessing). Aggregates per ``(player_id, surface)`` with recency + volume weighting
     and empirical-Bayes shrinkage toward ``config.SURFACE_MU``.
 
     Args:

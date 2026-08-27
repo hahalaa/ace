@@ -1,4 +1,4 @@
-# Local full-stack run (T5.1): the API and the web app, together, offline.
+# Local full-stack run: the API and the web app, together, offline.
 #
 #     docker compose up --build          # first run; builds both images
 #     open http://localhost:4173
@@ -26,7 +26,7 @@ services:
       # and the fetch runs in the user's browser on the host, so the API has to
       # be reachable at exactly that address from the host.
       - "8000:8000"
-    # No `environment:` and no volumes — the image is self-contained: vendored
+    # No `environment:` and no volumes, the image is self-contained: vendored
     # CSVs, draws, the trained model and the sim cache are all baked in.
     # Healthcheck is inherited from the Dockerfile; `frontend` waits on it.
     restart: unless-stopped
@@ -41,13 +41,13 @@ services:
         # at build time and the minifier constant-folds the lookup away, so the
         # value is frozen when the image is built. An `environment:` entry here
         # would be silently ignored, and `docker compose up` cannot repoint an
-        # already-built image at a different API — that needs a rebuild
-        # (`docker compose build --no-cache frontend`). T4.5 verified this
-        # empirically; ace-04-current-state.md §7 seam 9.
+        # already-built image at a different API, that needs a rebuild
+        # (`docker compose build --no-cache frontend`); ace-04-current-state.md §7
+        # seam 9.
         #
         # The value is the API's address AS THE BROWSER SEES IT. Not
         # `http://api:8000`: that name only resolves inside the compose
-        # network, and nothing inside the network ever makes this call — the
+        # network, and nothing inside the network ever makes this call, the
         # request comes from the user's browser, on the host.
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
     image: ace-frontend:local
@@ -55,7 +55,7 @@ services:
     ports:
       # Host 4173 → nginx :80. 4173 is deliberate, not arbitrary: the browser's
       # Origin is then http://localhost:4173, which is already the third entry
-      # of config.API_ALLOWED_ORIGINS (added by T4.5 for `npm run preview`).
+      # of config.API_ALLOWED_ORIGINS (for `npm run preview`).
       # CORS is an explicit allow-list and never "*", so any other host port
       # needs that list extended and the API restarted.
       - "4173:80"

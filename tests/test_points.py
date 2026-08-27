@@ -1,12 +1,12 @@
-"""Tests for src/sim/points.py — the T1.2 point-win probability model.
+"""Tests for src/sim/points.py, the point-win probability model.
 
-Covers ace-03-tennis-math.md §1 with the T1.9b skill-gap amplification:
+Covers ace-03-tennis-math.md §1 with the skill-gap amplification:
     base = spw_server − rpw_returner + (1 − μ)      # §1
-    P    = μ + γ·(base − μ)                          # T1.9b (γ = config.POINT_GAP_GAMMA)
+    P    = μ + γ·(base − μ)                          # amplified (γ = config.POINT_GAP_GAMMA)
 then clamped to [P_MIN, P_MAX]. Every expected value here is hand-computed. The
 §1-identity, clamp-guard and default-bound tests are γ-invariant (the identity
-holds for any γ, the clamp fires regardless of γ) and are unchanged from T1.2;
-the value-pinning tests were recomputed under the amplified formula for T1.9b.
+holds for any γ, the clamp fires regardless of γ) and are unchanged from the base formula;
+the value-pinning tests were recomputed under the amplified formula.
 """
 import pytest
 
@@ -17,7 +17,7 @@ from sim.points import matchup_point_probs, point_win_prob
 
 def test_average_server_vs_average_returner_returns_mu():
     """§1 sanity check: an average server (spw = μ) against an average returner
-    (rpw = 1 − μ) must return exactly μ — not merely a spot-check near it."""
+    (rpw = 1 − μ) must return exactly μ, not merely a spot-check near it."""
     for mu in (0.6196, 0.6423, 0.6606, 0.55, 0.72):
         p = point_win_prob(
             server_spw=mu,
@@ -32,7 +32,7 @@ def test_average_server_vs_average_returner_returns_mu():
 def test_formula_matches_hand_computed_unclamped():
     """Amplified §1 with an explicit γ, inside the bounds so no clamp fires.
 
-    Recomputed under the T1.9b amplified formula (was pinned to 0.72 at γ=1):
+    Recomputed under the amplified formula (was pinned to 0.72 at γ=1):
       base = 0.66 − 0.30 + (1 − 0.64) = 0.72
       P    = μ + γ·(base − μ) = 0.64 + 1.9·(0.72 − 0.64) = 0.792
     γ is passed explicitly so this value is config-independent.
@@ -45,7 +45,7 @@ def test_gamma_one_recovers_pure_additive_formula():
     """γ = 1 must reproduce the un-amplified §1 value exactly (backward-compat).
 
     Anchors the amplification semantics: γ=1 ⇒ P = base = spw − rpw + (1 − μ),
-    the pre-T1.9b formula. 0.66 − 0.30 + (1 − 0.64) = 0.72.
+    the pre-amplification formula. 0.66 − 0.30 + (1 − 0.64) = 0.72.
     """
     p = point_win_prob(0.66, 0.30, 0.64, p_min=0.0, p_max=1.0, gamma=1.0)
     assert p == pytest.approx(0.72, abs=1e-12)
@@ -54,7 +54,7 @@ def test_gamma_one_recovers_pure_additive_formula():
 def test_strong_server_weak_returner_is_high():
     """A big server facing a poor returner should clear the surface baseline.
 
-    Recomputed under the T1.9b amplified formula with an explicit γ.
+    Recomputed under the amplified formula with an explicit γ.
     """
     mu = config.SURFACE_MU["Grass"]
     gamma = 1.9
@@ -90,8 +90,8 @@ def test_matchup_returns_both_directions():
     """Wrapper computes amplified §1 for each player serving; spw/rpw differ per
     player, so the two directions are genuinely distinct.
 
-    matchup_point_probs does not take a γ argument — it applies the shipped
-    config.POINT_GAP_GAMMA — so the expected values reference that constant
+    matchup_point_probs does not take a γ argument, it applies the shipped
+    config.POINT_GAP_GAMMA, so the expected values reference that constant
     (recomputed under the amplified formula; was the pure base at γ=1).
     """
     mu = config.SURFACE_MU["Hard"]
@@ -118,7 +118,7 @@ def test_matchup_of_two_average_players_is_mu_both_ways():
 
 
 def test_point_gap_gamma_is_pinned_to_calibrated_value():
-    """Regression guard: the T1.9b amplification factor must not drift silently.
+    """Regression guard: the amplification factor must not drift silently.
 
     γ=1.9 was calibrated against scripts/validate_sim.py's hard set-count gate,
     which is run manually (not in CI). Without this pin an accidental edit to

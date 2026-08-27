@@ -3,7 +3,7 @@
  *
  * This screen has the one cinematic moment in the app: the champion reveal. It
  * is the payoff of a played-out run, so it gets the biggest type on any screen
- * and the accent — the ball, on the one player who lifted the trophy. Motion is
+ * and the accent, the ball, on the one player who lifted the trophy. Motion is
  * a single considered entrance on that reveal, gated behind
  * prefers-reduced-motion.
  *
@@ -64,7 +64,7 @@
     translate var(--dur-1) var(--ease-spring);
 }
 
-/* The primary action is the live one — running the simulation — so it carries
+/* The primary action is the live one, running the simulation, so it carries
    the accent as a filled control. Its hover brightens the fill with a filter
    rather than a second hardcoded colour, so it stays correct in both themes
    (optic-yellow in the dark register, trophy-gold in the light one). */
@@ -131,10 +131,10 @@
 }
 
 /* -------------------------------------------------------------------------
- * Champion — the reveal.
+ * Champion, the reveal.
  * ------------------------------------------------------------------------- */
 
-/* One divider, immediately after the reveal — filling the gap the removed
+/* One divider, immediately after the reveal, filling the gap the removed
    disclosure block used to occupy rather than leaving it blank. No
    border-top: nothing above the reveal needs marking off, and a second rule
    there would just recreate the doubled-line problem this replaced. */
@@ -193,7 +193,7 @@
  *
  * The reveal is now staged: the rule-lined panel opens first, then the label,
  * the champion's name (rising a touch further and settling from just under
- * full size — the one place in the app that earns a scale), and finally the
+ * full size, the one place in the app that earns a scale), and finally the
  * meta and scoreline. It is still one considered moment, not a parade; the
  * spring is the shared `--ease-spring`. */
 @media (prefers-reduced-motion: no-preference) {
@@ -245,7 +245,7 @@
 }
 
 /* Provenance note for an uploaded draw: user-submitted, unverified, temporary.
-   Rendered alongside the model disclosure, not in place of it — the same
+   Rendered alongside the model disclosure, not in place of it, the same
    warning the upload form shows, carried onto the shared results screen. */
 .contentNote {
   margin: 0;

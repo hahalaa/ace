@@ -1,14 +1,14 @@
 /**
  * The single-match view: pick two players, a surface and a format, and get a
  * live-simulated win probability with the betting-relevant breakdowns a
- * tournament board cannot show — the set-score distribution and a total-games
+ * tournament board cannot show, the set-score distribution and a total-games
  * (over/under) summary.
  *
  * **This is the featured path, and it simulates live.** `/match/simulate` runs a
  * Monte Carlo for one matchup per request, a deliberate, bounded exception to the
  * cache-only rule for the 128-draw board (a single match is a different cost
  * class). Same players, surface, format and seed return a byte-identical body, so
- * the run is reproducible — which is why the seed lives in the URL (`./match`
+ * the run is reproducible, which is why the seed lives in the URL (`./match`
  * reads and writes it), never in a `useState` that could re-roll on a render.
  * Reloading a shared link replays the same numbers; "Simulate again" picks a new
  * seed and says so in the address bar.
@@ -21,12 +21,12 @@
  * **The disclosure component is shared; its wording here is not.**
  * `MatchMetadata` carries the same required `ModelDisclosure` fields as every
  * other published number, so the same {@link Disclosure} renders a caveat
- * here too — a probability cannot be shown without it. The compact line's
+ * here too, a probability cannot be shown without it. The compact line's
  * text is overridden with {@link SINGLE_MATCH_DISCLAIMER} rather than the
  * server's `metadata.classifier_limitation`: the wire field
  * (`MATCH_CLASSIFIER_LIMITATION` in `api/schemas.py`) is already
  * single-match-specific, not shared with `/simulate` or `/storybook`, so this
- * override only changes what the browser renders — the response body, and
+ * override only changes what the browser renders, the response body, and
  * any non-browser consumer reading it, are untouched.
  */
 
@@ -57,7 +57,7 @@ const SINGLE_MATCH_DISCLAIMER =
   'Disclaimer: this is a model estimate for a hypothetical matchup, not a betting tip.';
 
 // --------------------------------------------------------------------------
-// Player picker — an accessible combobox over /players.
+// Player picker, an accessible combobox over /players.
 // --------------------------------------------------------------------------
 
 interface PlayerPickerProps {
@@ -203,7 +203,7 @@ function PlayerPicker({ label, value, onChange }: PlayerPickerProps) {
         </ul>
       )}
       {/* Always rendered so the picker's height never changes when the status
-          appears or clears — an empty line reserves the same space, keeping the
+          appears or clears, an empty line reserves the same space, keeping the
           two side-by-side pickers aligned. `aria-hidden` while empty so screen
           readers announce only the real "Searching…" status. */}
       <p

@@ -1,0 +1,202 @@
+/*
+ * Rankings board styles, the same editorial-index treatment as the odds table
+ * (monospace tabular figures, hairline rules, a lit leading row), plus a tab row
+ * for the track and a toggle for inactive players. Tokens come from src/index.css.
+ */
+
+.rankings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: left;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .head {
+    animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.06s;
+  }
+
+  .tableWrap {
+    animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
+    animation-delay: 0.13s;
+  }
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.title {
+  font-size: clamp(2rem, 5.5vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  color: var(--ink);
+  margin: 0;
+}
+
+.note {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  margin: 0;
+}
+
+/* -------------------------------------------------------------------------
+ * Controls: track tabs + the inactive toggle.
+ * ------------------------------------------------------------------------- */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tab {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md, 8px);
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  transition:
+    color var(--dur-1) var(--ease-out),
+    border-color var(--dur-1) var(--ease-out),
+    background-color var(--dur-1) var(--ease-out);
+}
+
+.tab:hover {
+  color: var(--ink);
+  border-color: var(--line-strong, var(--ink-dim));
+}
+
+.tab[aria-selected='true'] {
+  color: var(--ball);
+  border-color: var(--ball);
+  background: var(--ball-soft);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--ball);
+  outline-offset: 2px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--ink-mid);
+  cursor: pointer;
+}
+
+.toggle input {
+  accent-color: var(--ball);
+}
+
+/* -------------------------------------------------------------------------
+ * The table.
+ * ------------------------------------------------------------------------- */
+
+.tableWrap {
+  overflow-x: auto;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raise);
+  box-shadow: var(--shadow-1);
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.table th,
+.table td {
+  padding: 0.6rem 1rem;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-sink);
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.table thead th.numeric {
+  text-align: right;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* The top-rated shown player is the one lit row. */
+.table tbody tr:first-child td {
+  background: var(--ball-soft);
+}
+
+.table tbody tr:first-child td[data-cell='rating'] {
+  color: var(--ball);
+  font-weight: 600;
+}
+
+.table tbody tr:hover td {
+  background: var(--bg-sink);
+}
+
+/* Inactive rows are dimmed so a stale peak reads as stale even when shown. */
+.table tbody tr[data-active='false'] td {
+  color: var(--ink-dim);
+}
+
+.numeric {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-mid);
+}
+
+.table tbody td.numeric[data-cell='rating'] {
+  color: var(--ink);
+}
+
+.tag {
+  margin-left: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+}

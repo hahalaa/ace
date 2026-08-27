@@ -1,13 +1,13 @@
-"""Tests for cli/simulate_tournament.py (T2.5) — the tournament simulation CLI.
+"""Tests for cli/simulate_tournament.py, the tournament simulation CLI.
 
 Covers the ticket's acceptance + testing criteria:
   * Smoke tests for both modes that call the *underlying* functions
     (``run_monte_carlo`` / ``run_storybook``), not the argument-parsing entry
-    point, against a fixture skill table + a stub classifier — no vendored
-    dataset and no pickled model, the same standard as T1.10's tests.
+    point, against a fixture skill table + a stub classifier, no vendored
+    dataset and no pickled model, the same standard as the match CLI's tests.
   * Missing and malformed draw files produce a helpful, specific message rather
-    than a raw exception — including a draw that validates but cannot be
-    simulated (placeholder entrants, T2.2's refusal).
+    than a raw exception, including a draw that validates but cannot be
+    simulated (placeholder entrants, the simulator's refusal).
   * Storybook determinism: the same seed replays the same tournament.
   * The Monte Carlo table is sorted by title probability and carries the
     documented columns.
@@ -30,7 +30,7 @@ import config
 from features.serve import PlayerSkill, SkillTable
 from sim.draw import parse_draw
 
-# Eight toy entrants, strongest first — mirrors tests/test_tournament.py.
+# Eight toy entrants, strongest first, mirrors tests/test_tournament.py.
 TOY_PLAYERS = {
     "Alice Ace": "A1",
     "Bob Baseline": "B2",
@@ -205,7 +205,7 @@ def test_table_columns_and_ordering(draw, ctx):
 
     header = next(line for line in lines if line.lstrip().startswith("#"))
     assert header.split() == ["#", "Seed", "Player", "SF", "F", "Title", "E[W]"]
-    # QF is the first round of an 8-draw — 100% for everyone, so it is omitted.
+    # QF is the first round of an 8-draw, 100% for everyone, so it is omitted.
     assert "QF" not in header
 
     # Rows are the sorted players, rank-numbered, percentages to 1dp.
@@ -223,7 +223,7 @@ def test_table_cells_transcribe_the_raw_outcome(draw, ctx):
     """Every cell equals the PlayerOutcome field its column claims to show.
 
     Checked cell by cell at fixed offsets, because the failure this guards
-    against is a *miscolumn* — a table that renders plausible percentages in
+    against is a *miscolumn*, a table that renders plausible percentages in
     the wrong columns (survival columns showing the title probability, say)
     passes every header/ordering assertion while being wrong in every row.
     """
@@ -231,7 +231,7 @@ def test_table_cells_transcribe_the_raw_outcome(draw, ctx):
     survival_labels = result.round_labels[1:]
     rows = table_rows(ST.format_montecarlo_table(result, top_n=8))
 
-    # The first-round column is omitted precisely because it is redundant —
+    # The first-round column is omitted precisely because it is redundant,
     # assert that redundancy rather than assuming it.
     first = result.round_labels[0]
     assert all(player.p_reach(first) == 1.0 for player in result.players)
@@ -246,7 +246,7 @@ def test_table_cells_transcribe_the_raw_outcome(draw, ctx):
         assert cells[4] == f"{player.p_title:.1%}"
         assert cells[5] == f"{player.expected_rounds_won:.2f}"
 
-    # And the survival columns are genuinely distinct from the title column —
+    # And the survival columns are genuinely distinct from the title column,
     # otherwise the assertions above could hold for the wrong reason.
     top = result.players[0]
     assert any(top.p_reach(label) != top.p_title for label in survival_labels)
@@ -272,7 +272,7 @@ def test_table_top_n_and_footer(draw, ctx):
 
 
 # --------------------------------------------------------------------------- #
-# Determinism (T2.4's guarantee, surfaced through the CLI).
+# Determinism (the storybook run's guarantee, surfaced through the CLI).
 # --------------------------------------------------------------------------- #
 def test_storybook_same_seed_reproduces_the_tournament(draw, ctx):
     first = ST.render_storybook(ST.run_storybook(draw, ctx, seed=42))
@@ -291,7 +291,7 @@ def test_storybook_different_seeds_diverge(draw, ctx):
 
 
 def test_monte_carlo_same_seed_reproduces_counts(draw, ctx):
-    """Identical counts, compared per player — not merely "it ran twice"."""
+    """Identical counts, compared per player, not merely "it ran twice"."""
     first = ST.run_monte_carlo(draw, ctx, n_runs=50, seed=11)
     second = ST.run_monte_carlo(draw, ctx, n_runs=50, seed=11)
 

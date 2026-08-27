@@ -148,7 +148,7 @@ describe('results', () => {
       'Disclaimer: this is a model estimate for a hypothetical matchup, not a betting tip.',
     );
     expect(caveat).toBeTruthy();
-    // The override changes only what the browser renders — the field this
+    // The override changes only what the browser renders, the field this
     // page reads off `result.metadata` is untouched.
     expect(RESULT.metadata.classifier_limitation).toBe(
       'A model estimate for a hypothetical matchup, not a betting tip.',
@@ -181,7 +181,7 @@ describe('loading state', () => {
 
       expect(screen.getByText(/Simulating/)).toBeTruthy();
 
-      // No wording about servers, sleeping, or waking up — at any point.
+      // No wording about servers, sleeping, or waking up, at any point.
       act(() => {
         vi.advanceTimersByTime(10000);
       });

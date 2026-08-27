@@ -1,5 +1,5 @@
 {
-  "note": "TEST FIXTURE (T3.2) — a valid 8-slot draw that contains placeholder entrants. It loads, so it is listed and its bracket is served; simulate_bracket (T2.2) would refuse it.",
+  "note": "TEST FIXTURE: a valid 8-slot draw that contains placeholder entrants. It loads, so it is listed and its bracket is served; simulate_bracket would refuse it.",
   "tournament_id": "qualifier_open_2026",
   "name": "Qualifier Open 2026",
   "surface": "Hard",

@@ -1,9 +1,9 @@
-"""UI-free player-name resolver shared by the CLI, simulator, and API (T0.6).
+"""UI-free player-name resolver shared by the CLI, simulator, and API.
 
 The matching logic used to live in ``cli/interactive.py`` as
 ``resolve_player_name``. It returned a *name* and *printed* on ambiguity, which
 would have forced ``sim/``, ``sim/draw.py``, and ``api/`` to import from
-``cli/`` — the layering inversion ``ace-01-architecture.md`` (principle #2)
+``cli/``, the layering inversion ``ace-01-architecture.md`` (principle #2)
 forbids. This module holds the pure matching core: it **never prints**, has no
 ``cli``/``sim``/``api`` imports, and returns ambiguity as data (candidates on a
 ``NameMatch``) so each caller decides how to surface it.
@@ -12,12 +12,12 @@ The four matching strategies and their order are preserved exactly from the
 original CLI resolver:
 
   1. exact (case-insensitive)
-  2. initials — ``"F. Lastname"`` / ``"F Lastname"``
+  2. initials, ``"F. Lastname"`` / ``"F Lastname"``
   3. substring / prefix (input contained in a known name)
   4. ``difflib`` fuzzy fallback (cutoff ``config.FUZZY_MATCH_CUTOFF``)
 
 The resolver is **id-agnostic**: a ``NameIndex`` wraps either a plain list of
-names (the CLI baseline) or a name→id mapping (the T1.1 skill table / T2.1 draw
+names (the CLI baseline) or a name→id mapping (the skill table / draw
 loader). ``player_id`` on the result is ``None`` when the index carries no ids.
 See the contract in ``ace-04-current-state.md §3``.
 """
@@ -51,7 +51,7 @@ class NameMatch:
 
     Attributes:
         player_id: Canonical id when the index carries one for ``name``;
-            ``None`` for a name-only index (pre-T1.1) or when ambiguous.
+            ``None`` for a name-only index or when ambiguous.
         name: The resolved canonical display name; empty string when ambiguous.
         candidates: Populated (``len > 1``) only when the query was ambiguous;
             empty on a unique match.
@@ -72,7 +72,7 @@ class NameMatch:
 class NameIndex:
     """A resolvable set of player names, optionally keyed to ids.
 
-    Build with :meth:`from_names` (CLI baseline — ids resolve to ``None``) or
+    Build with :meth:`from_names` (CLI baseline, ids resolve to ``None``) or
     :meth:`from_mapping` (name→id, for the skill table / draw loader). The
     original name ordering is preserved so matching iterates in the same order
     the old list-based resolver did.
@@ -140,7 +140,7 @@ def resolve_name(query: str, index: NameIndex) -> NameMatch | None:
     elif len(initial_matches) > 1:
         return _ambiguous(initial_matches, MatchStrategy.INITIALS)
 
-    # 3. Substring/Prefix match — every known name containing the input.
+    # 3. Substring/Prefix match, every known name containing the input.
     substring_matches = [name for name in all_names if norm_input in name.lower()]
 
     if len(substring_matches) == 1:

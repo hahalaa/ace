@@ -2,15 +2,15 @@
  * Global tokens and base type for Ace.
  *
  * Design identity: high-contrast dark editorial. One monochrome base, one
- * accent — optic-yellow, the colour of the ball — spent only where it means
+ * accent, optic-yellow, the colour of the ball, spent only where it means
  * something (the live action, the projected champion, the current view). The
  * type does the work: a heavy display face for names, a monospace for every
  * number and label, wide-tracked uppercase micro-labels for structure, and a
  * lot of empty space around all of it.
  *
  * **Two registers of one identity.** The default is the dark theme above:
- * near-black ground, optic-yellow ball. A second, light register — set by
- * `data-theme="light"` on <html> — keeps the same type, the same layout, the
+ * near-black ground, optic-yellow ball. A second, light register, set by
+ * `data-theme="light"` on <html>, keeps the same type, the same layout, the
  * same "spend the accent once" discipline, and only swaps the palette into a
  * Wimbledon register: cream ground, deep court-green ink, a muted trophy-gold
  * accent standing in for the ball. Both are defined here as flat token sets so
@@ -20,14 +20,14 @@
  * only under `:root[data-theme="light"]`.
  *
  * **Theme is deliberately NOT URL state.** `?view=/?tournament=/?seed=` exist so
- * a simulation is shareable — a link must reproduce the same draw and seed for
+ * a simulation is shareable, a link must reproduce the same draw and seed for
  * whoever opens it, regardless of their own display preference. Theme is a
  * per-viewer preference, not part of the thing being shared, so it lives in
  * localStorage (see src/theme.ts), defaulting to the OS `prefers-color-scheme`
  * on first visit. An inline script in index.html applies it before first paint
  * so there is no flash of the wrong ground.
  *
- * No web fonts — the system stack keeps the bundle self-contained, and weight +
+ * No web fonts, the system stack keeps the bundle self-contained, and weight +
  * scale + tracking carry the editorial feel without a download.
  */
 
@@ -40,7 +40,7 @@
   --line-soft: #1a1a1d;
 
   /* Ink. */
-  /* Contrast on --bg: ink 18:1, ink-mid 7.9:1, ink-dim ~5.3:1 — all clear
+  /* Contrast on --bg: ink 18:1, ink-mid 7.9:1, ink-dim ~5.3:1, all clear
      WCAG AA (4.5:1) for the small mono labels ink-dim carries. */
   --ink: #f4f4f0;
   --ink-mid: #a4a4a8;
@@ -59,17 +59,17 @@
 
   /* One rhythm step, referenced widely so spacing stays on a grid. A fuller
      named scale (--space-3xs … --space-xl) was drafted in this pass but nothing
-     adopted it — components space themselves with `--gap`, local rems and
-     `clamp()` — so it is left out rather than shipped as dead tokens. Reintroduce
+     adopted it, components space themselves with `--gap`, local rems and
+     `clamp()`, so it is left out rather than shipped as dead tokens. Reintroduce
      it as a set only alongside the work that actually migrates onto it. */
   --gap: 1.5rem;
 
   /* A deliberate two-step radius scale, applied by the role of the surface, not
-     ad hoc: `--radius` (tight) is for small controls and dense, repeated cells —
+     ad hoc: `--radius` (tight) is for small controls and dense, repeated cells,
      inputs, buttons, the theme toggle, and the bracket's match cards, of which a
      128 draw shows dozens at once and a soft corner would read as bloat.
      `--radius-lg` (soft) is for the large standalone panels a screen is built
-     around — the dashboard cards, the odds table, the match/breakdown blocks,
+     around, the dashboard cards, the odds table, the match/breakdown blocks,
      the upload dropzone and result. matchSim uses both on purpose: its panel is
      `--radius-lg`, the inputs inside it `--radius`. */
   --radius: 4px;
@@ -80,7 +80,7 @@
    * app pulls from the same physical vocabulary instead of a scattered handful
    * of `0.18s ease`. `--ease-spring` is the settle the champion reveal already
    * used, promoted to a token; `--ease-out` is the quicker curve for state
-   * changes (hover, focus). Nothing here runs unless the viewer allows motion —
+   * changes (hover, focus). Nothing here runs unless the viewer allows motion,
    * every `animation`/`transition` that uses these lives inside a
    * `prefers-reduced-motion: no-preference` guard.
    */
@@ -97,7 +97,7 @@
    * module) stylesheet while the screens that play it live in `.module.css`
    * files. CSS Modules scopes each module in isolation and rewrites a bare
    * `animation: rise` into a hashed, per-file local name (`_rise_ab12_1`) that
-   * never matches this global definition — so the animation silently no-ops.
+   * never matches this global definition, so the animation silently no-ops.
    * `:global(rise)` in a value is the documented escape hatch, but this Vite/
    * rolldown PostCSS parser rejects it ("Double colon"). Publishing the name as
    * a token sidesteps the whole problem: CSS Modules never localises the inside
@@ -107,8 +107,8 @@
   --kf-rise: rise;
 
   /*
-   * Elevation. A tinted shadow — carrying the ground's own near-black, never a
-   * flat rgba(0,0,0) — so a raised surface reads as belonging to this room
+   * Elevation. A tinted shadow, carrying the ground's own near-black, never a
+   * flat rgba(0,0,0), so a raised surface reads as belonging to this room
    * rather than floating on a generic drop shadow. Editorial flatness stays the
    * rule; these are a whisper, spent only where a surface genuinely lifts (a
    * card under the cursor, a floating menu). Light mode re-tints them warm.
@@ -133,9 +133,9 @@
 }
 
 /*
- * Light register — the Wimbledon palette. Same token names, same roles; only
+ * Light register, the Wimbledon palette. Same token names, same roles; only
  * the values change, so no component below this file is theme-aware. One fixed
- * identity regardless of the tournament's surface — the dark theme spends its
+ * identity regardless of the tournament's surface, the dark theme spends its
  * one accent identically on Hard, Clay and Grass (data-surface marks the
  * current column but never recolours the accent), so light mode matches that:
  * a single cream/green/gold identity, not a per-surface family.
@@ -145,18 +145,18 @@
  * cream, on the sunken header, and on its own soft wash (the champion row).
  * Ratios are recorded in the light-mode report. The hairlines (--line /
  * --line-soft) are decorative editorial rules, not UI boundaries, and are held
- * to the same barely-there weight the dark theme uses — a touch more present
+ * to the same barely-there weight the dark theme uses, a touch more present
  * here, never a hard box.
  */
 :root[data-theme='light'] {
-  /* Ground and structure — warm cream, elevated near-white, recessed sink. */
+  /* Ground and structure, warm cream, elevated near-white, recessed sink. */
   --bg: #f2efe4;
   --bg-raise: #fbfaf3;
   --bg-sink: #e7e2d3;
   --line: #cbc4af;
   --line-soft: #ded8c7;
 
-  /* Ink — deep court green through muted green-greys.
+  /* Ink, deep court green through muted green-greys.
      Contrast on --bg: ink 12.3:1, ink-mid 7.0:1, ink-dim 5.2:1. */
   --ink: #173021;
   --ink-mid: #42544a;
@@ -170,7 +170,7 @@
   --ball-soft: rgba(114, 88, 16, 0.13);
   --ball-line: rgba(114, 88, 16, 0.42);
 
-  /* Shadows re-tinted onto the warm ground and lightened hard — on cream a
+  /* Shadows re-tinted onto the warm ground and lightened hard, on cream a
      near-black drop shadow reads as grime, so these carry the deep court green
      at low opacity and stay soft. */
   --shadow-1: 0 1px 2px rgba(23, 48, 33, 0.1);
@@ -195,15 +195,15 @@ body {
 
 /*
  * Shared entrance choreography. Navigation in this app is a full document load
- * (every view is a real URL — see App.tsx), so "on mount" and "on load" are the
+ * (every view is a real URL, see App.tsx), so "on mount" and "on load" are the
  * same instant: a screen can stage its own arrival in pure CSS with no scroll
- * observer. `rise` is the one motion primitive — a short lift and fade the
+ * observer. `rise` is the one motion primitive, a short lift and fade the
  * screens below reuse, staggering their own sections with `animation-delay`.
  *
  * It is defined once, globally, and every use sits behind the reduced-motion
  * guard below. The default (no animation) leaves content fully visible, so a
  * viewer who asked for less motion, or a browser mid-parse, never sees a blank
- * screen — the same fail-safe pattern the champion reveal has always used.
+ * screen, the same fail-safe pattern the champion reveal has always used.
  */
 @keyframes rise {
   from {
@@ -288,7 +288,7 @@ body {
   border-radius: 2px;
 }
 
-/* The ball: the accent tied to the one real thing it stands for — a tennis
+/* The ball: the accent tied to the one real thing it stands for, a tennis
    ball with two real seams, not a bare dot. The seam uses --ball-ink (the
    colour defined to contrast with the ball's fill), so it reads dark on the
    dark theme's optic-yellow ball and light on the light theme's trophy-gold
@@ -323,7 +323,7 @@ body {
 .ballMark .ballSeam {
   fill: none;
   stroke: var(--ball-ink);
-  /* 1.9 user units over a 24-unit viewBox ≈ 1.2px at the true render size —
+  /* 1.9 user units over a 24-unit viewBox ≈ 1.2px at the true render size,
      bold enough to hold the seams at ~15px, thin enough to keep the centre
      gap between the two arcs open. */
   stroke-width: 1.9;
@@ -340,7 +340,7 @@ body {
   translate: 0 0.15em;
 }
 
-/* Links, not buttons — every view is a real URL (see App.tsx), so these
+/* Links, not buttons, every view is a real URL (see App.tsx), so these
    navigate rather than toggle state. Styled as editorial index links. */
 .viewNav {
   display: flex;
@@ -362,7 +362,7 @@ body {
 
 /* One underline rule for every link: a bar that grows from the left. It is
    neutral on hover (a quiet acknowledgement, not the accent) and only turns to
-   the ball on the current view — so the header still has exactly one lit
+   the ball on the current view, so the header still has exactly one lit
    marker, but the marker now slides into place instead of snapping. */
 .viewNav a::after {
   content: '';
@@ -409,7 +409,7 @@ body {
 
 /* --------------------------------------------------------------------------
  * Tournament sub-nav: the second tier, shown only inside the tournament
- * branch. A quieter row than the masthead — it switches view within a draw,
+ * branch. A quieter row than the masthead, it switches view within a draw,
  * not the branch. Sits just under the masthead.
  * ------------------------------------------------------------------------ */
 .tournamentNav {
@@ -480,7 +480,7 @@ body {
  * Shared type primitives.
  * ------------------------------------------------------------------------ */
 
-/* The display headline each screen leads with — a tournament or a champion. */
+/* The display headline each screen leads with, a tournament or a champion. */
 .displayTitle {
   font-size: clamp(2rem, 6vw, 3.75rem);
   font-weight: 800;

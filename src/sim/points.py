@@ -1,14 +1,14 @@
 """Opponent-adjusted point-win probability (``ace-03-tennis-math.md §1``).
 
 Turns two players' serve/return skill on a surface into the probability the
-**server** wins a single point on their own serve — the one number every layer
+**server** wins a single point on their own serve, the one number every layer
 of the simulator (games, sets, tiebreaks, matches) is built on.
 
 This module is **pure**: deterministic numeric transformations only, no pandas,
-no file/network I/O, and — because §1 is not stochastic — no RNG. It consumes the
-T1.1 :class:`~features.serve.PlayerSkill` rates and the surface baseline ``μ``;
-it does not compute or store those (that is T1.1). See the layering rule in
-``CLAUDE.md`` and the purity requirement in ``ace-01-architecture.md``.
+no file/network I/O, and, because §1 is not stochastic, no RNG. It consumes
+:class:`~features.serve.PlayerSkill` rates and the surface baseline ``μ`` from
+the skill table; it does not compute or store those. See the purity requirement
+in ``ace-01-architecture.md``.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ def point_win_prob(
 ) -> float:
     """Probability the server wins a point on serve, clamped to ``[p_min, p_max]``.
 
-    Implements ``ace-03-tennis-math.md §1`` with the T1.9b skill-gap
+    Implements ``ace-03-tennis-math.md §1`` with a skill-gap
     amplification::
 
         base = spw_server − rpw_returner + (1 − μ)       # §1
@@ -35,11 +35,11 @@ def point_win_prob(
 
     Baseline is ``μ``; §1 adds the server's serve-skill deviation (``spw − μ``)
     and subtracts the returner's return-skill deviation (``rpw − (1 − μ)``),
-    which reduces to ``base``. T1.9b then scales ``base``'s deviation from ``μ``
-    by ``γ`` (``config.POINT_GAP_GAMMA``): the §1 additive model compresses real
-    skill gaps (mean ``|pA−pB| ≈ 0.05`` vs the ≈0.10 needed to match historical
-    Slam set-count distributions — see T1.9), and a constant-``p`` match model
-    under-produces dominance without it. ``γ = 1`` recovers pure §1.
+    which reduces to ``base``. ``γ`` (``config.POINT_GAP_GAMMA``) then scales
+    ``base``'s deviation from ``μ``: the §1 additive model compresses real skill
+    gaps (mean ``|pA−pB| ≈ 0.05`` vs the ≈0.10 needed to match historical Slam
+    set-count distributions), and a constant-``p`` match model under-produces
+    dominance without it. ``γ = 1`` recovers pure §1.
 
     The §1 sanity identity is preserved for **any** ``γ``: an average server
     (``spw = μ``) facing an average returner (``rpw = 1 − μ``) has ``base = μ``,
@@ -61,7 +61,7 @@ def point_win_prob(
     if gamma is None:
         gamma = config.POINT_GAP_GAMMA
     base = server_spw - returner_rpw + (1.0 - mu_surface)  # §1
-    p = mu_surface + gamma * (base - mu_surface)  # T1.9b: amplify deviation from μ
+    p = mu_surface + gamma * (base - mu_surface)  # amplify deviation from μ
     # Clamp to guard against noisy/small-sample skill estimates producing
     # degenerate (near-certain hold/break) points. §1.
     return min(max(p, p_min), p_max)
@@ -76,7 +76,7 @@ def matchup_point_probs(
 ) -> tuple[float, float]:
     """Both servers' point-win probabilities for a matchup on one surface.
 
-    §1 must be computed **twice per match** — once with each player serving —
+    §1 must be computed **twice per match**, once with each player serving,
     because the two players' serve/return profiles differ. Returns the pair in
     ``(A serving, B serving)`` order.
 

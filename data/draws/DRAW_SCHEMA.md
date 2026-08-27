@@ -2,22 +2,22 @@
 
 The thing to reach for when **hand-authoring or uploading your own tournament
 draw**. Every constraint below is enforced by the real validator in
-`src/sim/draw.py` (`parse_draw` / `load_draw`, T2.1); the allowed value sets are
+`src/sim/draw.py` (`parse_draw` / `load_draw`); the allowed value sets are
 owned by `src/config.py`, so this page names them but `config.py` is the source
 of truth. A test (`tests/test_draw_schema_doc.py`) fails if this document and
 `config` ever disagree.
 
-Two paths consume a draw file, and they validate it **identically** — the same
-`parse_draw`:
+Two paths consume a draw file, and they validate it **identically**, through the
+same `parse_draw`:
 
-- **Curated draw** — a file committed under `data/draws/`, loaded by
+- **Curated draw**: a file committed under `data/draws/`, loaded by
   `load_draw(path, skill_table)`. This is how the two example draws ship.
-- **Upload** — the same JSON `POST`ed to the draw-upload endpoint, held only in
+- **Upload**: the same JSON `POST`ed to the draw-upload endpoint, held only in
   memory. The upload path reads **one extra field** (`event_date`, below) that
   `parse_draw` itself ignores.
 
 Validation is **fail-loudly-but-complete**: every problem in a file is collected
-and reported together in a single `DrawValidationError`, not one-at-a-time — so a
+and reported together in a single `DrawValidationError`, not one-at-a-time, so a
 128-draw with ten unresolved names is fixed in one pass, not ten.
 
 ---
@@ -37,14 +37,14 @@ A draw file is a single JSON object. These eight fields are **required**
 | `final_set_tiebreak` | string | Yes | One of `config.VALID_FINAL_SET_TIEBREAKS`: **`"7pt_at_6_6"`, `"10pt_at_6_6"`, `"advantage"`**. Derived from the match layer's `FINAL_SET_TB_TARGET`, so it can't drift from what `sim/match.py` actually plays. |
 | `draw_size` | integer | Yes | One of `config.VALID_DRAW_SIZES`: **`8`, `16`, `32`, `64`, `128`** (a power of two, so the bracket halves cleanly each round). |
 | `seeds` | object | Yes | Map of entrant **name → seed number**. Each value a **positive integer** (`≥ 1`). Every seeded name **must appear in `bracket`**. May be empty (`{}`). Only seeded players are listed. |
-| `bracket` | array | Yes | List of **slot objects** (next section). Its length **must equal `draw_size`**, and its `position`s must be exactly the contiguous range `1..draw_size` — no gaps, no duplicates, none out of range. |
+| `bracket` | array | Yes | List of **slot objects** (next section). Its length **must equal `draw_size`**, and its `position`s must be exactly the contiguous range `1..draw_size`: no gaps, no duplicates, none out of range. |
 
 ### `final_set_tiebreak` values, in plain terms
 
 | Value | Deciding set is won by… | `FINAL_SET_TB_TARGET` |
 |---|---|---|
 | `"7pt_at_6_6"` | first to 7 points (win by 2) in a tiebreak at 6–6 | `7` |
-| `"10pt_at_6_6"` | first to 10 points (win by 2) in a tiebreak at 6–6 — current Slam standard | `10` |
+| `"10pt_at_6_6"` | first to 10 points (win by 2) in a tiebreak at 6–6, current Slam standard | `10` |
 | `"advantage"` | no tiebreak; keep playing until a player leads by two games | `None` |
 
 ---
@@ -52,7 +52,7 @@ A draw file is a single JSON object. These eight fields are **required**
 ## Slot fields (`bracket[i]`)
 
 Each entry in `bracket` is a JSON object. You author **two** fields; the loader
-**derives** two more onto the in-memory `DrawSlot` — those derived fields are
+**derives** two more onto the in-memory `DrawSlot`; those derived fields are
 **not** written in the file.
 
 **You write:**
@@ -62,11 +62,11 @@ Each entry in `bracket` is a JSON object. You author **two** fields; the loader
 | `position` | integer | Yes | 1-based slot number. Slots `2k-1` and `2k` meet in round 1 (positions 1 v 2, 3 v 4, …). Across the bracket the set of positions must be exactly `1..draw_size`. |
 | `player` | string | Yes | Non-empty (after trimming). A real player's **display name** (resolved to a skill-table `player_id`) **or** a placeholder token (see below). Unknown keys inside a slot are ignored. |
 
-**The loader derives (read-only, on the `DrawSlot` dataclass — never in JSON):**
+**The loader derives (read-only, on the `DrawSlot` dataclass, never in JSON):**
 
 | Field | Type | Meaning |
 |---|---|---|
-| `is_placeholder` | bool | `True` when `player` names a slot rather than a person — see below. |
+| `is_placeholder` | bool | `True` when `player` names a slot rather than a person (see below). |
 | `player_id` | string \| null | The resolved skill-table id. `null` for placeholders (and a real name that fails to resolve is a **validation error**, not a `null`). |
 
 ### Placeholder entrants
@@ -83,10 +83,10 @@ A `/`-joined entrant (`"Qualifier/Lucky Loser"`) counts as a placeholder **only
 when every part is** a placeholder token.
 
 > **A draw containing any placeholder cannot be simulated.**
-> `simulate_bracket` (T2.2) refuses it, because a placeholder slot has no
+> `simulate_bracket` refuses it, because a placeholder slot has no
 > `player_id` and no classifier-visible history, so no reconciled match-win
-> probability exists for it. A fully-simulable draw — like
-> `ausopen_2026_atp_full.json` — has **zero** placeholders. This is deliberate,
+> probability exists for it. A fully-simulable draw, like
+> `ausopen_2026_atp_full.json`, has **zero** placeholders. This is deliberate,
 > not a bug to work around.
 
 ### Name resolution
@@ -104,7 +104,7 @@ skill table was built from.
 
 `parse_draw` **ignores any key it doesn't recognise**, at the top level and
 inside each slot. That is what lets a file carry provenance without breaking
-validation — the shipped draws use `note` and `source` this way.
+validation: the shipped draws use `note` and `source` this way.
 
 One ignored-by-`parse_draw` key is meaningful to the **upload path only**:
 

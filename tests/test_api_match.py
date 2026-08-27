@@ -3,8 +3,8 @@
 Like ``test_api_storybook.py``, this never loads the vendored data: the app is
 given a fixture ``ApiContext`` (a real toy skill table over unusable data) and a
 deterministic stub ``ClassifierProb`` through ``create_app``'s injection seams,
-so the endpoint's own logic — resolution, aggregation, disclosure, rate limiting
-— is what is under test.
+so the endpoint's own logic, resolution, aggregation, disclosure, rate limiting
+is what is under test.
 """
 
 from __future__ import annotations
@@ -186,7 +186,7 @@ def test_response_body_has_exactly_the_declared_keys(client):
 
 
 # --------------------------------------------------------------------------- #
-# Player resolution failures — 422, never a silent default
+# Player resolution failures, 422, never a silent default
 # --------------------------------------------------------------------------- #
 def test_unknown_player_is_422(client):
     r = client.post("/match/simulate", json=_body(player_a="Zzz Nobody"))
@@ -206,7 +206,7 @@ def test_ambiguous_player_is_422_with_candidates(client):
 
 
 # --------------------------------------------------------------------------- #
-# Request validation — closed value domains
+# Request validation, closed value domains
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("bad", [{"surface": "Carpet"}, {"best_of": 4}, {"seed": -1}])
 def test_invalid_request_is_422(client, bad):

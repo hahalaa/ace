@@ -110,7 +110,7 @@ describe('currentTheme', () => {
     // not stamp the attribute (it was CSP-blocked on the deployed site), the CSS
     // paints the bare-:root DARK default regardless of any stored preference. The
     // toggle's state must match those pixels, so currentTheme() returns DEFAULT
-    // here — it must NOT trust localStorage, or it would claim a theme the page
+    // here, it must NOT trust localStorage, or it would claim a theme the page
     // is not showing. The old code read resolveTheme() here and returned 'light',
     // producing a label that disagreed with the dark page.
     stubSystem(true); // OS prefers light...

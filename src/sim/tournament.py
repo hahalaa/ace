@@ -1,25 +1,22 @@
-"""Bracket simulation (T2.2), the Monte Carlo runner (T2.3), storybook (T2.4).
+"""Bracket simulation, the Monte Carlo runner, and the storybook run.
 
 Plays one full tournament: pair the current round's entrants, simulate every
 match, advance the winners, repeat until one player is left. The entry point is
 :func:`simulate_bracket`, which serves two callers with very different speed
 needs through one flag:
 
-* ``outcome_only=False`` (default — storybook T2.4, one-off/manual runs): every
+* ``outcome_only=False`` (default, storybook, one-off/manual runs): every
   match is a real point-by-point simulation via
   :func:`~sim.reconcile.simulate_reconciled_match`, so each result carries a
   full scoreline (``6-4 3-6 7-6(5) 6-2``).
-* ``outcome_only=True`` (Monte Carlo T2.3): every match is **one Bernoulli
+* ``outcome_only=True`` (Monte Carlo): every match is **one Bernoulli
   draw** against the reconciled analytic match-win probability. No point, game,
   set or tiebreak is simulated and ``scoreline`` is ``None``.
 
-**What "reconciled" means here, and why it is the same in both modes (T2.2
-decision).** The ticket calls the ``outcome_only=True`` probability "the
-reconciled analytic match-win probability
-(``sim/reconcile.py``'s ``match_win_prob_point``)", but those are two different
-things: ``match_win_prob_point`` alone is the raw ``§2``–``§4`` composition of
+**What "reconciled" means here, and why it is the same in both modes.**
+``match_win_prob_point`` alone is the raw ``§2``–``§4`` composition of
 the point model, with no classifier input at all. The *reconciled* probability
-is what :func:`~sim.reconcile.simulate_reconciled_match` computes internally —
+is what :func:`~sim.reconcile.simulate_reconciled_match` computes internally,
 ``P_clf`` from the classifier, fused with the point model per
 ``config.RECONCILE_MODE``, then realised through the serve shift ``δ``. This
 module implements the **reconciled** reading:
@@ -37,73 +34,64 @@ that the analytic composition averages over who serves first while the
 point-by-point path pins it (see the serve-first convention below); that is the
 same fraction-of-a-percent effect ``match_win_prob_point`` already documents.
 
-**Performance — why ``prob_cache`` exists (measured, not assumed).** The
+**Performance, why ``prob_cache`` exists (measured, not assumed).** The
 expensive part of a reconciled probability is not the classifier, it is the
 bisection in :func:`~sim.reconcile.solve_delta`: ~3.2 ms versus ~0.2 ms for a
 single :func:`~sim.reconcile.match_win_prob_point`, on this dev machine. A
 128-draw × 5,000-run Monte Carlo pass is ~635,000 match evaluations ≈ **40
-minutes** if each one re-solves δ — 40–80× over T2.3's budget — no matter how
-well the caller memoises the classifier. But a reconciled probability is a
+minutes** if each one re-solves δ, far over the performance budget, no matter
+how well the caller memoises the classifier. But a reconciled probability is a
 *pure function* of ``(entrant A, entrant B, surface, format, mode, w)``, and a
 128-draw bracket admits at most 8,128 distinct matchups, so caching collapses
 that to **~35–42 s** for the whole job: the per-run cost decays as the cache
 fills (~52 ms/run over the first 100 runs, ~5 ms/run by run 1,200) until almost
 every lookup is a dictionary hit. ``prob_cache`` is the caller-owned dict that
-makes this possible; see :func:`simulate_bracket` for the contract T2.3 must
-honour, which covers both this cache and the classifier adapter's own. These
-figures match the ones recorded in ``ace-04-current-state.md`` and the ticket
-index — keep the three in step if they are ever re-measured.
+makes this possible; see :func:`simulate_bracket` for the contract the Monte
+Carlo runner must honour, which covers both this cache and the classifier
+adapter's own. These figures match the ones recorded in
+``ace-04-current-state.md``, keep the two in step if they are ever re-measured.
 
 **Serve-first convention (deterministic, not drawn per match).** In every
 match, player **A is the entrant sitting in the lower-numbered bracket
-position** — the first-listed of the pairing — and **A serves the first game**.
+position**, the first-listed of the pairing, and **A serves the first game**.
 Both halves matter:
 
 * It fixes match orientation, so a given pairing is always presented to the
-  classifier as ``(A, B, surface)`` in one stable order. Cache keys — the
-  caller's and this module's — therefore never split across two orientations.
-* It replaces T1.8's per-match coin flip for the opening server, which is why
-  :func:`~sim.reconcile.simulate_reconciled_match` grew an optional
-  ``first_server`` argument (``None`` still means "draw it", so no existing
-  caller changed). The effect on a result is tiny; the point is that it is a
-  documented convention rather than RNG state.
+  classifier as ``(A, B, surface)`` in one stable order. Cache keys, the
+  caller's and this module's, therefore never split across two orientations.
+* It replaces a per-match coin flip for the opening server, which is why
+  :func:`~sim.reconcile.simulate_reconciled_match` takes an optional
+  ``first_server`` argument (``None`` still means "draw it"). The effect on a
+  result is tiny; the point is that it is a documented convention rather than
+  RNG state.
 
 The bracket order is preserved round to round, so the "lower position" rule
 holds automatically in every round: winners stay in bracket order, and each
 match pairs consecutive winners out of disjoint, ascending position blocks.
 
-**Placeholder entrants are rejected (T2.2 decision, a known gap).** T2.1 lets a
+**Placeholder entrants are rejected (a known gap).** The draw schema lets a
 draw carry ``"Qualifier"``/``"Bye"``/… slots, which get the default surface
 profile. Those cannot be *simulated* here: a placeholder has no ``player_id``
 for the reconciliation join and no classifier-visible history at all, so no
-``P_clf`` exists for it. Rather than invent one (a modelling decision this
-ticket does not own — silently substituting 0.5, or bypassing the classifier
-for part of the bracket, would make some matches quietly lower-quality than
-others), :func:`simulate_bracket` refuses upfront and names every offending
-slot, in T2.1's fail-loudly-but-complete style. Consequence to be aware of: any
-draw that still contains placeholders cannot be simulated as-is. Deciding how an
-unfilled slot should be modelled is left to the project owner.
+``P_clf`` exists for it. Rather than invent one, silently substituting 0.5, or
+bypassing the classifier for part of the bracket, would make some matches
+quietly lower-quality than others, :func:`simulate_bracket` refuses upfront and
+names every offending slot, in the same fail-loudly-but-complete style as the
+draw validator. Consequence to be aware of: any draw that still contains
+placeholders cannot be simulated as-is. Deciding how an unfilled slot should be
+modelled is left to the project owner.
 
-**Classifier quality (was a caveat; resolved by T3.5).** This module takes its
-classifier as an injected callable (T1.8's dependency inversion, exercised by
-T1.10) and never constructs one — so the quality of ``P_clf`` is the calling
-layer's property, not this module's. That distinction mattered: a bracket
-exercises the adapter far harder than a single match does, every distinct
-matchup in the draw feeding every Monte Carlo run, and the adapter this module
-was written against built a feature row whose 20 recent-form columns were
-synthetic constants, flattening ``P_clf`` toward 0.5.
+**Classifier quality.** This module takes its classifier as an injected callable
+and never constructs one, so the quality of ``P_clf`` is the calling layer's
+property, not this module's. ``common/classifier_adapter.py`` is the one adapter
+every caller uses, and it assembles all 27 ``config.MODEL_FEATURES`` from the
+pipeline's own leakage-safe state, so a bracket run gets a fully populated row
+for every matchup. Callers still choose their reconciliation ``mode``
+(``config.SIM_CLI_RECONCILE_MODE`` is ``"blend"``, a modelling choice).
+**Do not build a second adapter**, import the shared one.
 
-**That is fixed.** ``common/classifier_adapter.py`` is now the one adapter every
-caller uses, and it assembles all 27 ``config.MODEL_FEATURES`` from the
-pipeline's own leakage-safe state, so a bracket run today gets a fully populated
-row for every matchup. Callers still choose their reconciliation ``mode``
-(``config.SIM_CLI_RECONCILE_MODE`` is ``"blend"``, kept as a modelling choice
-rather than the mitigation it started as), but they are no longer choosing it to
-compensate for a degraded ``P_clf``. **Do not build a second adapter** — import
-the shared one.
-
-**Monte Carlo (T2.3).** :func:`monte_carlo` runs :func:`simulate_bracket` many
-times — always with ``outcome_only=True``, never a scoreline — and aggregates
+**Monte Carlo.** :func:`monte_carlo` runs :func:`simulate_bracket` many
+times, always with ``outcome_only=True``, never a scoreline, and aggregates
 per-entrant title and round-survival probabilities into a
 :class:`MonteCarloResult`. Three properties are load-bearing and are described
 in full on :func:`monte_carlo` itself: exactly one ``prob_cache`` spans a whole
@@ -114,22 +102,22 @@ runs are split across workers; and the reconciliation ``mode`` is a pass-through
 parameter, because this module does not build the classifier and therefore does
 not own the choice (see the classifier caveat below).
 
-**Storybook (T2.4).** :func:`storybook_run` is the opposite end of the same
+**Storybook.** :func:`storybook_run` is the opposite end of the same
 machinery: **one** ``simulate_bracket(..., outcome_only=False)`` call, every
 match played out point by point, wrapped in a presentation-friendly structure
 for the shareable "watch the tournament play out" view.
 :func:`render_storybook` turns that structure into text. The two are kept
-strictly apart — :class:`StorybookResult` is data the API/frontend can consume
+strictly apart, :class:`StorybookResult` is data the API/frontend can consume
 directly, and the renderer only ever composes its public fields, never
 computes a fact of its own.
 
-The **run summary** shape T2.5 (and later the API) can rely on is
+The **run summary** shape the CLI and the API rely on is
 :class:`PlayerRun`, one per entrant: identity (``position``, ``player``,
-``player_id``, ``seed``), how far they got (``furthest_round`` — the label of
-the last round they *contested* — plus ``matches_won`` and ``is_champion``),
+``player_id``, ``seed``), how far they got (``furthest_round``, the label of
+the last round they *contested*, plus ``matches_won`` and ``is_champion``),
 who they beat on the way (``beat``, opponent names in round order), and how it
 ended (``eliminated_by``, ``None`` iff champion, and ``last_match``, the
-:class:`StorybookMatch` in which they went out — the final, won, for the
+:class:`StorybookMatch` in which they went out, the final, won, for the
 champion). ``StorybookResult.runs`` is sorted by finishing position: champion,
 runner-up, then losing semi-finalists and so on, ties broken by bracket
 position.
@@ -165,7 +153,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
     from features.serve import SkillTable
 
 # Index of player A in every bracket match (the lower bracket position), and the
-# player who serves first — see the serve-first convention in the module
+# player who serves first, see the serve-first convention in the module
 # docstring. Named rather than inlined so the convention is greppable.
 PLAYER_A = 0
 BRACKET_FIRST_SERVER = PLAYER_A
@@ -208,7 +196,7 @@ def round_labels(draw_size: int) -> tuple[str, ...]:
     """Every round label for a ``draw_size`` bracket, first round first.
 
     An 8-draw gives ``("QF", "SF", "F")``; a 128-draw gives
-    ``("R128", "R64", "R32", "R16", "QF", "SF", "F")`` — ``log2(draw_size)``
+    ``("R128", "R64", "R32", "R16", "QF", "SF", "F")``, ``log2(draw_size)``
     rounds, halving the field each time.
 
     Raises:
@@ -234,7 +222,7 @@ def format_scoreline(result: MatchResult) -> str:
 
     Every set is written from the match winner's perspective (the tennis
     convention), so a set the winner lost reads ``3-6``. A tiebreak set carries
-    the loser-of-that-set's point total in parentheses — ``7-6(5)`` won,
+    the loser-of-that-set's point total in parentheses, ``7-6(5)`` won,
     ``6-7(5)`` lost.
 
     Note this is deliberately *not*
@@ -270,14 +258,14 @@ class BracketMatch:
         round_label: The round's label (``"R32"``, ``"QF"``, …).
         match_index: 0-based position of the match within its round, top of the
             draw first.
-        slot_a: The entrant in the lower bracket position — player ``0``, and
+        slot_a: The entrant in the lower bracket position, player ``0``, and
             the first server (see the module docstring).
-        slot_b: The other entrant — player ``1``.
+        slot_b: The other entrant, player ``1``.
         winner: Whichever of ``slot_a``/``slot_b`` won.
         scoreline: The rendered scoreline, or ``None`` when the match was
             decided by a single Bernoulli draw (``outcome_only=True``).
         result: The underlying :class:`~sim.match.MatchResult`, or ``None`` in
-            ``outcome_only`` mode — nothing was simulated to record.
+            ``outcome_only`` mode, nothing was simulated to record.
     """
 
     round_index: int
@@ -331,7 +319,7 @@ class BracketResult:
             Copied from the :class:`~sim.draw.Draw` that was simulated.
         rounds: Every round in order.
         champion: The entrant left standing.
-        outcome_only: Which mode produced this result — ``True`` means no
+        outcome_only: Which mode produced this result, ``True`` means no
             scorelines were generated (see :func:`simulate_bracket`).
     """
 
@@ -353,7 +341,7 @@ class BracketResult:
     def path_of(self, position: int) -> tuple[BracketMatch, ...]:
         """Every match the entrant from bracket ``position`` played, in order.
 
-        The run ends with a defeat, or with the final for the champion — so
+        The run ends with a defeat, or with the final for the champion, so
         ``len(path_of(p))`` is the number of rounds that entrant contested and
         the last match says how their tournament finished.
         """
@@ -366,7 +354,7 @@ class BracketResult:
 
 
 def _reject_placeholders(draw: Draw) -> None:
-    """Fail loudly if the draw still has unfilled slots — all of them at once.
+    """Fail loudly if the draw still has unfilled slots, all of them at once.
 
     See the module docstring: a placeholder has neither a ``player_id`` nor any
     classifier-visible history, so no reconciled match-win probability exists
@@ -378,7 +366,7 @@ def _reject_placeholders(draw: Draw) -> None:
     listed = ", ".join(f"{slot.position}:{slot.player!r}" for slot in placeholders)
     raise ValueError(
         f"{draw.tournament_id}: cannot simulate a bracket with "
-        f"{len(placeholders)} placeholder entrant(s) — a placeholder has no "
+        f"{len(placeholders)} placeholder entrant(s). A placeholder has no "
         f"player id and no classifier history, so no reconciled match-win "
         f"probability can be computed for it. Fill these slots with real "
         f"entrants first: {listed}"
@@ -395,7 +383,7 @@ def reconciled_win_prob(
     w: float = config.RECONCILE_BLEND_WEIGHT,
     prob_cache: MutableMapping[tuple, float] | None = None,
 ) -> float:
-    """P(``slot_a`` beats ``slot_b``) under reconciliation — deterministic, no RNG.
+    """P(``slot_a`` beats ``slot_b``) under reconciliation, deterministic, no RNG.
 
     The analytic twin of :func:`~sim.reconcile.simulate_reconciled_match`: the
     same resolve → point model → ``P_clf`` → reconcile → solve ``δ`` chain, but
@@ -404,17 +392,17 @@ def reconciled_win_prob(
     ``solve_delta``, ``match_win_prob_point``) rather than reimplementing any of
     the maths.
 
-    Point-win probabilities come from ``Draw.skill_for`` on the ids T2.1 already
+    Point-win probabilities come from ``Draw.skill_for`` on the ids the draw validator already
     resolved, which agrees with what ``simulate_reconciled_match`` resolves for
-    itself — both go through ``SkillTable.resolve_name``.
+    itself, both go through ``SkillTable.resolve_name``.
 
     Args:
         draw: The draw being simulated (supplies surface and match format).
         slot_a, slot_b: The two entrants; ``slot_a`` is player A.
-        skill_table: The id-keyed T1.1 skill table.
+        skill_table: The id-keyed skill table.
         classifier: The injected ``(a, b, surface) -> P_clf`` adapter.
         mode, w: Reconciliation mode / blend weight.
-        prob_cache: Optional caller-owned cache — see :func:`simulate_bracket`.
+        prob_cache: Optional caller-owned cache, see :func:`simulate_bracket`.
 
     Returns:
         P(A beats B) in ``[0, 1]``.
@@ -447,7 +435,7 @@ def reconciled_win_prob(
     delta = solve_delta(target, pA, pB, draw.best_of, draw.final_set_tiebreak)
 
     # solve_delta keeps these inside [P_MIN, P_MAX]; clamp defensively regardless
-    # — the same belt-and-braces simulate_reconciled_match applies.
+    # the same belt-and-braces simulate_reconciled_match applies.
     pA_adj = min(max(pA + delta, config.P_MIN), config.P_MAX)
     pB_adj = min(max(pB - delta, config.P_MIN), config.P_MAX)
 
@@ -480,7 +468,7 @@ def _simulate_match(
     exactly one ``rng`` draw and touches nothing in ``sim/match.py``;
     ``outcome_only=False`` hands the whole match to
     :func:`~sim.reconcile.simulate_reconciled_match` (which does the resolve →
-    reconcile → simulate sequence itself — it is not re-assembled here).
+    reconcile → simulate sequence itself, it is not re-assembled here).
     """
     if outcome_only:
         p_a = reconciled_win_prob(
@@ -523,19 +511,19 @@ def simulate_bracket(
     draw meets the bottom half only in the final.
 
     Args:
-        draw: A validated :class:`~sim.draw.Draw` (T2.1). Its ``surface``,
+        draw: A validated :class:`~sim.draw.Draw`. Its ``surface``,
             ``best_of`` and ``final_set_tiebreak`` govern every match.
-        skill_table: The id-keyed T1.1 skill table.
+        skill_table: The id-keyed skill table.
         classifier: The injected ``(player_a, player_b, surface) -> P_clf``
             adapter (:class:`~sim.reconcile.ClassifierProb`). This module never
-            builds one — see the caching contract below.
+            builds one, see the caching contract below.
         rng: A ``numpy`` ``Generator`` (``numpy.random.default_rng(seed)``,
             never the global ``np.random``). **One** generator is threaded
             through every round and every match, so a given seed replays the
             whole bracket in either mode.
         outcome_only: ``False`` (default) simulates each match point-by-point
             and records a real scoreline. ``True`` decides each match with a
-            single Bernoulli draw against the reconciled analytic probability —
+            single Bernoulli draw against the reconciled analytic probability,
             no point/game/set simulation happens at all, and every
             ``scoreline``/``result`` is ``None``.
         mode: Reconciliation mode (``"classifier_anchor"``/``"blend"``);
@@ -543,7 +531,7 @@ def simulate_bracket(
             the module docstring before accepting the default.
         w: Blend weight on ``P_clf`` in ``"blend"`` mode.
         prob_cache: A caller-owned mutable mapping used to memoise reconciled
-            match-win probabilities across calls (``outcome_only=True`` only —
+            match-win probabilities across calls (``outcome_only=True`` only,
             the point-by-point path re-solves δ inside
             ``simulate_reconciled_match``). Optional and ``None`` by default,
             which is correct but uncached.
@@ -555,17 +543,17 @@ def simulate_bracket(
         ValueError: If the draw contains placeholder entrants (see the module
             docstring), or the draw size is not a power of two ≥ 2.
 
-    **Caching contract for the Monte Carlo caller (T2.3).** A Monte Carlo pass
+    **Caching contract for the Monte Carlo caller.** A Monte Carlo pass
     runs this function thousands of times, and *both* expensive inputs to a
     match are pure functions of ``(entrant A, entrant B, surface)``, so both
     must be memoised **for the whole job**, not per bracket:
 
-    1. **The δ solve** — pass one ``prob_cache`` dict into every
+    1. **The δ solve**, pass one ``prob_cache`` dict into every
        ``simulate_bracket`` call of the job. Without it a 128 × 5,000 pass
        re-solves ~635,000 bisections (~40 min measured); with it, at most 8,128
        distinct matchups are ever solved. A fresh dict per bracket caches
        nothing, because a bracket meets each matchup once.
-    2. **The classifier** — the adapter itself must memoise on
+    2. **The classifier**, the adapter itself must memoise on
        ``(player_a, player_b, surface)`` and be built **once**, outside the run
        loop (``cli/simulate_match.make_classifier_prob`` shows the pattern).
        Rebuilding it per bracket discards the cache exactly as often as it would
@@ -579,15 +567,15 @@ def simulate_bracket(
     _reject_placeholders(draw)
 
     labels = round_labels(draw.draw_size)
-    survivors: list[DrawSlot] = list(draw.bracket)  # position-ordered by T2.1
+    survivors: list[DrawSlot] = list(draw.bracket)  # position-ordered by the draw validator
     rounds: list[BracketRound] = []
 
     for round_index, label in enumerate(labels):
         matches: list[BracketMatch] = []
         winners: list[DrawSlot] = []
-        # Pair survivors 2k-1 vs 2k in bracket order (T2.1's first-round rule,
+        # Pair survivors 2k-1 vs 2k in bracket order (the draw's first-round rule,
         # which the preserved ordering extends to every later round). slot_a is
-        # therefore always the lower bracket position — the serve-first and
+        # therefore always the lower bracket position, the serve-first and
         # cache-orientation convention in the module docstring.
         for match_index in range(len(survivors) // 2):
             slot_a = survivors[2 * match_index]
@@ -636,7 +624,7 @@ def simulate_bracket(
 
 
 # ---------------------------------------------------------------------------
-# Monte Carlo aggregation (T2.3).
+# Monte Carlo aggregation.
 # ---------------------------------------------------------------------------
 
 
@@ -645,7 +633,7 @@ class PlayerOutcome:
     """One entrant's aggregated Monte Carlo record.
 
     Counts are stored, not probabilities: integers make two runs comparable for
-    *exact* equality (the T2.3 reproducibility and single-vs-multi-worker
+    *exact* equality (the reproducibility and single-vs-multi-worker
     criteria), and the probabilities are one division away.
 
     Attributes:
@@ -657,7 +645,7 @@ class PlayerOutcome:
         reached: Round label → number of runs in which the entrant *contested*
             that round. Keys are the draw's own labels (see
             :func:`round_labels`), so an 8-draw carries ``QF/SF/F`` and a
-            128-draw ``R128 … F`` — nothing assumes a particular draw size.
+            128-draw ``R128 … F``, nothing assumes a particular draw size.
         matches_won: Total matches won across every run; ``/ n_runs`` gives the
             expected number of rounds won.
     """
@@ -678,11 +666,11 @@ class PlayerOutcome:
 
     @property
     def expected_rounds_won(self) -> float:
-        """Mean number of matches won — 0 for a first-round exit every time."""
+        """Mean number of matches won, 0 for a first-round exit every time."""
         return self.matches_won / self.n_runs
 
     def p_reach(self, label: str) -> float:
-        """P(this entrant reaches — i.e. plays in — the round called ``label``).
+        """P(this entrant reaches, i.e. plays in, the round called ``label``).
 
         Unknown labels give ``0.0`` rather than raising, so a caller can ask for
         ``"QF"`` of a draw too small to have one.
@@ -690,7 +678,7 @@ class PlayerOutcome:
         return self.reached.get(label, 0) / self.n_runs
 
     def to_record(self) -> dict:
-        """A flat, tidy dict — one row of the output table.
+        """A flat, tidy dict, one row of the output table.
 
         Carries a ``p_reach_<label>`` key per round the draw actually has, so
         the record's shape follows the draw rather than a hardcoded QF/SF/F.
@@ -716,9 +704,9 @@ class PlayerOutcome:
 class MonteCarloResult:
     """The aggregate of a whole Monte Carlo job.
 
-    Self-describing in the same way :class:`BracketResult` is — the draw's
+    Self-describing in the same way :class:`BracketResult` is, the draw's
     identity and format, plus every knob that could change the numbers (runs,
-    seed, reconciliation mode/weight) — so a stored result can be reproduced
+    seed, reconciliation mode/weight), so a stored result can be reproduced
     from what it carries. ``workers`` is recorded for provenance only: it
     provably does not affect the counts (see :func:`monte_carlo`).
 
@@ -749,7 +737,7 @@ class MonteCarloResult:
     def to_records(self) -> list[dict]:
         """The tidy output: one dict per entrant, title probability descending.
 
-        Ready to hand to a CLI table or ``pandas.DataFrame(...)`` — this module
+        Ready to hand to a CLI table or ``pandas.DataFrame(...)``, this module
         stays pandas-free on purpose (it is on the hot path).
         """
         return [player.to_record() for player in self.players]
@@ -765,7 +753,7 @@ class MonteCarloResult:
 
 
 # One chunk of a Monte Carlo job: the counts three parallel accumulators build.
-# Plain lists of ints rather than arrays — the inner loop does ~2·(N−1) scalar
+# Plain lists of ints rather than arrays, the inner loop does ~2·(N−1) scalar
 # increments per run, where a Python list beats numpy element assignment.
 _ChunkCounts = tuple[list[int], list[list[int]], list[int]]
 
@@ -823,7 +811,7 @@ def _run_chunk(payload: tuple) -> _ChunkCounts:
             skill_table,
             classifier,
             np.random.default_rng(seed_seq),
-            outcome_only=True,  # T2.3: never a scoreline, at any run count.
+            outcome_only=True,  # never a scoreline, at any run count.
             mode=mode,
             w=w,
             prob_cache=prob_cache,
@@ -835,8 +823,8 @@ def _run_chunk(payload: tuple) -> _ChunkCounts:
 def _split_evenly(items: Sequence, parts: int) -> list[Sequence]:
     """Split ``items`` into at most ``parts`` contiguous, near-equal chunks.
 
-    Contiguity is cosmetic — each run carries its own spawned seed, so the split
-    cannot change any result — but it keeps a worker's slice easy to reason
+    Contiguity is cosmetic, each run carries its own spawned seed, so the split
+    cannot change any result, but it keeps a worker's slice easy to reason
     about. Empty chunks are dropped, so ``parts > len(items)`` simply yields
     fewer chunks.
     """
@@ -856,23 +844,15 @@ def _split_evenly(items: Sequence, parts: int) -> list[Sequence]:
 def _require_picklable(classifier: ClassifierProb) -> None:
     """Fail early and legibly if the classifier cannot cross a process boundary.
 
-    ``workers > 1`` sends the adapter to each worker by pickle. The obvious
-    adapter shape — a closure over the estimator and the pipeline's histories,
-    which is exactly what ``cli/simulate_match.make_classifier_prob`` returns —
-    is *not* picklable, and the raw ``PicklingError`` from deep inside the pool
-    says nothing useful about how to fix it.
-
-    **This is a scope boundary, not an inherent limitation.** Nothing about a
-    classifier adapter *requires* a closure: wrapping the same estimator and
-    histories in a module-level class with a ``__call__`` makes it picklable and
-    the multi-worker path works unchanged. T2.3's ticket scopes its diff to this
-    module and ``config.py``, so rewriting ``cli/simulate_match.py`` was out of
-    bounds. **T2.5 did not close it either — deliberately: a picklable adapter
-    means rewriting ``cli/simulate_match.make_classifier_prob``, outside that
-    ticket's Files scope. The gap is now unowned
-    (``ace-04-current-state.md`` §7 seam 8); whoever wants ``--workers`` owns
-    both the adapter and its re-verification.** Until then this check turns the
-    gap into a fast, legible refusal rather than a crash inside a worker.
+    ``workers > 1`` sends the adapter to each worker by pickle. A closure over
+    the estimator and the pipeline's histories is *not* picklable, and the raw
+    ``PicklingError`` from deep inside the pool says nothing useful about how to
+    fix it. A module-level class with a ``__call__`` over the same estimator and
+    histories is picklable and the multi-worker path works unchanged; the
+    ``workers > 1`` path and its re-verification are an open seam
+    (``ace-04-current-state.md`` §7 seam 8). Until it is exercised, this check
+    turns the gap into a fast, legible refusal rather than a crash inside a
+    worker.
     """
     try:
         pickle.dumps(classifier)
@@ -881,7 +861,7 @@ def _require_picklable(classifier: ClassifierProb) -> None:
             "workers > 1 requires a picklable classifier adapter, and this one "
             f"is not ({type(exc).__name__}: {exc}). A closure (e.g. the callable "
             "returned by cli/simulate_match.make_classifier_prob) cannot cross a "
-            "process boundary — wrap the estimator in a module-level class with "
+            "process boundary. Wrap the estimator in a module-level class with "
             "a __call__, or run with workers=1."
         ) from exc
 
@@ -898,23 +878,23 @@ def monte_carlo(
 ) -> MonteCarloResult:
     """Run the bracket ``n_runs`` times and aggregate per-entrant probabilities.
 
-    Every run goes through ``simulate_bracket(..., outcome_only=True)`` — one
+    Every run goes through ``simulate_bracket(..., outcome_only=True)``, one
     Bernoulli draw per match against the reconciled analytic probability. No run
     generates a scoreline: at 128 × 5,000 that would be 635,000 point-by-point
     matches for information nothing downstream reads. Storybook scorelines are a
-    separate, single-run mode (T2.4).
+    separate, single-run mode.
 
     Args:
         draw: A validated, placeholder-free :class:`~sim.draw.Draw`.
-        skill_table: The id-keyed T1.1 skill table.
+        skill_table: The id-keyed skill table.
         classifier: The injected ``(a, b, surface) -> P_clf`` adapter, built
             **once** by the caller (this module never constructs one). With
-            ``workers > 1`` it must also be picklable — see below.
+            ``workers > 1`` it must also be picklable, see below.
         n_runs: Number of bracket simulations (default ``config.MC_RUNS``).
         seed: Base seed; every run's RNG is spawned from it.
         workers: ``1`` (default) runs in this process. ``> 1`` splits the runs
             across that many processes.
-        mode: Reconciliation mode — **a pass-through, defaulting to
+        mode: Reconciliation mode, **a pass-through, defaulting to
             ``config.RECONCILE_MODE``**. See the note below before accepting it.
         w: Blend weight on ``P_clf`` in ``"blend"`` mode.
 
@@ -927,7 +907,7 @@ def monte_carlo(
             placeholder entrants (rejected up front, before any process is
             spawned), or ``workers > 1`` with an unpicklable classifier.
 
-    **Seeding — reproducible, and independent of ``workers``.**
+    **Seeding, reproducible, and independent of ``workers``.**
     ``np.random.SeedSequence(seed).spawn(n_runs)`` gives run *i* its own child
     sequence, so run *i* is the same simulation whichever worker executes it.
     The aggregate is a sum of integer counts, which is associative and
@@ -941,14 +921,14 @@ def monte_carlo(
     :func:`_run_chunk`, once per chunk: single-threaded there is exactly one
     chunk and therefore exactly one dict for all ``n_runs``; with
     ``workers > 1`` each worker process gets its own fresh dict and no attempt
-    is made to share one across processes. The trade is deliberate — W workers
+    is made to share one across processes. The trade is deliberate, W workers
     each pay their own cache-fill, so the speedup is sub-linear, but wall-clock
     still improves once ``n_runs`` per worker is well past the fill. Measured on
     the 128 × 5,000 job: a quarter-size chunk still visits 2,397 of the 3,452
     distinct matchups the whole job visits (69%, not 25%), which is why four
     workers buy far less than 4×.
 
-    **``workers > 1`` needs a picklable classifier, and — on macOS — a
+    **``workers > 1`` needs a picklable classifier, and, on macOS, a
     ``__main__`` guard.** The adapter is sent to each worker by pickle;
     :func:`_require_picklable` refuses up front and explains the fix if it
     cannot be. Separately, ``ProcessPoolExecutor``'s default start method is
@@ -956,21 +936,18 @@ def monte_carlo(
     ``__main__`` module: **any script or CLI that calls this with
     ``workers > 1`` must guard its entry point with
     ``if __name__ == "__main__":``**, or the re-import will re-run the job in
-    every child. Flagged here for whoever first exposes a ``--workers`` flag;
-    T2.5 deliberately did not (seam 8).
+    every child. No shipped CLI exposes a ``--workers`` flag yet
+    (``ace-04-current-state.md`` §7 seam 8).
 
-    **Reconciliation mode is the caller's decision, not this function's (T2.3
-    decision).** ``mode`` defaults to ``config.RECONCILE_MODE``
-    (``"classifier_anchor"``), the same default :func:`simulate_bracket` uses,
-    and this function deliberately does **not** substitute a "safer" one of its
-    own. Which mode is right depends on how much authority the caller wants to
-    hand its classifier, and that is knowledge the caller has and this function
-    does not. ``config.SIM_CLI_RECONCILE_MODE = "blend"`` is what the CLIs, the
-    precompute script and the live storybook all pass — originally a mitigation
-    for an adapter that emitted a form-blind ``P_clf``, and **kept after T3.5
-    fixed that adapter** because blending is the configuration T1.9/T1.9b's
-    scoreline-realism validation was run under. It remains a caller-level choice
-    rather than a project-wide recommendation; moving those callers to
+    **Reconciliation mode is the caller's decision, not this function's.**
+    ``mode`` defaults to ``config.RECONCILE_MODE`` (``"classifier_anchor"``), the
+    same default :func:`simulate_bracket` uses, and this function deliberately
+    does **not** substitute a "safer" one of its own. Which mode is right depends
+    on how much authority the caller wants to hand its classifier, and that is
+    knowledge the caller has and this function does not.
+    ``config.SIM_CLI_RECONCILE_MODE = "blend"`` is what the CLIs, the precompute
+    script and the live storybook all pass, blending is the configuration the
+    scoreline-realism validation was run under. Moving those callers to
     ``"classifier_anchor"`` would hand every winner to the classifier alone and
     needs its own validation pass. Baking either one in here would silently
     change the model for callers that chose the other.
@@ -1045,14 +1022,14 @@ def monte_carlo(
 
 
 # ---------------------------------------------------------------------------
-# Storybook single run (T2.4).
+# Storybook single run.
 # ---------------------------------------------------------------------------
 
 
 def format_match_line(winner: str, loser: str, scoreline: str) -> str:
     """Render one bracket match as ``"A def. B 6-4 3-6 7-6(5) 6-2"``.
 
-    The scoreline is passed in already rendered — :func:`format_scoreline` (used
+    The scoreline is passed in already rendered, :func:`format_scoreline` (used
     by :func:`_simulate_match` and stored on every :class:`BracketMatch`) is the
     single scoreline formatter in this module, and this only wraps names around
     its output.
@@ -1066,11 +1043,11 @@ class StorybookMatch:
 
     Attributes:
         round_index, round_label, match_index: Where the match sits in the
-            bracket — the same coordinates as :class:`BracketMatch`.
+            bracket, the same coordinates as :class:`BracketMatch`.
         winner, loser: Display names.
         winner_seed, loser_seed: Their tournament seeds, ``None`` if unseeded.
         scoreline: Winner-first scoreline (``6-4 3-6 7-6(5) 6-2``).
-        line: The rendered match line — ``"<winner> def. <loser> <scoreline>"``.
+        line: The rendered match line, ``"<winner> def. <loser> <scoreline>"``.
         match: The underlying :class:`BracketMatch`, whose ``result`` carries
             the full set-by-set :class:`~sim.match.MatchResult` for any caller
             that wants more than the line.
@@ -1099,20 +1076,20 @@ class StorybookRound:
 
 @dataclass(frozen=True)
 class PlayerRun:
-    """One entrant's tournament, summarised — the "run summary" T2.5 renders.
+    """One entrant's tournament, summarised, the "run summary" the CLI renders.
 
     Attributes:
         position: 1-based bracket slot.
         player, player_id, seed: Identity, copied from the
             :class:`~sim.draw.DrawSlot` and the draw's seed list.
         is_champion: True for the one entrant who won the title.
-        furthest_round: Label of the last round this entrant *contested* — so a
+        furthest_round: Label of the last round this entrant *contested*, so a
             beaten finalist and the champion both read ``"F"``, and a
             first-round loser reads the first round's label.
         matches_won: How many matches they won (``0`` for a first-round exit).
         beat: The opponents they beat, in round order.
         eliminated_by: Who knocked them out; ``None`` **iff** ``is_champion``.
-        last_match: The match their run ended on — their defeat, or the final
+        last_match: The match their run ended on, their defeat, or the final
             for the champion.
     """
 
@@ -1144,7 +1121,7 @@ class StorybookResult:
         champion: The winning :class:`~sim.draw.DrawSlot`.
         champion_seed: The champion's seed, ``None`` if unseeded.
         runs: Every entrant's :class:`PlayerRun`, best finish first.
-        bracket: The underlying :class:`BracketResult`, unmodified — nothing
+        bracket: The underlying :class:`BracketResult`, unmodified, nothing
             the simulation produced is discarded by this wrapper.
     """
 
@@ -1185,7 +1162,7 @@ def _storybook_match(draw: Draw, bracket_match: BracketMatch) -> StorybookMatch:
     """Wrap one :class:`BracketMatch` for display.
 
     Raises:
-        ValueError: If the match has no scoreline — i.e. it came from an
+        ValueError: If the match has no scoreline, i.e. it came from an
             ``outcome_only=True`` bracket, which has no story to tell.
     """
     if bracket_match.scoreline is None:
@@ -1251,19 +1228,19 @@ def storybook_run(
 
     Exactly **one** :func:`simulate_bracket` call with ``outcome_only=False``:
     a ``draw_size = N`` draw is ``N − 1`` real matches (127 for a Slam), which
-    is cheap in absolute terms — the Monte Carlo budget only bites because it
+    is cheap in absolute terms, the Monte Carlo budget only bites because it
     multiplies that by thousands of runs.
 
     Args:
         draw: A validated, placeholder-free :class:`~sim.draw.Draw`.
-        skill_table: The id-keyed T1.1 skill table.
+        skill_table: The id-keyed skill table.
         classifier: The injected ``(a, b, surface) -> P_clf`` adapter; this
             module never builds one.
         seed: Base seed. One ``numpy.random.default_rng(seed)`` is built here
             and threaded through the whole bracket by :func:`simulate_bracket`,
-            so the same seed replays the same tournament — scoreline for
-            scoreline — which is what makes a shared storybook link meaningful.
-        mode: Reconciliation mode — a pass-through, see the note below.
+            so the same seed replays the same tournament, scoreline for
+            scoreline, which is what makes a shared storybook link meaningful.
+        mode: Reconciliation mode, a pass-through, see the note below.
         w: Blend weight on ``P_clf`` in ``"blend"`` mode.
 
     Returns:
@@ -1274,23 +1251,18 @@ def storybook_run(
         ValueError: If the draw contains placeholder entrants (raised by
             :func:`simulate_bracket`).
 
-    **Reconciliation mode is still the caller's decision (T2.4 decision).**
-    ``mode`` defaults to ``config.RECONCILE_MODE``, exactly as
-    :func:`simulate_bracket` and :func:`monte_carlo` do, and this function does
-    **not** substitute ``"blend"`` of its own accord — even though a storybook
-    is the first *shareable* output in the project and its readability depends
-    directly on the reconciled probabilities not collapsing toward a coin flip.
-    The reasoning is the same as T2.3's and it does not weaken here: how much
-    authority to give the classifier is a modelling decision belonging to the
-    layer that knows what it built, not to the core, and silently halving it for
-    every caller would be the core deciding on evidence it does not have. What
-    changes for a *showcase* run is only the cost of getting it wrong, and that
-    is addressed where the knowledge lives: the layer that builds the adapter
-    picks the mode (every caller today passes
-    ``config.SIM_CLI_RECONCILE_MODE = "blend"``, a deliberate modelling choice
-    since T3.5 — it is the configuration the scoreline-realism validation ran
-    under), and :class:`StorybookResult` records ``mode``/``w`` so any published
-    story states which model produced it.
+    **Reconciliation mode is still the caller's decision.** ``mode`` defaults to
+    ``config.RECONCILE_MODE``, exactly as :func:`simulate_bracket` and
+    :func:`monte_carlo` do, and this function does **not** substitute ``"blend"``
+    of its own accord, even though a storybook is the first *shareable* output
+    in the project and its readability depends directly on the reconciled
+    probabilities not collapsing toward a coin flip. How much authority to give
+    the classifier is a modelling decision belonging to the layer that knows
+    what it built, not to the core. The layer that builds the adapter picks the
+    mode (every caller today passes ``config.SIM_CLI_RECONCILE_MODE = "blend"``,
+    the configuration the scoreline-realism validation ran under), and
+    :class:`StorybookResult` records ``mode``/``w`` so any published story states
+    which model produced it.
     """
     rng = np.random.default_rng(seed)
     bracket = simulate_bracket(
@@ -1298,7 +1270,7 @@ def storybook_run(
         skill_table,
         classifier,
         rng,
-        outcome_only=False,  # T2.4: the whole point — every match gets a scoreline.
+        outcome_only=False,  # the whole point, every match gets a scoreline.
         mode=mode,
         w=w,
     )
@@ -1345,7 +1317,7 @@ def render_storybook(result: StorybookResult) -> str:
     """Render a :class:`StorybookResult` as a round-by-round text summary.
 
     A header naming the tournament and the run's parameters, then one block per
-    round with a line per match, ending with the champion. Presentation only —
+    round with a line per match, ending with the champion. Presentation only,
     every fact comes from :class:`StorybookResult`'s public fields, so the API
     and frontend can consume that structure and lay it out differently without
     reimplementing anything this function knows.
@@ -1360,7 +1332,7 @@ def render_storybook(result: StorybookResult) -> str:
     if result.mode == "blend":
         reconciliation += f" (w={result.w:g})"
     lines = [
-        f"{result.name} — {result.surface}, best of {result.best_of}, "
+        f"{result.name}: {result.surface}, best of {result.best_of}, "
         f"{result.draw_size} entrants",
         f"seed {result.seed} · reconciliation {reconciliation}",
     ]

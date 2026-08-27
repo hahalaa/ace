@@ -1,5 +1,5 @@
 /**
- * The single-match view's URL state — no React, on the `seed.ts`/`rounds.ts`
+ * The single-match view's URL state, no React, on the `seed.ts`/`rounds.ts`
  * precedent that component files export only components.
  *
  * A single-match result is deep-linkable and reproducible the same way a
@@ -11,7 +11,7 @@
 
 import type { BestOf, Surface } from '../api/types';
 
-/** `config.API_MATCH_SEED_MAX` — the server rejects anything above it. */
+/** `config.API_MATCH_SEED_MAX`, the server rejects anything above it. */
 export const MATCH_SEED_MAX = 2 ** 32 - 1;
 
 export const SURFACES: Surface[] = ['Hard', 'Clay', 'Grass'];
@@ -60,7 +60,7 @@ export function readMatchForm(search: string): MatchForm {
 /**
  * A complete, runnable query the URL carries, or `null` for "not enough to run".
  *
- * A shared result replays only when every part is present, the seed included —
+ * A shared result replays only when every part is present, the seed included,
  * both names, a valid surface and format, and a whole seed in range. A URL
  * missing any of them pre-fills the form (via {@link readMatchForm}) and waits
  * for the user to run it, rather than firing a request that would 422.

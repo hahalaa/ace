@@ -1,5 +1,5 @@
 /**
- * App shell — a stateless dispatcher over the query string.
+ * App shell, a stateless dispatcher over the query string.
  *
  * Both axes come from `window.location.search`, so the shell holds no state,
  * every screen is deep-linkable, and a shared link lands where it says. The URL
@@ -14,7 +14,7 @@
  *   /?tournament=…&view=storybook&seed=… → one played-out run, replayable by link
  *
  * **The landing is the dashboard, not a bracket.** The app used to open straight
- * onto the US Open draw; it now opens on a choice — single match, or a full
+ * onto the US Open draw; it now opens on a choice, single match, or a full
  * tournament. Single match is the featured path.
  *
  * **The nav is two tiers.** The primary row picks the *branch* (home, single
@@ -29,15 +29,16 @@ import type { ReactElement } from 'react';
 import Bracket from './components/Bracket';
 import Dashboard from './components/Dashboard';
 import MatchSim from './components/MatchSim';
+import Rankings from './components/Rankings';
 import Storybook from './components/Storybook';
 import ThemeToggle from './components/ThemeToggle';
 import TitleOdds from './components/TitleOdds';
 import Upload from './components/Upload';
 
-/** The tournament shown when the URL names none — the current showcase draw. */
+/** The tournament shown when the URL names none, the current showcase draw. */
 const DEFAULT_TOURNAMENT_ID = 'ausopen_2026_atp_full';
 
-const VIEWS = ['dashboard', 'match', 'bracket', 'odds', 'storybook', 'upload'] as const;
+const VIEWS = ['dashboard', 'match', 'rankings', 'bracket', 'odds', 'storybook', 'upload'] as const;
 type View = (typeof VIEWS)[number];
 
 /** The sub-views that live under the tournament branch, in nav order. */
@@ -52,11 +53,12 @@ const TOURNAMENT_LABELS: Record<TournamentView, string> = {
 };
 
 /** Which primary branch a view belongs to. */
-type Branch = 'home' | 'match' | 'tournament';
+type Branch = 'home' | 'match' | 'rankings' | 'tournament';
 
 function branchOf(view: View): Branch {
   if (view === 'dashboard') return 'home';
   if (view === 'match') return 'match';
+  if (view === 'rankings') return 'rankings';
   return 'tournament';
 }
 
@@ -64,7 +66,7 @@ function isView(value: string): value is View {
   return (VIEWS as readonly string[]).includes(value);
 }
 
-/** The screen a view names. Exhaustive by construction — see the docstring. */
+/** The screen a view names. Exhaustive by construction, see the docstring. */
 function screenFor(view: View, tournamentId: string): ReactElement {
   switch (view) {
     case 'dashboard':
@@ -72,6 +74,9 @@ function screenFor(view: View, tournamentId: string): ReactElement {
     case 'match':
       // The one screen that reads no tournament axis: it reads its own params.
       return <MatchSim />;
+    case 'rankings':
+      // Also tournament-free: a global Elo leaderboard.
+      return <Rankings />;
     case 'bracket':
       return <Bracket tournamentId={tournamentId} />;
     case 'odds':
@@ -100,6 +105,7 @@ function App() {
       label: 'Tournament',
       href: `?tournament=${encodeURIComponent(tournamentId)}&view=bracket`,
     },
+    { key: 'rankings', label: 'Rankings', href: '?view=rankings' },
   ];
 
   const tournamentHref = (target: TournamentView) =>
@@ -110,7 +116,7 @@ function App() {
       <header className="masthead">
         <div className="brand">
           {/* The wordmark returns home. A seamed tennis ball stands in for the
-             accent — two seams, one opening to each side, bulging toward the
+             accent, two seams, one opening to each side, bulging toward the
              centre but leaving a clear gap between them, the way a real ball's
              seams read head-on. Endpoints tuck inside the rim so the round caps
              don't poke past the edge. Fill/seam are theme tokens (see .ballMark

@@ -5,8 +5,8 @@ sets are owned by ``config`` (and, through it, ``sim/draw.py`` and
 ``sim/match.py``). This test fails if the prose and ``config`` ever drift, so the
 document a person hand-authoring a draw reaches for cannot quietly go stale.
 
-It asserts every allowed value is *named* in the doc — not that the doc lists
-nothing extra — so surrounding explanation is free, but a value the validator
+It asserts every allowed value is *named* in the doc, not that the doc lists
+nothing extra, so surrounding explanation is free, but a value the validator
 accepts and the doc omits (or a value the doc invents) is caught.
 """
 

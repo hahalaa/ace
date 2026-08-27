@@ -1,4 +1,4 @@
-"""Tests for the extracted, UI-free name resolver (T0.6).
+"""Tests for the extracted, UI-free name resolver.
 
 Covers the four matching strategies (exact → initials → substring → fuzzy) and
 the ambiguous case as *data* (candidates returned, nothing printed), plus the
@@ -37,7 +37,7 @@ def index() -> NameIndex:
 
 
 # --------------------------------------------------------------------------- #
-# Unique matches — one per strategy
+# Unique matches, one per strategy
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize(
     "query, expected, strategy",
@@ -62,7 +62,7 @@ def test_unique_match_per_strategy(index, query, expected, strategy):
 def test_dotted_initial_falls_through_to_fuzzy_not_initials(index):
     """Preserved quirk: the initials stage guards on ``len(parts[0]) == 1``,
     so ``"C. Alcaraz"`` (dotted -> first token is length 2) does NOT match as
-    initials — it falls through to the fuzzy stage. The un-dotted ``"C Alcaraz"``
+    initials, it falls through to the fuzzy stage. The un-dotted ``"C Alcaraz"``
     is the form that resolves via initials. This is behaviour, not intent; the
     lift must keep it verbatim (see ace-04-current-state.md §3)."""
     dotted = resolve_name("C. Alcaraz", index)
@@ -105,7 +105,7 @@ def test_ambiguous_substring_returns_candidates(index, capsys):
 
 def test_ambiguous_fuzzy_returns_candidates(capsys):
     # Two near-identical names, queried with a typo that is a substring of
-    # neither, so only the fuzzy stage can match — and it matches both.
+    # neither, so only the fuzzy stage can match, and it matches both.
     idx = NameIndex.from_names(["Novak Djokovic", "Novak Djokavic"])
     match = resolve_name("Novak Djokevic", idx)
     assert match.is_ambiguous
@@ -151,7 +151,7 @@ def test_common_names_has_no_ui_or_layer_imports():
 
 
 # --------------------------------------------------------------------------- #
-# CLI wrapper regression — same resolved names AND same printed messages
+# CLI wrapper regression, same resolved names AND same printed messages
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize(
     "query, expected",

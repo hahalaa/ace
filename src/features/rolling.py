@@ -5,10 +5,10 @@ over a sliding window of past matches.
 
 Two entry points, sharing one player-centric view of the data:
 
-* :func:`compute_rolling_features` — the training-pipeline pass. For **every**
+* :func:`compute_rolling_features`: the training-pipeline pass. For **every**
   match row it computes each player's form over their previous ``N`` matches
   (``shift(1)`` before the window, so the current match can never leak in).
-* :func:`build_rolling_form_table` — the *as-of-now* snapshot accessor (T3.5).
+* :func:`build_rolling_form_table`: the *as-of-now* snapshot accessor.
   It answers "what is player X's rolling form **right now**", i.e. the values a
   hypothetical next match for X would receive, for a player named outside any
   particular match row. That question has no answer in the pass above, which is
@@ -31,7 +31,7 @@ import config
 
 # The per-match metrics the rolling windows average, mapped to the feature-column
 # name each produces. ONE definition, consumed by the training pass and by the
-# as-of-now snapshot below — a second copy of these names is how the two would
+# as-of-now snapshot below, a second copy of these names is how the two would
 # silently start disagreeing about what "recent form" means.
 ROLLING_METRIC_COLUMNS: dict[str, str] = {
     'won': 'recent_win_rate_{window}',
@@ -62,7 +62,7 @@ def build_player_match_frame(df: pd.DataFrame) -> pd.DataFrame:
     """Explode the p1/p2 match frame into one row per player per match.
 
     This is step 1 of :func:`compute_rolling_features`, lifted out unchanged so
-    the snapshot accessor reads the *same* history — same p1/p2 stacking, same
+    the snapshot accessor reads the *same* history, same p1/p2 stacking, same
     ``won``-inversion for the p2 side, and (critically) the same
     ``['player', 'date', 'match_index']`` sort, which is the order the rolling
     windows are taken in.
@@ -117,12 +117,12 @@ def build_player_match_frame(df: pd.DataFrame) -> pd.DataFrame:
 
 @dataclass(frozen=True)
 class RollingFormTable:
-    """Every player's *latest* rolling-form state — the T3.5 snapshot accessor.
+    """Every player's *latest* rolling-form state, the snapshot accessor.
 
     :func:`compute_rolling_features` answers "what was this player's form before
     match *i*" for every row of the training frame. This answers the question the
     classifier adapter actually asks: "what is this player's form **now**,
-    outside any match row" — the values a match played immediately after the last
+    outside any match row", the values a match played immediately after the last
     row of the data would carry.
 
     It is not a reimplementation of the rolling logic. It stores the tail of each
@@ -185,14 +185,14 @@ def build_rolling_form_table(df: pd.DataFrame) -> RollingFormTable:
     **Granularity note.** The snapshot is "after the last row of ``df``", and
     that is the only instant it answers for. It is *not* a general as-of query:
     ``tourney_date`` is the tournament's start date, so 46% of player-date groups
-    in the vendored data hold more than one match (up to 7 — a full run at one
+    in the vendored data hold more than one match (up to 7, a full run at one
     event), and the training pass orders those by row index within the day.
     Truncating a frame by date therefore cannot reproduce a mid-tournament row,
-    while the end-of-frame snapshot this builds is exact — every stored match is
+    while the end-of-frame snapshot this builds is exact, every stored match is
     genuinely prior to the hypothetical next one.
 
     Args:
-        df: A preprocessed match frame — the same input
+        df: A preprocessed match frame, the same input
             :func:`compute_rolling_features` takes (it needs ``tourney_date``,
             ``p1_name``/``p2_name``, ``target`` and the per-player games/sets
             columns). An engineered frame works too; the extra columns are

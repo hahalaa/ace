@@ -2,12 +2,12 @@
 
 Phase 3 of the model-accuracy lineage (after the §9 H2H experiment and the §10
 feature-FAMILY ablation). This asks, at single-feature grain: can any one of the
-27 features be dropped without cost, and — the key cross-check against §10 — are
+27 features be dropped without cost, and, the key cross-check against §10, are
 the individually-neutral features collectively load-bearing?
 
 Discipline (identical to §10, tightened for 27 comparisons):
   * Validation season is 2024. Train strictly on years < 2024. TEST_YEAR (2025)
-    and the market benchmark are NOT touched here — only the final confirmatory
+    and the market benchmark are NOT touched here, only the final confirmatory
     step (a separate script/run) may touch them, and only if a candidate clears
     the corrected bar.
   * Estimator FIXED to RandomForestClassifier(n_estimators=100, max_depth=10,

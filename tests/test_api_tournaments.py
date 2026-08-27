@@ -1,21 +1,22 @@
-"""Tests for the tournament endpoints and draw registry (T3.2).
+"""Tests for the tournament endpoints and draw registry.
 
 Everything runs against a **fixture draws directory** (``tests/fixtures/draws/``)
-and a toy skill table — never ``data/draws/`` and never the vendored CSVs — so
+and a toy skill table, never ``data/draws/`` and never the vendored CSVs, so
 the suite stays fast and does not move when a real draw file is added or a
 season is re-vendered. The fixture directory holds one of each case that
 matters:
 
-  * ``toy_open.json`` — valid, fully resolvable, seeded, no placeholders;
-  * ``qualifier_open.json`` — valid **with placeholder entrants**;
-  * ``malformed_open.json`` — not valid JSON at all;
-  * ``unresolvable_open.json`` — valid JSON, two unknown entrant names *and* a
+  * ``toy_open.json``, valid, fully resolvable, seeded, no placeholders;
+  * ``qualifier_open.json``, valid **with placeholder entrants**;
+  * ``malformed_open.json``, not valid JSON at all;
+  * ``unresolvable_open.json``, valid JSON, two unknown entrant names *and* a
     bad ``best_of``, so the whole accumulated problem list can be checked.
 
 The placeholder case is pinned deliberately rather than left to happen by
 accident: ``/bracket`` calls ``load_draw`` and never ``simulate_bracket``, so
-T2.2's placeholder refusal does not apply here and such a draw is legitimately
-listed and legitimately served. T3.3 owns what ``/simulate`` does about it.
+the simulator's placeholder refusal does not apply here and such a draw is
+legitimately listed and legitimately served. The simulability question is
+answered at ``/simulate``.
 """
 
 from __future__ import annotations
@@ -81,7 +82,7 @@ def skill_table() -> SkillTable:
 
 @pytest.fixture
 def context(skill_table: SkillTable) -> ApiContext:
-    """A fixture context — the same shape ``tests/test_api.py`` injects."""
+    """A fixture context, the same shape ``tests/test_api.py`` injects."""
     return ApiContext(
         data=pd.DataFrame({"tourney_date": pd.to_datetime(["2026-01-01"])}),
         surface_history={},
@@ -142,7 +143,7 @@ def test_tournaments_lists_bad_files_instead_of_skipping_or_failing(client):
     """One malformed file degrades to an error row; the listing still succeeds.
 
     Both halves matter: the endpoint must not 500 because of an unrelated file,
-    and the bad file must not silently vanish — a hand-entered draw that
+    and the bad file must not silently vanish, a hand-entered draw that
     disappears with no signal is the failure mode this list exists to prevent.
     """
     body = client.get("/tournaments").json()
@@ -165,7 +166,7 @@ def test_tournaments_invalid_entries_are_keyed_by_filename_stem(client):
 
     ``unresolvable_open.json`` *does* carry ``"tournament_id":
     "unresolvable_open_2026"``, but the file never validated, so that value is
-    not used — the stem is, and it is what ``/bracket`` accepts.
+    not used, the stem is, and it is what ``/bracket`` accepts.
     """
     body = client.get("/tournaments").json()
     invalid = next(
@@ -188,7 +189,7 @@ def test_tournaments_malformed_json_is_reported_as_such(client):
 
 
 def test_tournaments_surfaces_the_whole_validator_problem_list(client):
-    """Not just the first problem — T2.1 accumulates them and so does the API."""
+    """Not just the first problem, the validator accumulates them and so does the API."""
     body = client.get("/tournaments").json()
     invalid = next(
         i for i in body["invalid"] if i["source"] == "unresolvable_open.json"
@@ -207,7 +208,7 @@ def test_tournaments_response_is_schema_typed(client):
 
 
 def test_tournaments_body_carries_exactly_the_declared_fields(client):
-    """``extra="forbid"`` plus an exact key-set check, as T3.1 established."""
+    """``extra="forbid"`` plus an exact key-set check, as the API established."""
     body = client.get("/tournaments").json()
     assert set(body) == set(TournamentListResponse.model_fields)
     for tournament in body["tournaments"]:
@@ -254,9 +255,9 @@ def test_bracket_carries_seeds_per_slot(client):
 
 
 def test_bracket_matches_load_draw_exactly(client, skill_table):
-    """The response is ``load_draw``'s own output — not a second parse of the file.
+    """The response is ``load_draw``'s own output, not a second parse of the file.
 
-    Reading the file through T2.1 directly and comparing field by field is what
+    Reading the file through the draw loader directly and comparing field by field is what
     makes "reuse, don't reinvent" checkable: any divergence means the endpoint
     grew a parser of its own.
     """
@@ -323,16 +324,16 @@ def test_bracket_response_is_schema_typed_and_exact(client):
 
 
 # --------------------------------------------------------------------------- #
-# Placeholder entrants — pinned behaviour, not an accident (see module docstring)
+# Placeholder entrants, pinned behaviour, not an accident (see module docstring)
 # --------------------------------------------------------------------------- #
 def test_placeholder_draw_is_listed_and_its_bracket_succeeds(client):
     """A draw with ``Qualifier`` slots loads, so it is listed and served.
 
-    ``/bracket`` calls ``load_draw`` and never ``simulate_bracket``, so T2.2's
+    ``/bracket`` calls ``load_draw`` and never ``simulate_bracket``, so the bracket sim's
     placeholder refusal is not in this code path at all. Placeholders resolve to
     the default skill profile exactly as everywhere else in the codebase. The
     registry deliberately does not filter such a draw out or pre-judge whether
-    it is simulatable — that is T3.3's decision, and this test is here so T3.3
+    it is simulatable, that is `/simulate`'s decision, and this test is here so `/simulate`
     changes the behaviour on purpose rather than by surprise.
     """
     listed = client.get("/tournaments").json()
@@ -359,7 +360,7 @@ def test_placeholder_draw_is_listed_and_its_bracket_succeeds(client):
 # Registry: startup scan, and the cases the endpoints cannot reach
 # --------------------------------------------------------------------------- #
 def test_registry_is_scanned_once_at_startup_not_per_request(context, monkeypatch):
-    """The draws directory is scanned once per app, like the context (T3.1)."""
+    """The draws directory is scanned once per app, like the context."""
     calls: list[Path] = []
     real_build = main.build_registry
 
@@ -438,7 +439,7 @@ def test_registry_entries_expose_valid_and_invalid_consistently(skill_table):
     registry = build_registry(skill_table, FIXTURE_DRAWS)
     assert len(registry.entries) == len(list(FIXTURE_DRAWS.glob("*.json")))
     # Partition, not merely subsets: every entry is in exactly one bucket.
-    # (Entries hold a Draw, whose `seeds` dict makes them unhashable — hence
+    # (Entries hold a Draw, whose `seeds` dict makes them unhashable, hence
     # counts + membership rather than set algebra.)
     assert len(registry.valid) + len(registry.invalid) == len(registry.entries)
     assert all(
@@ -454,7 +455,7 @@ def test_registry_module_does_not_import_cli_or_fastapi():
     """Layering: the catalogue is a filesystem concern, not a transport one.
 
     ``api/`` may not import ``cli/`` (the project-wide rule), and keeping
-    FastAPI out as well is what lets an offline script — T3.3's precompute —
+    FastAPI out as well is what lets an offline script, `/simulate`'s precompute,
     resolve an id to a draw without importing the web app.
     """
     source = Path("src/api/registry.py").read_text(encoding="utf-8")

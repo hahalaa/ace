@@ -1,16 +1,17 @@
-"""Benchmark the reconciled model against de-vigged market odds (T6.1).
+"""Benchmark the reconciled model against de-vigged market odds.
 
 Phase 6 is **not required for v1**. This is a one-off, read-only "how good are we,
 really" check: it takes the model's own held-out-season predictions (produced by
-T1.8's harness, ``model/calibrate.py``), joins them to a static snapshot of
+``model/calibrate.py``), joins them to a static snapshot of
 bookmaker prices for the same season, and reports Brier score + a reliability
-curve for **both, over the identical matched set**::
+curve for **both, over the identical matched set** (evaluation only, never
+folded back into training)::
 
     python scripts/benchmark_vs_market.py
     python scripts/benchmark_vs_market.py --book PS --top-unresolved 40
 
 Outputs ``config.BENCHMARK_PLOT`` (``outputs/calibration_vs_market.png``) next to
-T1.8's ``outputs/calibration.png``, plus a text report at
+the model's own ``outputs/calibration.png``, plus a text report at
 ``config.BENCHMARK_REPORT``.
 
 --------------------------------------------------------------------------------
@@ -19,28 +20,28 @@ The hard boundary: evaluation only, permanently
 ``tennis-data.co.uk`` data must never reach ``data/preprocess.py``, ``features/``,
 ``sim/``, or any training/fitting code. ``ace-02-data-schema.md`` records why the
 source was rejected for the primary pipeline (no serve/return columns at all, no
-TLS, framed around betting-system development), and T6.1 records why folding
+TLS, framed around betting-system development), and folding
 market odds into the model would be self-defeating: any accuracy gain would just
 be the model re-deriving the market's answer rather than an independent one.
 
 The dependency is therefore strictly one-way. This script imports the pipeline;
 **nothing in the pipeline imports this script**, and the market frame never
-leaves this module — it is read here, joined here, scored here, and the only
+leaves this module, it is read here, joined here, scored here, and the only
 things that escape are a PNG, a text report and a printed summary.
 ``tests/test_benchmark_vs_market.py`` proves that by AST-walking every module
 under ``src/`` and ``scripts/`` rather than taking it on trust.
 
 --------------------------------------------------------------------------------
-Provenance of the snapshot — a one-time MANUAL download (2026-08-09)
+Provenance of the snapshot, a one-time MANUAL download (2026-08-09)
 --------------------------------------------------------------------------------
 ``data/benchmarks/tennis_data_atp_2025.csv`` is committed, static, and fetched by
 no automated script. Do **not** wire it into ``scripts/refresh_data.py`` or
-``.github/workflows/refresh-and-simulate.yml``; the whole point of T5.3's gates is
+``.github/workflows/refresh-and-simulate.yml``; the whole point of the refresh workflow's gates is
 that unattended jobs only touch sources that can be verified in transit.
 
 How it was obtained, and the HTTP/HTTPS decision:
 
-1. The origin serves **no TLS at all** — ``https://www.tennis-data.co.uk/…`` and
+1. The origin serves **no TLS at all**, ``https://www.tennis-data.co.uk/…`` and
    ``https://tennis-data.co.uk/…`` both fail the handshake outright
    (``tlsv1 alert internal error``), so there is no secure origin to prefer.
 2. A secure mirror *does* exist: the Wayback Machine serves the same object over
@@ -55,14 +56,14 @@ How it was obtained, and the HTTP/HTTPS decision:
    that differ are corrections the vendor made after the March 2026 capture:
    Rome R2 Moutet–Humbert and Roland Garros R1 Quinn–Dimitrov. Both are
    retirements *in the corrected data*, and in both the older capture has
-   ``Winner``/``Loser`` — and their prices, ranks, sets and game scores — the
+   ``Winner``/``Loser``, and their prices, ranks, sets and game scores, the
    wrong way round. (The stale copy is not merely inverted on the Roland Garros
    row: it also labels that match ``Completed`` rather than ``Retired``.)
 
    Which copy is right was settled against a source independent of both: this
    repo's own vendored ``data/raw/atp_matches_2025.csv`` records
    ``Corentin Moutet d. Ugo Humbert 6-3 4-0 RET`` and
-   ``Ethan Quinn d. Grigor Dimitrov 2-6 3-6 6-2 RET`` — the live-origin values.
+   ``Ethan Quinn d. Grigor Dimitrov 2-6 3-6 6-2 RET``, the live-origin values.
 4. **The committed file is the corrected origin copy**, converted ``.xlsx`` →
    ``.csv``. The archived HTTPS copy is retained as the *integrity control*
    rather than as the data: agreeing with an independently-delivered,
@@ -72,11 +73,12 @@ How it was obtained, and the HTTP/HTTPS decision:
    inverted results. Serving the stale copy was the only thing TLS-purity would
    have bought here.
 
-Why plain HTTP is acceptable for this step and forbidden in T5.3: this is a
+Why plain HTTP is acceptable for this step and forbidden in the scheduled
+refresh: this is a
 one-time fetch of a static file that a human downloaded, diffed against a second
 independent source, inspected, and committed, so any tampering had to survive
 review and is frozen in git history. An automated, unattended refresh has none of
-those properties — nobody looks at the bytes, and a bad fetch would silently
+those properties, nobody looks at the bytes, and a bad fetch would silently
 retrain the model.
 
 The ``.xlsx`` → ``.csv`` conversion is deliberate too: reading the vendor's
@@ -96,7 +98,7 @@ snapshot's 38 columns are::
     Wsets Lsets Comment B365W B365L PSW PSL MaxW MaxL AvgW AvgL BFEW BFEL
 
 Odds are **decimal**, and the columns are keyed by *result* (``…W`` = the price on
-the player who went on to win), not by home/away — so a row leaks its own outcome
+the player who went on to win), not by home/away, so a row leaks its own outcome
 and must be re-oriented onto the model's p1/p2 convention before scoring, which
 :func:`market_prob_for_p1` does. Coverage over the 2,644 rows: ``B365`` 2,632,
 ``PS`` 2,534, ``Max``/``Avg`` 2,644, ``BFE`` 651.
@@ -110,7 +112,7 @@ match-win probability *equals* ``P_clf``, so scoring the pinned classifier's
 ``predict_proba`` on the held-out season is scoring the reconciled model. Under
 ``"blend"`` the authoritative probability shifts by ``(1−w)·(P_point − P_clf)``
 per match and would need the skill table plus per-row name→id resolution to
-reproduce — out of scope here exactly as it was there. The report states which
+reproduce, out of scope here exactly as it was there. The report states which
 mode it ran under so the number is never read as more than it is.
 """
 
@@ -121,7 +123,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Running this as a script puts scripts/ on sys.path[0], not src/ — the same
+# Running this as a script puts scripts/ on sys.path[0], not src/, the same
 # bootstrap cli/simulate_match.py and scripts/validate_sim.py carry.
 _SRC = Path(__file__).resolve().parent.parent / "src"
 if str(_SRC) not in sys.path:
@@ -159,7 +161,7 @@ def devig(odds_winner: float, odds_loser: float) -> float:
 
     Implied probabilities are the reciprocals ``1/oW`` and ``1/oL``; because the
     book prices in its margin they sum to more than 1 (the overround, or vig).
-    Normalising by that sum — proportional, a.k.a. multiplicative de-vigging —
+    Normalising by that sum, proportional, a.k.a. multiplicative de-vigging,
     gives ``p_winner = (1/oW) / (1/oW + 1/oL)``.
 
     Worked example from the ticket: ``1.50`` / ``2.80`` implies ``0.6667`` and
@@ -201,7 +203,7 @@ def overround(odds_winner: float, odds_loser: float) -> float:
 
 
 # ==========================================================================
-# Name resolution (reuses common/names.py — no second matcher)
+# Name resolution (reuses common/names.py, no second matcher)
 # ==========================================================================
 
 @dataclass(frozen=True)
@@ -224,7 +226,7 @@ class NameResolution:
 def market_name_query_forms(raw: str) -> list[str]:
     """Rewrite a vendor name into query forms ``common.names`` already understands.
 
-    This is **formatting, not matching** — every candidate string produced here is
+    This is **formatting, not matching**, every candidate string produced here is
     handed to :func:`common.names.resolve_name`, which owns all four matching
     strategies. tennis-data.co.uk writes ``"Surname F."`` (and ``"Surname F.C."``
     for compound given names) whereas the model carries full names like
@@ -233,8 +235,8 @@ def market_name_query_forms(raw: str) -> list[str]:
 
     The forms are tried in order, most specific first:
 
-    1. ``"F Surname"`` — first initial + surname, feeding the initials strategy.
-    2. ``"Surname"`` — surname alone, feeding the substring strategy. This is what
+    1. ``"F Surname"``, first initial + surname, feeding the initials strategy.
+    2. ``"Surname"``, surname alone, feeding the substring strategy. This is what
        rescues compound given names (``"Struff J.L."`` → ``"Jan-Lennard Struff"``)
        and compound surnames the initial cannot reach. It is safe precisely
        because the resolver reports ambiguity as *data*: two Cerundolos or two
@@ -274,8 +276,8 @@ def resolve_market_name(
     """Resolve one vendor name to a canonical model name, or explain why not.
 
     Walks :func:`market_name_query_forms` and returns the first **unambiguous**
-    match. An ambiguous form does not end the walk — a later, more specific form
-    may still resolve — but if nothing resolves, the most informative failure is
+    match. An ambiguous form does not end the walk, a later, more specific form
+    may still resolve, but if nothing resolves, the most informative failure is
     kept (ambiguity beats no-match, since it names candidates a human can act on).
 
     Args:
@@ -284,7 +286,7 @@ def resolve_market_name(
         cache: Optional memo; the same few hundred names recur across ~2,600 rows.
 
     Returns:
-        A :class:`NameResolution`. Never raises, never prints — callers log.
+        A :class:`NameResolution`. Never raises, never prints, callers log.
     """
     if cache is not None and raw in cache:
         return cache[raw]
@@ -322,7 +324,7 @@ class JoinReport:
     """Everything the join produced, including every row it could not use.
 
     ``skipped`` is the point of this type: a benchmark whose join rate is low is
-    not a benchmark, so nothing is dropped silently — every unusable market row
+    not a benchmark, so nothing is dropped silently, every unusable market row
     carries its date, players and reason.
     """
 
@@ -349,7 +351,7 @@ class JoinReport:
 
 
 def load_market_snapshot(path=config.BENCHMARK_ODDS_SNAPSHOT) -> pd.DataFrame:
-    """Read the committed odds snapshot. Offline — never fetches.
+    """Read the committed odds snapshot. Offline, never fetches.
 
     Args:
         path: CSV path; defaults to the committed snapshot.
@@ -366,8 +368,8 @@ def load_market_snapshot(path=config.BENCHMARK_ODDS_SNAPSHOT) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(
             f"No market-odds snapshot at {path}. This file is a one-time MANUAL "
-            "download and no script fetches it — see this module's docstring and "
-            "DEPLOYING.md ('Market-odds benchmark') for how to reproduce it."
+            "download and no script fetches it. See this module's docstring for "
+            "how to reproduce it."
         )
 
     df = pd.read_csv(path)
@@ -548,7 +550,7 @@ def plot_comparison(
 ) -> None:
     """Save one reliability chart carrying both curves.
 
-    Deliberately a *second* plot rather than an edit of T1.8's
+    Deliberately a *second* plot rather than an edit of
     ``outputs/calibration.png``: that one is the model's calibration over the whole
     held-out season, this one is over the matched subset, and overwriting it would
     quietly change what the older artefact means.
@@ -557,7 +559,7 @@ def plot_comparison(
 
     import matplotlib
 
-    matplotlib.use("Agg")  # headless — same as model/calibrate.py
+    matplotlib.use("Agg")  # headless, same as model/calibrate.py
     import matplotlib.pyplot as plt
 
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
@@ -578,7 +580,7 @@ def plot_comparison(
             alpha=0.8,
             edgecolors="k",
             zorder=3,
-            label=f"{label} — Brier {brier:.4f}",
+            label=f"{label}: Brier {brier:.4f}",
         )
         ax.plot(result.bin_pred, result.bin_emp, color=colour, alpha=0.45, zorder=2)
 
@@ -587,7 +589,7 @@ def plot_comparison(
     ax.set_xlabel("Predicted P(P1 wins)")
     ax.set_ylabel("Empirical win rate")
     ax.set_title(
-        f"Model vs market — TEST_YEAR {config.TEST_YEAR}\n"
+        f"Model vs market, TEST_YEAR {config.TEST_YEAR}\n"
         f"same {n} matched matches (bin size ∝ n)"
     )
     ax.legend(loc="upper left")
@@ -609,7 +611,7 @@ def format_report(
     lines: list[str] = []
     add = lines.append
 
-    add(f"Market-odds benchmark (T6.1) — TEST_YEAR {config.TEST_YEAR}")
+    add(f"Market-odds benchmark, TEST_YEAR {config.TEST_YEAR}")
     add("=" * 72)
     add(f"Snapshot          : {config.BENCHMARK_ODDS_SNAPSHOT} (static, manual download)")
     add(f"Bookmaker         : {book} ({'/'.join(BOOK_COLUMNS[book])}), proportional de-vig")
@@ -624,7 +626,7 @@ def format_report(
         f"({join.resolution_rate:.1%} of market rows)"
     )
     for reason, count in join.skipped_by_reason().items():
-        add(f"  skipped — {reason:<24} {count}")
+        add(f"  skipped: {reason:<24} {count}")
     add(f"Unresolved distinct names  : {len(join.unresolved_names)}")
     for res in list(join.unresolved_names.values())[:top_unresolved]:
         detail = f" candidates={list(res.candidates)}" if res.candidates else ""
@@ -642,9 +644,9 @@ def format_report(
     if not join.matched.empty:
         add(f"  Mean overround   : {join.matched['overround'].mean():.4f}")
     add("")
-    add("  READ THE GAP AS A LOWER BOUND — the model's side is the flattered one.")
+    add("  READ THE GAP AS A LOWER BOUND: the model's side is the flattered one.")
     add(f"      model/train.py picks the best of four estimators by accuracy on")
-    add(f"      TEST_YEAR ({config.TEST_YEAR}) itself — the very season scored above. The model's")
+    add(f"      TEST_YEAR ({config.TEST_YEAR}) itself, the very season scored above. The model's")
     add("      number therefore carries a model-selection advantage on this data that")
     add("      the market's carries no equivalent of: the bookmaker priced each match")
     add("      before it was played and was never tuned against this sample. A clean")
@@ -704,14 +706,14 @@ def run_benchmark(
     market = load_market_snapshot(snapshot_path)
 
     if model_rows is None:
-        # T1.8's own held-out-season selection, reused rather than re-derived, so
+        # The model's own held-out-season selection, reused rather than re-derived, so
         # this benchmark scores exactly the rows outputs/calibration.png scores.
         model_rows = calibrate._load_test_year_frame()
 
     join = join_market_to_model(market, model_rows, book=book)
     if join.matched.empty:
         raise RuntimeError(
-            "No market rows joined to the model's held-out season — refusing to "
+            "No market rows joined to the model's held-out season. Refusing to "
             "report a Brier comparison over an empty set. "
             f"Skips: {join.skipped_by_reason()}"
         )
@@ -736,7 +738,7 @@ def run_benchmark(
     if not (len(p_model) == len(p_market) == len(outcomes) == join.n_matched):
         raise RuntimeError(
             "Refusing to report: the model and market probabilities are not over "
-            f"the same match set — model={len(p_model)}, market={len(p_market)}, "
+            f"the same match set: model={len(p_model)}, market={len(p_market)}, "
             f"outcomes={len(outcomes)}, matched={join.n_matched}."
         )
 
@@ -766,7 +768,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Compare the reconciled model's held-out-season calibration against "
-            "de-vigged bookmaker odds (T6.1 — evaluation only)."
+            "de-vigged bookmaker odds (evaluation only)."
         )
     )
     parser.add_argument(

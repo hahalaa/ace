@@ -1,4 +1,4 @@
-"""Tests for src/sim/draw.py — the T2.1 draw schema, loader and validator.
+"""Tests for src/sim/draw.py, the draw schema, loader and validator.
 
 Most tests run against a hand-built :class:`SkillTable` (constructed directly,
 so no data frame is needed) whose name→id map holds a handful of toy entrants.
@@ -230,7 +230,7 @@ def test_real_names_are_not_placeholders(entrant):
 
 
 # ---------------------------------------------------------------------------
-# Validation rules — one test per failure mode
+# Validation rules, one test per failure mode
 # ---------------------------------------------------------------------------
 
 

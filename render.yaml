@@ -1,8 +1,8 @@
-# Static-host deploy config for the ace frontend (T4.5).
+# Static-host deploy config for the ace frontend.
 #
 # A Render Blueprint. Render reads this file from the repo root; `rootDir` moves
 # the build into `frontend/`, and every other path below is relative to that.
-# These three facts are the whole contract and port to any static host —
+# These three facts are the whole contract and port to any static host,
 # Netlify (base `frontend`, publish `dist`), Vercel (root `frontend`, Vite
 # preset), or any file server (`npx serve dist`, nginx, S3 + CloudFront):
 #
@@ -16,14 +16,14 @@
 # Two things on the API side after any real deploy: add the frontend's origin to
 # config.API_ALLOWED_ORIGINS and restart (the allow-list ships with local dev
 # origins only, and is never `*`), and serve the API over HTTPS if the frontend
-# is — a browser blocks an https:// page from calling http://, and it surfaces
+# is, a browser blocks an https:// page from calling http://, and it surfaces
 # as the generic "could not reach the ace API" panel.
 #
-# SCOPE NOTE — this is the static-site path, and it is the whole of the frontend
-# deploy story T4.5 owns. **Container packaging is T5.1's and is deliberately
-# not built here**: no frontend Dockerfile, no docker-compose.yml. T5.1 still
-# owns both, and finding this file must not read as "the frontend is already
-# containerised". See the T4.5 entry in docs/tickets/ace-ticket-index.md.
+# SCOPE NOTE, this is the static-site path. Container packaging for the frontend
+# is separate and is **not** built here: no frontend Dockerfile in this file, no
+# docker-compose.yml. Finding this file must not read as "the frontend is already
+# containerised"; the Docker path lives in the root `Dockerfile` and
+# `docker-compose.yml`. See `ace-04-current-state.md`.
 
 services:
   - type: web
@@ -34,7 +34,7 @@ services:
     staticPublishPath: ./dist
 
     envVars:
-      # Base URL of the deployed ace API, e.g. https://ace-api.example.com —
+      # Base URL of the deployed ace API, e.g. https://ace-api.example.com,
       # read by Vite at BUILD time and inlined into the bundle, so changing it
       # in the dashboard requires a redeploy that actually rebuilds; a rollback
       # to a previously built bundle keeps whatever URL that build baked in.
@@ -43,7 +43,7 @@ services:
       # service instead of reading it here. Deliberate: the repo hardcodes no
       # origin (frontend/.env.example is the only place a value is written
       # down), and the API's CORS allow-list is an explicit list, so the two
-      # sides must be configured together at deploy time — whatever origin this
+      # sides must be configured together at deploy time, whatever origin this
       # site ends up on has to be added to config.API_ALLOWED_ORIGINS.
       - key: VITE_API_BASE_URL
         sync: false
@@ -54,7 +54,7 @@ services:
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
-      # index.html is NOT hashed — it is the file that points at the current
+      # index.html is NOT hashed, it is the file that points at the current
       # asset hashes. Caching it is how a deploy goes out and nobody sees it.
       - path: /index.html
         name: Cache-Control
@@ -83,7 +83,7 @@ services:
 
       # ---- Security headers (security hardening) ----
       # Scoped to what a Vite build of THIS app actually loads:
-      #   * script-src 'self'      — the hashed ES module bundle AND the
+      #   * script-src 'self', the hashed ES module bundle AND the
       #                              same-origin pre-paint script /theme-init.js
       #                              (public/theme-init.js, copied to dist root).
       #                              Both are 'self', so neither needs a hash and
@@ -92,9 +92,9 @@ services:
       #                              inline <script>: an inline script would be
       #                              blocked here and the pre-paint would silently
       #                              never run (regression guarded by test).
-      #   * style-src  'self'      — the one hashed stylesheet; the app uses plain
+      #   * style-src  'self', the one hashed stylesheet; the app uses plain
       #                              CSS, no CSS-in-JS and no inline style attrs.
-      #   * connect-src            — the browser calls the API cross-origin, so
+      #   * connect-src, the browser calls the API cross-origin, so
       #                              'self' alone would BREAK it. Pinned to the
       #                              EXACT deployed API origin, not a wildcard:
       #                              *.onrender.com is a shared public hosting
@@ -103,10 +103,10 @@ services:
       #                              origin baked into the bundle at build time
       #                              (VITE_API_BASE_URL); change both together if
       #                              the API is ever redeployed to a new origin.
-      #   * img-src 'self' data:   — favicon.svg is 'self'; data: covers any
+      #   * img-src 'self' data:, favicon.svg is 'self'; data: covers any
       #                              inlined image Vite emits.
-      #   * frame-ancestors 'none' — this app is not meant to be iframed.
-      # No 'unsafe-inline' / 'unsafe-eval' anywhere — the build needs neither.
+      #   * frame-ancestors 'none', this app is not meant to be iframed.
+      # No 'unsafe-inline' / 'unsafe-eval' anywhere, the build needs neither.
       - path: /*
         name: Content-Security-Policy
         value: >-
@@ -134,7 +134,7 @@ services:
       # the app could outlive the deployment. See the security report.
 
     # No SPA rewrite rule, on purpose. The app does no path-based routing: every
-    # screen is `/` plus a query string (`?tournament=`, `?view=`, `?seed=` —
+    # screen is `/` plus a query string (`?tournament=`, `?view=`, `?seed=`,
     # App.tsx), so no deep link ever requests a path that is not index.html, and
     # a catch-all rewrite would only turn genuine 404s into blank app shells.
     # If a real router is ever adopted, this is the rule to add:

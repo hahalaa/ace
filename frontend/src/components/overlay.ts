@@ -1,5 +1,5 @@
 /**
- * Keying a storybook run onto the bracket's layout — pure, no React, on the
+ * Keying a storybook run onto the bracket's layout, pure, no React, on the
  * `rounds.ts`/`errors.ts` precedent. (Named `overlay.ts` rather than
  * `storybook.ts` because a case-insensitive filesystem cannot hold that
  * alongside `Storybook.tsx`.)
@@ -7,7 +7,7 @@
  * **Two endpoints, one structure, and they already agree.** `/bracket` sends
  * entrants (`draw_size` slots in `position` order) and `/storybook` sends
  * results (`round_index`, `match_index`, winner, loser, scoreline). Nothing in
- * either body links a result back to a slot, so the join has to be derived —
+ * either body links a result back to a slot, so the join has to be derived,
  * and it is derivable exactly, because both sides implement the *same* pairing
  * rule:
  *
@@ -16,21 +16,21 @@
  *     `survivors[2m+1]`, appending winners in match order. So `round_index` is
  *     an index into the same label list `rounds.ts` builds, and `match_index`
  *     counts matches top-of-draw-first within it.
- *   * Round one's survivors are `draw.bracket`, position-ordered — the very
- *     slots `/bracket` serves — so `buildRounds`'s `ordered[2m]`/`ordered[2m+1]`
+ *   * Round one's survivors are `draw.bracket`, position-ordered, the very
+ *     slots `/bracket` serves, so `buildRounds`'s `ordered[2m]`/`ordered[2m+1]`
  *     and the simulator's `survivors[2m]`/`survivors[2m+1]` are the same two
  *     entrants.
  *   * Because winners are appended in match order, **the ordering is preserved
  *     round to round** (`sim/tournament.py`'s module docstring says so
  *     explicitly). Match `m` of round `r` is therefore contested by the winners
- *     of matches `2m` and `2m+1` of round `r−1`, in that order — which is how
+ *     of matches `2m` and `2m+1` of round `r−1`, in that order, which is how
  *     the later rounds `/bracket` leaves as `null` get filled here.
  *
  * **Which side won is read off the names, and a failure to read it is not
  * invented.** `StorybookMatch` carries `winner`/`loser` but no position, so the
  * winner is identified by matching against the two slots the propagation above
- * already knows. If neither matches — a body disagreeing with its own draw, i.e.
- * a server bug — the match keeps its scoreline, claims no winner, and stops
+ * already knows. If neither matches, a body disagreeing with its own draw, i.e.
+ * a server bug, the match keeps its scoreline, claims no winner, and stops
  * propagating rather than guessing a side; the rounds above it then render as
  * the `TBD`s they were before the run. Silence beats a plausible-looking lie
  * about who beat whom.
@@ -50,7 +50,7 @@ export interface MatchOverlay {
   /** The lower-position side: a round-one slot, or the winner that reached here. */
   top: BracketSlot | null;
   bottom: BracketSlot | null;
-  /** Absent when the winner could not be attributed to a side — see the module docstring. */
+  /** Absent when the winner could not be attributed to a side, see the module docstring. */
   topResult?: MatchResult;
   bottomResult?: MatchResult;
   /** Winner-first, copied from the response. */
@@ -95,7 +95,7 @@ function indexMatches(story: StorybookResponse): Map<string, StorybookMatch> {
 /**
  * Lay a storybook run over the bracket's rounds.
  *
- * @param rounds The layout from {@link buildRounds} — round one populated, the
+ * @param rounds The layout from {@link buildRounds}, round one populated, the
  *   rest `null`, exactly as `/bracket` knows it.
  * @param story The `/storybook` body for the same draw.
  * @returns Every match the run played, keyed by {@link overlayKey}. A match the
@@ -107,7 +107,7 @@ export function buildStorybookOverlay(
 ): StorybookOverlay {
   const played = indexMatches(story);
   const overlay = new Map<string, MatchOverlay>();
-  /** Winners of the round just processed, in match order — the next round's entrants. */
+  /** Winners of the round just processed, in match order, the next round's entrants. */
   let winners: (BracketSlot | null)[] = [];
 
   for (const round of rounds) {

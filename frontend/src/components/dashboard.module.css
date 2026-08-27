@@ -1,6 +1,6 @@
 /*
  * The landing screen. Two cards over an editorial hero. Tokens from
- * src/index.css; the accent (--ball) is an interaction state — it follows the
+ * src/index.css; the accent (--ball) is an interaction state, it follows the
  * hovered or keyboard-focused card, so both cards are treated identically and
  * neither is pre-highlighted at rest.
  */
@@ -100,8 +100,8 @@
   transition-duration: var(--dur-1);
 }
 
-/* The keyboard-focus state reads as the app's gold/green highlight — the same
-   ball-coloured ring the rest of the app uses for :focus-visible — not a
+/* The keyboard-focus state reads as the app's gold/green highlight, the same
+   ball-coloured ring the rest of the app uses for :focus-visible, not a
    generic browser outline, on top of the shared border/ground accent above. */
 .card:focus-visible {
   outline: 2px solid var(--ball);

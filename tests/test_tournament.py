@@ -1,8 +1,8 @@
-"""Tests for src/sim/tournament.py — T2.2's bracket sim and T2.3's Monte Carlo.
+"""Tests for src/sim/tournament.py, the bracket sim and the Monte Carlo runner.
 
 Everything runs against a hand-built :class:`SkillTable` and a toy 8-slot draw
-(the T2.1 loader is exercised for real in ``test_draw.py``), plus a stub
-classifier — the same dependency-inversion boundary ``sim/reconcile.py``
+(the draw loader is exercised for real in ``test_draw.py``), plus a stub
+classifier, the same dependency-inversion boundary ``sim/reconcile.py``
 defines, so no model artefact or data frame is needed.
 
 The load-bearing test here is
@@ -39,7 +39,7 @@ from sim.tournament import (
     storybook_run,
 )
 
-# Eight toy entrants, strongest first — "Ace" has the best serve and return.
+# Eight toy entrants, strongest first, "Ace" has the best serve and return.
 TOY_PLAYERS = {
     "Alice Ace": "A1",
     "Bob Baseline": "B2",
@@ -81,7 +81,7 @@ def skill_table() -> SkillTable:
 
 
 def toy_draw_dict(**overrides) -> dict:
-    """A valid 8-slot toy draw with no placeholders (see the T2.2 gap note)."""
+    """A valid 8-slot toy draw with no placeholders (see the documented gap note)."""
     data = {
         "tournament_id": "toy_2026",
         "name": "Toy Open 2026",
@@ -107,7 +107,7 @@ def draw(skill_table):
 class CountingClassifier:
     """A stub ``ClassifierProb`` that records every call it receives.
 
-    Deliberately **not** memoised: T2.2's contract is that ``simulate_bracket``
+    Deliberately **not** memoised: the simulator's contract is that ``simulate_bracket``
     presents each matchup in one stable orientation and asks about it at most
     once per bracket, which only shows up if the stub answers every call.
     """
@@ -179,7 +179,7 @@ def test_format_scoreline_is_winner_first_with_tiebreak_parenthetical():
 
 
 # ---------------------------------------------------------------------------
-# Structure — both modes
+# Structure, both modes
 # ---------------------------------------------------------------------------
 
 
@@ -222,7 +222,7 @@ def test_round_structure_and_labels(draw, skill_table, classifier, outcome_only)
 
 @pytest.fixture
 def big_skill_table() -> SkillTable:
-    """A 32-entrant version of ``skill_table`` — same descending-strength shape."""
+    """A 32-entrant version of ``skill_table``, same descending-strength shape."""
     skills = {}
     for index in range(BIG_DRAW_SIZE):
         for surface in config.VALID_SURFACES:
@@ -268,7 +268,7 @@ def test_larger_draw_structure_is_correct(
 ):
     """The 8-draw is the smallest possible bracket; check a real R32 too.
 
-    Covers the rounds an 8-draw never exercises — the numbered ``R32``/``R16``
+    Covers the rounds an 8-draw never exercises, the numbered ``R32``/``R16``
     labels ahead of the named QF/SF/F, and four halvings rather than two.
     """
     result = simulate_bracket(
@@ -358,7 +358,7 @@ def test_path_of_reconstructs_a_players_run(draw, skill_table, classifier):
 
 
 # ---------------------------------------------------------------------------
-# outcome_only=False — real scorelines
+# outcome_only=False, real scorelines
 # ---------------------------------------------------------------------------
 
 
@@ -411,7 +411,7 @@ def test_storybook_mode_serves_first_deterministically(draw, skill_table, classi
 
 
 # ---------------------------------------------------------------------------
-# outcome_only=True — winner only, and provably no point simulation
+# outcome_only=True, winner only, and provably no point simulation
 # ---------------------------------------------------------------------------
 
 
@@ -435,7 +435,7 @@ def _trap(name):
 
 
 # Every route from simulate_bracket into the point-by-point engine, patched at
-# the module that *holds the reference* the caller resolves — sim/match.py for
+# the module that *holds the reference* the caller resolves, sim/match.py for
 # the game/set/tiebreak layer, sim/reconcile.py for the two match entry points
 # it imported. Each is proved to be a live interception point by
 # test_each_trap_fires_in_storybook_mode below, so a silent run in
@@ -457,7 +457,7 @@ def test_outcome_only_never_simulates_a_point(
         monkeypatch.setattr(module, name, _trap(name))
     # Not part of POINT_SIM_TRAPS: match_win_prob_point_mc is a defensive no-op
     # guard, not a real check. sim/tournament.py never imports it, so patching
-    # reconcile's copy cannot fire in *either* mode — it documents that the MC
+    # reconcile's copy cannot fire in *either* mode, it documents that the MC
     # estimator is off the hot path (see sim/reconcile.py's module docstring)
     # and would only catch a future edit that routed through reconcile itself.
     monkeypatch.setattr(
@@ -478,7 +478,7 @@ def test_outcome_only_never_simulates_a_point(
 def test_each_trap_fires_in_storybook_mode(
     draw, skill_table, classifier, monkeypatch, module, name
 ):
-    """Control for the test above — patched *one at a time*.
+    """Control for the test above, patched *one at a time*.
 
     Without this, a trap that silently fails to intercept (wrong module, renamed
     symbol) would make ``test_outcome_only_never_simulates_a_point`` pass for the
@@ -578,7 +578,7 @@ def test_classifier_is_called_once_per_unique_matchup(draw, skill_table, classif
 
 
 def test_prob_cache_is_reused_across_brackets(draw, skill_table):
-    """The T2.3 contract: one shared cache spans the whole Monte Carlo job."""
+    """The Monte Carlo contract: one shared cache spans the whole Monte Carlo job."""
     classifier = CountingClassifier()
     cache: dict = {}
 
@@ -620,7 +620,7 @@ def test_prob_cache_key_separates_reconciliation_modes(draw, skill_table):
     """Every key dimension must discriminate, or a shared job-wide cache lies.
 
     A cache keyed without ``mode``/``w`` would hand a ``"blend"`` probability to
-    a ``"classifier_anchor"`` caller — silently, and only for the *second* mode
+    a ``"classifier_anchor"`` caller, silently, and only for the *second* mode
     used in the job.
     """
     slot_a, slot_b = draw.bracket[0], draw.bracket[1]
@@ -745,7 +745,7 @@ def test_outcome_only_win_rate_matches_the_reconciled_probability(draw, skill_ta
 
 
 # ---------------------------------------------------------------------------
-# Placeholders (the documented T2.2 gap)
+# Placeholders (the documented placeholder gap)
 # ---------------------------------------------------------------------------
 
 
@@ -769,7 +769,7 @@ def test_placeholder_entrants_are_rejected_upfront(skill_table, classifier):
 
 
 # ---------------------------------------------------------------------------
-# The shipped placeholder-free example draw (addendum to T2.1/T2.2)
+# The shipped placeholder-free example draw (addendum to the draw + bracket layers)
 # ---------------------------------------------------------------------------
 
 
@@ -779,13 +779,13 @@ def test_full_example_draw_loads_and_simulates_end_to_end():
     A draw carrying ``"Qualifier"``/``"Lucky Loser"`` slots is *correctly*
     refused by :func:`simulate_bracket` (covered above). This example is a real,
     completed 128-draw in which every slot was filled by a named player, so it is
-    the fixture T2.3 can actually measure against.
+    the fixture the Monte Carlo runner can actually measure against.
 
     Deliberately a smoke test: structure, labels and determinism are already
     covered above against toy draws. What is unique here is that the file
     resolves against skills built from the **real** vendored data and then runs
-    to a champion in both modes. The classifier is the usual stub — the T2.2
-    boundary — since this checks the draw, not the model.
+    to a champion in both modes. The classifier is the usual stub, the bracket sim
+    boundary, since this checks the draw, not the model.
     """
     df = loader.load_atp_data(config.START_YEAR, config.END_YEAR)
     table = serve.build_skill_table(preprocess.preprocess_data(df))
@@ -820,7 +820,7 @@ def test_ausopen_2026_full_draw_loads_and_simulates_end_to_end():
     men's singles, reconstructed from the vendored round-by-round results the
     same way ``example_usopen_2024_full.json`` was. Proves the file resolves
     against skills built from real vendored data and runs to a champion in both
-    modes. Like its sibling above, the classifier is the usual stub — this
+    modes. Like its sibling above, the classifier is the usual stub, this
     checks the draw, not the model.
     """
     df = loader.load_atp_data(config.START_YEAR, config.END_YEAR)
@@ -857,7 +857,7 @@ def test_ausopen_2026_full_draw_loads_and_simulates_end_to_end():
 
 
 # ---------------------------------------------------------------------------
-# T2.3 — Monte Carlo runner + aggregation
+# Monte Carlo runner + aggregation
 # ---------------------------------------------------------------------------
 # The toy skill table gives "Alice Ace" the biggest serve/return edge and
 # "Hank Half" the smallest, so with the point model in charge (w=0.0, i.e. the
@@ -976,7 +976,7 @@ def test_monte_carlo_seeds_each_run_from_its_own_spawned_child(draw, skill_table
     that swept 20 alternative comparison seeds measured that at **2/20**. Swap
     ``2027`` for ``2029`` and a shared-seed regression ships green.
     Reconstructing the spawn by hand and demanding the counts match is
-    unconditional — the same sweep catches it 20/20.
+    unconditional, the same sweep catches it 20/20.
     """
     n_runs, seed = 12, 4242
     mc = monte_carlo(
@@ -1022,11 +1022,11 @@ def test_monte_carlo_always_passes_outcome_only_true(
 def test_monte_carlo_never_simulates_a_point(
     draw, skill_table, classifier, monkeypatch
 ):
-    """Behavioural half: the same raising traps T2.2 used, over a whole MC job.
+    """Behavioural half: the same raising traps the bracket sim used, over a whole MC job.
 
     ``POINT_SIM_TRAPS`` is already proved to be a live interception point by
     ``test_each_trap_fires_in_storybook_mode``, so a clean run here means the
-    point-by-point engine really was never entered — across every one of the
+    point-by-point engine really was never entered, across every one of the
     runs, not just the first.
     """
     for module, name in POINT_SIM_TRAPS:
@@ -1044,7 +1044,7 @@ def test_monte_carlo_never_simulates_a_point(
 
 
 def test_monte_carlo_shares_one_prob_cache_across_every_run(draw, skill_table):
-    """One cache for the whole single-threaded job — not one per bracket.
+    """One cache for the whole single-threaded job, not one per bracket.
 
     The stub classifier is uncached, so its call log is a direct read-out of how
     many distinct matchups the job had to solve. Uncached, 200 runs × 7 matches
@@ -1069,7 +1069,7 @@ def test_each_worker_chunk_builds_its_own_prob_cache(draw, skill_table):
     classifier stub. If the cache were hoisted out of ``_run_chunk`` (a
     module-level dict, say), the second invocation would ask the classifier
     nothing. It asks for exactly the same matchups again, which is what "each
-    worker starts cold" means — and is why the parallel speedup is sub-linear.
+    worker starts cold" means, and is why the parallel speedup is sub-linear.
     """
     classifier = CountingClassifier()
     seeds = np.random.SeedSequence(8).spawn(20)
@@ -1104,7 +1104,7 @@ def test_monte_carlo_multiprocessing_matches_single_threaded_exactly(
 
 
 def test_monte_carlo_rejects_an_unpicklable_classifier_for_workers(draw, skill_table):
-    """The realistic failure — the CLI's adapter is a closure — named up front."""
+    """The realistic failure, the CLI's adapter is a closure, named up front."""
     def closure_classifier(a, b, surface):  # not picklable
         return 0.55
 
@@ -1134,7 +1134,7 @@ def test_monte_carlo_validates_its_counts(draw, skill_table, classifier, n_runs,
 def test_monte_carlo_defaults_to_the_system_reconciliation_mode(
     draw, skill_table, classifier
 ):
-    """T2.3 decision: ``mode`` is a pass-through, with no opinion baked in here.
+    """Decision: ``mode`` is a pass-through, with no opinion baked in here.
 
     The core must not inherit ``config.SIM_CLI_RECONCILE_MODE``, which is a
     CLI-scoped mitigation for one degraded adapter (seam 7), so the default has
@@ -1147,7 +1147,7 @@ def test_monte_carlo_defaults_to_the_system_reconciliation_mode(
 
 
 # ---------------------------------------------------------------------------
-# T2.4 — Storybook single run
+# Storybook single run
 # ---------------------------------------------------------------------------
 # A rendered match line: "<winner> def. <loser> 6-4 3-6 7-6(5) 6-2".
 MATCH_LINE = re.compile(
@@ -1157,7 +1157,7 @@ MATCH_LINE = re.compile(
 
 
 def test_storybook_calls_simulate_bracket_exactly_once(draw, skill_table, classifier):
-    """The acceptance criterion, asserted by counting — not by inspection.
+    """The acceptance criterion, asserted by counting, not by inspection.
 
     One bracket per storybook run: not one per round, not one per match, and
     emphatically not the Monte Carlo path. The call must also carry
@@ -1216,7 +1216,7 @@ def test_storybook_8_draw_has_seven_matches_across_three_rounds(
 def test_storybook_scorelines_come_from_the_bracket_untouched(
     draw, skill_table, classifier
 ):
-    """No second scoreline formatter: the wrapper reuses what T2.2 produced."""
+    """No second scoreline formatter: the wrapper reuses what the bracket sim produced."""
     result = storybook_run(draw, skill_table, classifier, seed=13)
 
     for storybook_match in result.matches:
@@ -1234,7 +1234,7 @@ def test_storybook_run_summaries_describe_every_entrants_tournament(
 
     assert len(result.runs) == 8
     assert {run.position for run in result.runs} == set(range(1, 9))
-    # Sorted best-finish-first, champion at the top — the documented key in
+    # Sorted best-finish-first, champion at the top, the documented key in
     # full, so the position tiebreak is pinned and not merely inherited from
     # Python's stable sort over a position-ordered draw.
     assert result.runs[0].is_champion
@@ -1309,7 +1309,7 @@ def test_storybook_different_seeds_tell_different_stories(draw, skill_table):
     Compares the matches actually played, deliberately **not** the rendered
     text: the header prints the seed, so a ``storybook_run`` that ignored its
     argument and used a fixed RNG would still produce a different string per
-    seed and a text-based assertion would pass vacuously. (It did — this test
+    seed and a text-based assertion would pass vacuously. (It did, this test
     only fails on that mutation once it compares the bracket.)
     """
     played = {
@@ -1332,11 +1332,11 @@ def test_render_storybook_is_round_by_round_and_ends_with_the_champion(
     text = render_storybook(result)
     lines = text.splitlines()
 
-    # Both header lines pinned to result fields, exactly — a loose ``in`` check
+    # Both header lines pinned to result fields, exactly, a loose ``in`` check
     # would let the renderer swap in a fact it computed itself (the body check
     # in the separation test below only guards the round blocks).
     assert lines[0] == (
-        f"{result.name} — {result.surface}, best of {result.best_of}, "
+        f"{result.name}: {result.surface}, best of {result.best_of}, "
         f"{result.draw_size} entrants"
     )
     # (No ``(w=…)`` suffix: that branch is blend-only and is asserted in the
@@ -1365,7 +1365,7 @@ def test_render_storybook_reads_only_the_result_structure(
 
     Every non-blank body line is either a round label or one of the result's own
     match lines, so a frontend consuming :class:`StorybookResult` can reproduce
-    this layout — and anything else — without re-deriving anything.
+    this layout, and anything else, without re-deriving anything.
     """
     result = storybook_run(draw, skill_table, classifier, seed=17)
     lines = [line for line in render_storybook(result).splitlines() if line.strip()]
@@ -1380,10 +1380,10 @@ def test_render_storybook_reads_only_the_result_structure(
 def test_storybook_defaults_to_the_system_reconciliation_mode(
     draw, skill_table, classifier
 ):
-    """T2.4 decision: a pass-through, exactly like ``monte_carlo``'s.
+    """Decision: a pass-through, exactly like ``monte_carlo``'s.
 
     The core does not adopt ``config.SIM_CLI_RECONCILE_MODE`` even for the
-    shareable mode — that mitigation belongs to the layer that builds the
+    shareable mode, that mitigation belongs to the layer that builds the
     degraded adapter (seam 7). The result records what was used either way.
     """
     default = storybook_run(draw, skill_table, classifier, seed=18)
@@ -1398,7 +1398,7 @@ def test_storybook_defaults_to_the_system_reconciliation_mode(
 
 
 def test_storybook_rejects_a_draw_with_placeholders(skill_table, classifier):
-    """Inherited from ``simulate_bracket`` — refused before anything is played."""
+    """Inherited from ``simulate_bracket``, refused before anything is played."""
     data = toy_draw_dict()
     data["bracket"][5]["player"] = "Qualifier"
     placeholder_draw = parse_draw(data, skill_table)
@@ -1411,11 +1411,11 @@ def test_storybook_rejects_a_draw_with_placeholders(skill_table, classifier):
 def test_full_example_draw_storybook_end_to_end():
     """The real 128-draw: a complete, readable 127-match narrative.
 
-    The end-to-end smoke test for T2.4 — the placeholder-free
+    The end-to-end smoke test for the storybook run, the placeholder-free
     ``example_usopen_2024_full.json`` bracket, real vendored skills, every match
-    played out point by point. The classifier is the usual stub (the T2.2
+    played out point by point. The classifier is the usual stub (the bracket sim
     boundary), so "plausible champion" here means *a real entrant who actually
-    won seven matches*, not a forecast — see seam 7 on why no stub-driven or
+    won seven matches*, not a forecast, see seam 7 on why no stub-driven or
     CLI-adapter-driven bracket is one.
     """
     df = loader.load_atp_data(config.START_YEAR, config.END_YEAR)

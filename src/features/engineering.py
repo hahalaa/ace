@@ -18,7 +18,7 @@ def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict, serve.Skil
         - DataFrame with new feature columns
         - surface_history dict
         - h2h_history dict
-        - skill_table: the id-keyed serve/return SkillTable (T1.1), a latest
+        - skill_table: the id-keyed serve/return SkillTable, a latest
           snapshot over all rows (used by the point-based simulator, Phase 1+)
     """
     print("Engineering features...")
@@ -108,7 +108,7 @@ def add_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict, serve.Skil
     # Add rolling features
     df = rolling.compute_rolling_features(df)
 
-    # Serve/return skill table (T1.1): a latest snapshot keyed on player_id,
+    # Serve/return skill table: a latest snapshot keyed on player_id,
     # built from the same preprocessed frame (which carries serve stats + score).
     skill_table = serve.build_skill_table(df)
 

@@ -1,4 +1,4 @@
-"""Tests for scripts/refresh_data.py — no real network access.
+"""Tests for scripts/refresh_data.py, no real network access.
 
 The single network primitive (``fetch_url``) is monkeypatched so downloads are
 served from an in-memory fake manifest + CSV bytes.
@@ -11,7 +11,7 @@ import pytest
 
 # Make scripts/ importable. pyproject's ``pythonpath = ["src"]`` covers src
 # modules for the other test files, but refresh_data lives under scripts/, which
-# is not a package on that path — so this hack stays.
+# is not a package on that path, so this hack stays.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../scripts")))
 
 import refresh_data  # noqa: E402

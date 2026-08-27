@@ -1,32 +1,32 @@
 """Aggregate one matchup over many live simulations (single-match view).
 
 The tournament path answers "who wins the draw"; this module answers the
-betting-relevant questions a single matchup raises — how often each player wins,
-what the set score tends to be, and how many games get played — by simulating
+betting-relevant questions a single matchup raises, how often each player wins,
+what the set score tends to be, and how many games get played, by simulating
 **one** matchup thousands of times and tallying the point-by-point results.
 
 **Why this can run live when a Monte Carlo draw cannot.** ``/simulate`` is
-cache-only (``ace-04-current-state.md``, T3.3) because a 128-draw aggregate is
+cache-only (``ace-04-current-state.md``) because a 128-draw aggregate is
 5,000 brackets × 127 matches ≈ 635k match evaluations. A single match is a
 different cost class entirely: there is exactly **one** matchup, so the
 classifier is priced once, the serve shift ``δ`` is solved **once**
 (:func:`~sim.reconcile.solve_reconciled_serve_probs`), and each of the ``n_runs``
 draws is only a point-by-point scoreline over already-adjusted probabilities.
-Measured at ~0.08 ms per run — 3,000 runs in ~0.24 s, cheaper than one live
+Measured at ~0.08 ms per run, 3,000 runs in ~0.24 s, cheaper than one live
 ``/storybook`` bracket. That is what makes a live single-match endpoint a
-deliberate, bounded exception to T3.3's rule rather than a violation of it.
+deliberate, bounded exception to the cache-only rule rather than a violation of it.
 
 **What falls out for free, and what does not.** :class:`~sim.match.MatchResult`
 carries every :class:`~sim.match.SetResult` (its winner and game score), so the
 set-score distribution and the total-games distribution are pure tallies of what
-the existing simulator already produces. **Hold/break rates do not** — a set
+the existing simulator already produces. **Hold/break rates do not**, a set
 records only game *counts*, not which games were service holds versus breaks, so
 reporting them would need new instrumentation inside ``sim/match.py``. That is
 left as a follow-up rather than built here.
 
 This module belongs to the ``sim/`` core: it composes the public pieces of
 ``sim.reconcile`` and ``sim.match`` and imports nothing from ``cli/`` or ``api/``.
-Determinism is by ``seed`` — the same seed replays the same aggregate exactly, so
+Determinism is by ``seed``, the same seed replays the same aggregate exactly, so
 a shared single-match URL reproduces byte-for-byte.
 """
 
@@ -54,7 +54,7 @@ class SetScoreOutcome:
     """One observed final set tally and how often it happened.
 
     Oriented to A/B (not winner/loser), so ``(3, 1)`` and ``(1, 3)`` are distinct
-    entries — a client that wants the by-winner grouping can fold them, but the
+    entries, a client that wants the by-winner grouping can fold them, but the
     joint is the honest thing to report.
 
     Attributes:
@@ -79,7 +79,7 @@ class TotalGames:
         std: Population standard deviation of the total.
         minimum: Fewest total games seen.
         maximum: Most total games seen.
-        distribution: ``(total_games, count)`` pairs, ascending — the full
+        distribution: ``(total_games, count)`` pairs, ascending, the full
             histogram, so a client can draw the spread rather than only quote the
             mean.
     """
@@ -155,7 +155,7 @@ def simulate_single_match(
         best_of: ``3`` or ``5``.
         final_set_rule: ``"7pt_at_6_6"``/``"10pt_at_6_6"``/``"advantage"``.
         n_runs: Simulations behind the distributions.
-        seed: Seed for ``numpy.random.default_rng`` — the same seed replays the
+        seed: Seed for ``numpy.random.default_rng``, the same seed replays the
             same aggregate exactly.
         mode, w: Reconciliation mode / blend weight.
 

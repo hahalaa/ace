@@ -1,16 +1,16 @@
-"""FastAPI application: ``/health``, ``/players`` (T3.1), ``/tournaments`` (T3.2–T3.4).
+"""FastAPI application: ``/health``, ``/players``, ``/tournaments``, ``/match``.
 
 Run it with::
 
     uvicorn api.main:app --reload    # from src/, or with src/ on PYTHONPATH
 
 The app is built by :func:`create_app` so the startup context can be injected.
-Importing this module is cheap and side-effect-free — the pipeline load (~1.8 s;
+Importing this module is cheap and side-effect-free, the pipeline load (~1.8 s;
 see :func:`api.deps.build_api_context`) happens in the **lifespan**, i.e. when
 the app actually starts, so a test may import ``api.main`` (or generate its
 OpenAPI schema) without touching the vendored dataset.
 
-Conventions this ticket sets for T3.2–T3.4:
+Conventions:
   * Startup state is loaded once into ``app.state`` by the lifespan handler and
     read by every handler through a dependency (:func:`get_context`,
     :func:`get_registry`). Handlers never load anything themselves.
@@ -19,24 +19,23 @@ Conventions this ticket sets for T3.2–T3.4:
   * Anything configurable (CORS origins, titles, the draws directory) is a
     ``config`` constant, overridable per app instance for tests.
 
-**T3.2 note, answered by T3.3.** ``/tournaments/{id}/bracket`` calls
-``load_draw`` and nothing else, so T2.2's placeholder-entrant refusal — which
-lives in ``simulate_bracket`` — never fires there. A draw containing
-``Qualifier`` slots loads fine (placeholders take the default skill profile, as
-everywhere else), so such a draw is legitimately listed and its bracket
-legitimately served. T3.3 keeps that unchanged and answers
-the simulability question at ``/simulate`` instead — see
+**``/tournaments/{id}/bracket`` versus simulability.** ``/bracket`` calls
+``load_draw`` and nothing else, so ``simulate_bracket``'s placeholder-entrant
+refusal never fires there. A draw containing ``Qualifier`` slots loads fine
+(placeholders take the default skill profile, as everywhere else), so such a
+draw is legitimately listed and its bracket legitimately served. The
+simulability question is answered at ``/simulate`` instead, see
 :func:`tournament_simulation` for the decision and its reasoning.
 
-**T3.3/T3.4: what this module may and may not simulate.** ``/simulate`` reads a
-file that ``scripts/precompute_sim.py`` wrote offline and simulates nothing —
-Phase 3's global rule ("never run a full 5,000-run MC synchronously inside a
-request handler") is a rule, not a performance preference, so this module holds
-no reference to ``monte_carlo`` or ``simulate_bracket`` at all. ``/storybook``
-(T3.4) is the deliberate exception the same rule allows: **one** bracket, not
-thousands, run live per request via ``sim.tournament.storybook_run``. The line
-is the cost of a single run (0.4–1.4 s for a 128 draw; measured below), and
-``tests/test_api_simulate.py`` pins it — the Monte Carlo entry points must stay
+**What this module may and may not simulate.** ``/simulate`` reads a file that
+``scripts/precompute_sim.py`` wrote offline and simulates nothing, Phase 3's
+global rule ("never run a full 5,000-run MC synchronously inside a request
+handler") is a rule, not a performance preference, so this module holds no
+reference to ``monte_carlo`` or ``simulate_bracket`` at all. ``/storybook`` is
+the deliberate exception the same rule allows: **one** bracket, not thousands,
+run live per request via ``sim.tournament.storybook_run``. The line is the cost
+of a single run (0.4–1.4 s for a 128 draw; measured below), and
+``tests/test_api_simulate.py`` pins it, the Monte Carlo entry points must stay
 un-imported here even though the storybook one is now imported.
 """
 
@@ -83,6 +82,7 @@ from api.schemas import (
     MatchSimulateResponse,
     PlayerSearchResponse,
     PlayerSummary,
+    RankingsResponse,
     SetScore,
     SimulationResponse,
     StorybookChampion,
@@ -99,6 +99,7 @@ from api.schemas import (
 )
 from api.uploads import UploadedDraw, UploadStore
 from common.names import NameIndex, NameMatch, resolve_name
+from features.elo import elo_cache_path
 from features.serve import SkillTable
 from sim.draw import Draw, DrawValidationError, parse_draw
 from sim.reconcile import ClassifierProb
@@ -112,7 +113,7 @@ SURFACE_ORDER = sorted(config.VALID_SURFACES)
 
 # The ``/players`` query type. ``strip_whitespace`` runs **before** ``min_length``
 # in Pydantic v2, which is the whole point: a bare ``min_length=1`` accepts " "
-# and "\t", and ``common.names.resolve_name`` then strips it to "" — at which
+# and "\t", and ``common.names.resolve_name`` then strips it to "", at which
 # point the substring strategy's ``"" in name`` matches *every* player and the
 # endpoint returns the entire universe (1,408 players, ~470 KB) for what is
 # semantically an empty query. Stripping first makes whitespace-only input take
@@ -125,7 +126,7 @@ PlayerQuery = Annotated[str, StringConstraints(strip_whitespace=True, min_length
 # Security headers (security hardening)
 # --------------------------------------------------------------------------- #
 # Sent on every response by the middleware below. Scoped to what this service
-# actually is — a JSON API whose only HTML is the auto-generated docs UI:
+# actually is, a JSON API whose only HTML is the auto-generated docs UI:
 #
 #   * Content-Security-Policy: JSON responses render no markup, so the strict
 #     `default-src 'none'` policy costs nothing and is pure defence-in-depth
@@ -134,11 +135,11 @@ PlayerQuery = Annotated[str, StringConstraints(strip_whitespace=True, min_length
 #     Swagger/ReDoc HTML at /docs and /redoc is the one exception (see
 #     DOCS_CSP): it deliberately pulls its bundle from the jsDelivr CDN and runs
 #     an inline bootstrap, so the strict policy would blank it out.
-#   * X-Content-Type-Options: nosniff — stop a browser MIME-sniffing a JSON body
+#   * X-Content-Type-Options: nosniff, stop a browser MIME-sniffing a JSON body
 #     into something executable; the one header that most matters for an API.
 #   * X-Frame-Options: DENY (paired with frame-ancestors 'none' for old
-#     browsers that predate CSP) — nothing here is meant to be iframed.
-#   * Referrer-Policy: no-referrer — a JSON API and a query-string SPA have no
+#     browsers that predate CSP), nothing here is meant to be iframed.
+#   * Referrer-Policy: no-referrer, a JSON API and a query-string SPA have no
 #     use for the Referer header, so send the least. (Stricter than the
 #     strict-origin-when-cross-origin default; nothing here needs referrer info.)
 #
@@ -181,14 +182,14 @@ def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
 
     An unhandled exception is turned into a 500 by Starlette's
     ``ServerErrorMiddleware``, which sits **outside** the ``BaseHTTPMiddleware``
-    that adds :data:`SECURITY_HEADERS` — so without this, a raw 500 goes out
+    that adds :data:`SECURITY_HEADERS`, so without this, a raw 500 goes out
     bare (verified: no CSP, no nosniff). Registering a handler for ``Exception``
     routes those 500s here instead, where the headers are set explicitly.
 
     The body is a fixed, generic message: ``exc`` is never echoed, so an internal
     error (a stack detail, a path, a value) cannot leak to the client. More
     specific handlers (``HTTPException``, ``RequestValidationError``) still win by
-    MRO, so this only ever fires for genuinely unexpected errors — the 4xx paths
+    MRO, so this only ever fires for genuinely unexpected errors, the 4xx paths
     are untouched.
     """
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
@@ -207,7 +208,7 @@ def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
 # signatures). Applied as a route *dependency*, so it reads the client IP without
 # touching the handler's own signature.
 #
-# HONEST SCOPE — repeated verbatim from config.API_STORYBOOK_RATE_LIMIT
+# HONEST SCOPE, repeated verbatim from config.API_STORYBOOK_RATE_LIMIT
 # because it is the whole point: the window counts live in this process's memory
 # only. Render's free tier cold-starts and restarts routinely and every restart
 # wipes the counters; a multi-replica deployment gives each replica its own. So
@@ -220,7 +221,7 @@ _PERIOD_SECONDS = {"second": 1, "minute": 60, "hour": 3600, "day": 86400}
 
 
 def _parse_rate(spec: str) -> tuple[int, int]:
-    """``"12/minute"`` → ``(12, 60)`` — (max requests, window seconds)."""
+    """``"12/minute"`` → ``(12, 60)``, (max requests, window seconds)."""
     count_str, _, period = spec.partition("/")
     period = period.strip().rstrip("s")  # tolerate "minute"/"minutes"
     if not count_str.strip().isdigit() or period not in _PERIOD_SECONDS:
@@ -238,15 +239,15 @@ def _client_key(request: Request) -> str:
     and the socket peer is the fallback for direct (local, un-proxied) requests.
     The order matters:
 
-      1. ``CF-Connecting-IP`` — Render fronts ``*.onrender.com`` with Cloudflare,
+      1. ``CF-Connecting-IP``, Render fronts ``*.onrender.com`` with Cloudflare,
          which **overwrites** this header with the real connecting IP on every
          request (a client-sent value is discarded, not appended), so it is not
          client-spoofable in the deployed topology. Preferred when present.
-      2. First hop of ``X-Forwarded-For`` — the fallback for a deployment without
+      2. First hop of ``X-Forwarded-For``, the fallback for a deployment without
          Cloudflare in front. This one *is* client-supplied and spoofable: an
          attacker can rotate it to dodge the limit. Acceptable because the limit
          is hygiene, not a security control, and gates no authorization decision.
-      3. The socket peer — direct local dev, no proxy at all.
+      3. The socket peer, direct local dev, no proxy at all.
     """
     cf_ip = request.headers.get("cf-connecting-ip")
     if cf_ip:
@@ -293,7 +294,7 @@ class LiveComputeGate:
     The per-IP rate limiters bound each client's request *rate*; nothing bounds
     how many live simulations execute *at the same time*. ``/storybook`` and
     ``/match/simulate`` are sync handlers, so FastAPI dispatches them into the
-    anyio threadpool (default 40 workers) — a single client firing concurrent
+    anyio threadpool (default 40 workers), a single client firing concurrent
     requests under its own rate limit, or a handful of clients each under theirs,
     can pile a threadpool's worth of 128-match brackets onto one 0.1-CPU instance
     at once. Summed at their per-IP limits the three live-compute endpoints
@@ -302,7 +303,7 @@ class LiveComputeGate:
 
     This bounds the number in flight to ``max_concurrency`` and **sheds** the
     excess immediately (:meth:`acquire` returns ``False``) rather than blocking a
-    threadpool thread waiting for a slot — blocking would re-create the pile-up it
+    threadpool thread waiting for a slot, blocking would re-create the pile-up it
     exists to prevent. Same honest scope as the rate limiters: per-process, resets
     on restart, independent per replica; it is peak-load hygiene, not a
     substitute for the platform's volumetric defense.
@@ -347,20 +348,14 @@ class ClassifierAdapter:
 def resolve_classifier_factory(spec: str = config.API_CLASSIFIER_ADAPTER):
     """Import the ``ClassifierProb`` factory named by ``spec`` (``"module:attr"``).
 
-    **Why an import by name instead of an import statement.** T3.4 needed an
-    adapter to simulate live and the only one that existed was
-    ``cli.simulate_match.make_classifier_prob``, which ``api/`` may not import;
-    late-binding kept ``api/`` free of any ``cli/`` symbol while disclosing the
-    real runtime dependency in every response. **T3.5 removed that dependency**:
-    the default is now ``common.classifier_adapter:make_classifier_prob``, a
-    UI-free module ``api/`` could import outright, so no ``cli/`` module is
-    loaded by the running server at all (``tests/test_api_storybook.py`` proves
-    it in a clean interpreter).
-
-    The indirection is kept because its *other* purpose stands on its own:
+    **Why an import by name instead of an import statement.** The default
+    adapter, ``common.classifier_adapter:make_classifier_prob``, is a UI-free
+    module ``api/`` could import outright, so no ``cli/`` module is loaded by the
+    running server at all (``tests/test_api_storybook.py`` proves it in a clean
+    interpreter). Late-binding is kept because its purpose stands on its own:
     "which model does this server publish" is deployment configuration, and
-    swapping the adapter — for a differently-calibrated one, or back to an older
-    one for comparison — is one config line rather than a code change. Whatever
+    swapping the adapter, for a differently-calibrated one, or back to an older
+    one for comparison, is one config line rather than a code change. Whatever
     runs is reported: every response names :attr:`ClassifierAdapter.name`,
     derived from the factory that actually ran.
 
@@ -373,7 +368,7 @@ def resolve_classifier_factory(spec: str = config.API_CLASSIFIER_ADAPTER):
 
     Raises:
         ValueError: If ``spec`` is not ``module:attribute``.
-        ImportError: If the module or attribute does not exist — raised at
+        ImportError: If the module or attribute does not exist, raised at
             **startup**, so a misconfigured server fails immediately rather than
             on the first ``/storybook`` request.
     """
@@ -396,7 +391,7 @@ def resolve_classifier_factory(spec: str = config.API_CLASSIFIER_ADAPTER):
 def adapter_name(factory: ClassifierFactory) -> str:
     """Dotted name of ``factory``, for ``metadata.adapter``.
 
-    Derived, never hardcoded — see :class:`ClassifierAdapter`. For the shipped
+    Derived, never hardcoded, see :class:`ClassifierAdapter`. For the shipped
     default this reads ``"common.classifier_adapter.make_classifier_prob"``, the
     same string ``scripts/precompute_sim.py`` writes into its cache files
     (``tests/test_api_storybook.py`` pins the two together).
@@ -411,11 +406,11 @@ def build_classifier(
 ) -> ClassifierAdapter:
     """Build the adapter once, at startup, from the loaded context.
 
-    Cheap: the T3.5 adapter defers both its as-of-now rolling-form table (0.08 s
+    Cheap: the adapter defers both its as-of-now rolling-form table (0.08 s
     over the full frame) and every ``predict_proba`` to first use, so this adds
     nothing to the ~2 s startup and 0.08 s to the first simulated request. Building it
     *here* rather than per request is what keeps ``/storybook`` to one bracket's
-    worth of work — and, because the adapter's memo table is shared by every
+    worth of work, and, because the adapter's memo table is shared by every
     request, repeat matchups across seeds cost one ``predict_proba`` in total
     rather than one per request.
     """
@@ -428,15 +423,15 @@ def build_classifier(
     # Warm the one piece of state the adapter otherwise defers to the first
     # simulate request: the as-of-now rolling-form table (a ~0.08 s scan of the
     # full frame, built once and kept). Doing it here folds that cost into the
-    # ~2 s startup — the same eager-init discipline the rest of this module
-    # follows — so the first /match or /storybook request is not the one that
+    # ~2 s startup, the same eager-init discipline the rest of this module
+    # follows, so the first /match or /storybook request is not the one that
     # pays for it.
     #
     # Best-effort by design. The `form_table` property is read only if the
     # adapter exposes one (the factory is pluggable via
     # config.API_CLASSIFIER_ADAPTER), and building it is wrapped so that any
-    # failure — chiefly a minimal test-fixture frame that lacks the rolling
-    # columns — falls back to the original lazy behaviour instead of aborting
+    # failure, chiefly a minimal test-fixture frame that lacks the rolling
+    # columns, falls back to the original lazy behaviour instead of aborting
     # startup. Warming can only make the first request faster; it must never be
     # the thing that stops the app from starting.
     _warm_form_table(call)
@@ -452,7 +447,7 @@ def _warm_form_table(call: ClassifierProb) -> None:
         return
     try:
         form_table = call.form_table
-    except Exception as exc:  # noqa: BLE001 — warming must never break startup
+    except Exception as exc:  # noqa: BLE001, warming must never break startup
         logger.warning(
             "Skipped rolling-form warm-up (%s); it will build on first request.",
             exc,
@@ -476,23 +471,23 @@ def get_context(request: Request) -> ApiContext:
 def get_registry(request: Request) -> TournamentRegistry:
     """FastAPI dependency: the startup-scanned draws catalogue for this app.
 
-    Same pattern (and same reason) as :func:`get_context` — read once from
+    Same pattern (and same reason) as :func:`get_context`, read once from
     ``app.state``, never rebuilt per request.
     """
     return request.app.state.registry
 
 
 def get_classifier(request: Request) -> ClassifierAdapter:
-    """FastAPI dependency: the startup-built ``ClassifierProb`` adapter (T3.4).
+    """FastAPI dependency: the startup-built ``ClassifierProb`` adapter.
 
-    Same ``app.state`` pattern as :func:`get_context`. Built once — a per-request
+    Same ``app.state`` pattern as :func:`get_context`. Built once, a per-request
     adapter would throw away the memo table that makes a live storybook viable.
     """
     return request.app.state.classifier
 
 
 def get_cache_dir(request: Request) -> Path:
-    """FastAPI dependency: where this app reads precomputed simulations (T3.3).
+    """FastAPI dependency: where this app reads precomputed simulations.
 
     Stored on ``app.state`` like the context and the registry, so a test app can
     point at a fixture cache directory without touching ``data/cache/``.
@@ -503,7 +498,7 @@ def get_cache_dir(request: Request) -> Path:
 def get_upload_store(request: Request) -> UploadStore:
     """FastAPI dependency: this app's in-memory store of uploaded draws.
 
-    One store per app instance, created at startup and never persisted — the
+    One store per app instance, created at startup and never persisted, the
     ephemeral contract in :mod:`api.uploads`. A fresh app (a restart, or a test
     app) starts with an empty store, which is exactly why an upload does not
     survive a restart.
@@ -536,14 +531,14 @@ def _player_summary(
 def _bracket_response(draw: Draw, tournament_id: str | None = None) -> BracketResponse:
     """Assemble a resolved draw's wire model.
 
-    Every slot is included — placeholders are flagged via ``is_placeholder``,
+    Every slot is included, placeholders are flagged via ``is_placeholder``,
     never filtered out, because a bracket with holes in it is not a bracket.
 
     ``tournament_id`` overrides the draw's own id in the response. Curated draws
     pass ``None`` and report their real id; an uploaded draw reports the
     generated upload id it is addressed by, so the id a client fetched with is
     the id it gets back (the draw's descriptive ``tournament_id`` never becomes
-    an addressable handle — see ``api.uploads``).
+    an addressable handle, see ``api.uploads``).
     """
     return BracketResponse(
         tournament_id=tournament_id if tournament_id is not None else draw.tournament_id,
@@ -570,7 +565,7 @@ def _unknown_tournament(tournament_id: str, registry: TournamentRegistry) -> HTT
 
     ``/bracket``'s 404 lists every registered id in one breath, correctly: a draw
     file that failed validation *is* fetchable there, as a 422 carrying its
-    problem list. Simulation is different, and in two ways — an unloadable file
+    problem list. Simulation is different, and in two ways, an unloadable file
     can never be simulated, and neither can a perfectly loadable draw that still
     has ``Qualifier`` slots. One flat "Known ids" list would imply a capability
     two of those groups do not have, so the same courtesy is extended split by
@@ -598,7 +593,7 @@ def _unknown_tournament(tournament_id: str, registry: TournamentRegistry) -> HTT
 
 
 def _invalid_draw_file(entry: TournamentEntry) -> HTTPException:
-    """422 for a draw file that failed validation — T3.2's shape, reused."""
+    """422 for a draw file that failed validation."""
     return HTTPException(
         status_code=422,
         detail={
@@ -614,7 +609,7 @@ def _invalid_draw_file(entry: TournamentEntry) -> HTTPException:
 
 
 def _not_simulatable(entry: TournamentEntry) -> HTTPException:
-    """409 for a draw holding placeholder entrants — T3.3's shape, reused.
+    """409 for a draw holding placeholder entrants.
 
     Mirrors, over HTTP, the refusal ``simulate_bracket`` already makes offline:
     a placeholder has no ``player_id`` and no classifier history, so no match-win
@@ -655,9 +650,9 @@ def _simulatable_entry(
     failed validation → 422 with the validator's problems, a draw still holding
     ``Qualifier`` slots → 409.
 
-    The verdict itself is :attr:`~api.registry.TournamentEntry.is_simulatable` —
-    T3.3's one definition of the rule, living in the registry next to the flag it
-    reads — not a placeholder comprehension repeated per endpoint.
+    The verdict itself is :attr:`~api.registry.TournamentEntry.is_simulatable`,
+    the one definition of the rule, living in the registry next to the flag it
+    reads, not a placeholder comprehension repeated per endpoint.
 
     Returns:
         The entry, with a non-``None`` ``draw`` that ``simulate_bracket``/
@@ -698,7 +693,7 @@ def _unknown_upload(tournament_id: str) -> HTTPException:
 def _upload_not_simulatable(uploaded: UploadedDraw) -> HTTPException:
     """409 for an uploaded draw holding placeholder entrants.
 
-    The same refusal, and the same body shape, as :func:`_not_simulatable` — an
+    The same refusal, and the same body shape, as :func:`_not_simulatable`, an
     uploaded ``Qualifier`` slot is no more simulatable than a curated one.
     """
     placeholders = [slot for slot in uploaded.draw.bracket if slot.is_placeholder]
@@ -727,7 +722,7 @@ def _extract_event_date(data: Any) -> tuple[date | None, bool]:
     """Read an uploaded draw's optional ``event_date`` and derive is_forecast.
 
     Returns ``(event_date, is_forecast)``. A draw with no ``event_date`` is
-    treated as historical (``(None, False)``) — the safe default, since claiming
+    treated as historical (``(None, False)``), the safe default, since claiming
     a forecast we cannot support would be the dishonest direction. A future date
     makes ``is_forecast`` true.
 
@@ -737,7 +732,7 @@ def _extract_event_date(data: Any) -> tuple[date | None, bool]:
 
     Raises:
         HTTPException: 422 if ``event_date`` is present but not a ``YYYY-MM-DD``
-            string — a malformed optional field is a client error worth naming,
+            string, a malformed optional field is a client error worth naming,
             not something to silently ignore.
     """
     if not isinstance(data, dict):
@@ -812,7 +807,7 @@ def _upload_disclosure(uploaded: UploadedDraw) -> DrawDisclosure:
     *model* limitation flips only when the draw is future-dated: a not-yet-played
     event is a genuine forecast (``is_forecast=True``), an already-played one is
     the same retrospective a curated draw would be. The *content* note is always
-    the upload note — unverified, and held in memory only.
+    the upload note, unverified, and held in memory only.
     """
     if uploaded.is_forecast:
         limitation = FORECAST_CLASSIFIER_LIMITATION
@@ -844,9 +839,9 @@ def _storybook_response(
 
     **Presentation over already-built data**, exactly as
     ``scripts/precompute_sim.build_payload`` is for a Monte Carlo result: every
-    field is read off T2.4's own structures — ``rounds``/``matches`` (including
+    field is read off the storybook run's own structures, ``rounds``/``matches`` (including
     the ``scoreline`` and the rendered ``line`` they already carry),
-    ``champion``/``champion_seed``, and the ``runs`` summaries — and nothing is
+    ``champion``/``champion_seed``, and the ``runs`` summaries, and nothing is
     re-derived from the underlying ``BracketResult`` a second time. The CLI's
     text renderer (``render_storybook``) is deliberately **not** called: it is a
     different presentation of the same structure, and this endpoint returns JSON.
@@ -925,8 +920,8 @@ def _resolve_match_player(query: str, index: NameIndex) -> str:
     """Resolve one single-match player query to a canonical display name.
 
     Uses the same shared resolver as ``/players`` (``common.names.resolve_name``),
-    then reduces its three outcomes to the one a *simulation* needs — a single,
-    unambiguous name — rather than the list a search returns. The canonical name
+    then reduces its three outcomes to the one a *simulation* needs, a single,
+    unambiguous name, rather than the list a search returns. The canonical name
     (not the raw query) is what the classifier's name-keyed feature lookup needs,
     so this is where a fragment like ``"alcaraz"`` becomes ``"Carlos Alcaraz"``.
 
@@ -1037,15 +1032,15 @@ def create_app(
             ``config.DRAWS_DIR``; tests point it at a fixture directory so the
             suite never depends on the shipped draws.
         cache_dir: Directory of precomputed simulation results read by
-            ``/simulate`` (T3.3). Defaults to ``config.CACHE_DIR``; the same
+            ``/simulate``. Defaults to ``config.CACHE_DIR``; the same
             injection seam, for the same reason. It is **not** scanned at
-            startup — a cache file appearing while the server runs is picked up
+            startup, a cache file appearing while the server runs is picked up
             on the next request, which is what makes the precompute script
             usable against a live server.
         classifier_factory: Builds the ``ClassifierProb`` adapter ``/storybook``
-            simulates with (T3.4), called **exactly once** at startup with the
+            simulates with, called **exactly once** at startup with the
             context's estimator and histories. Defaults to ``None``, meaning
-            "resolve :data:`config.API_CLASSIFIER_ADAPTER`" — see
+            "resolve :data:`config.API_CLASSIFIER_ADAPTER`", see
             :func:`resolve_classifier_factory` for why the default is a name
             rather than an import. Tests inject a deterministic stub so the
             suite never needs the vendored data or the pinned model to exercise
@@ -1074,16 +1069,16 @@ def create_app(
         # Scanned once here, not per request. Draw files are hand-entered and
         # near-static, resolving them needs the skill table that was just built,
         # and the whole scan costs ~4 ms for the shipped 8- and 128-slot draws
-        # (measured 2026-08-03) — repeating it per request would buy nothing but
-        # a slower endpoint. This also matches the pattern T3.1 set: the
-        # app's expensive, immutable state is assembled at startup and only read
-        # afterwards. The trade-off is explicit: a draw file added or edited
+        # (measured 2026-08-03), repeating it per request would buy nothing but
+        # a slower endpoint. This also matches the pattern the rest of startup
+        # follows: the app's expensive, immutable state is assembled at startup
+        # and only read afterwards. The trade-off is explicit: a draw file added or edited
         # while the server is running is not picked up until it restarts
         # (`--reload` covers the dev loop).
         app.state.registry = build_registry(context.skill_table, draws_dir)
         # A path, not a scan: see the `cache_dir` argument note.
         app.state.cache_dir = Path(cache_dir)
-        # Built once, here, for the same reason as everything above it — and
+        # Built once, here, for the same reason as everything above it, and
         # resolved here rather than at import time so a bad
         # config.API_CLASSIFIER_ADAPTER fails at startup, not mid-request.
         factory = classifier_factory or resolve_classifier_factory()
@@ -1120,7 +1115,7 @@ def create_app(
     )
 
     # Per-IP rate limiter for /storybook only (attached as that route's
-    # dependency below). Built per app instance — a fresh window store for every
+    # dependency below). Built per app instance, a fresh window store for every
     # test app. The honest limits of the in-memory store are documented on
     # config.API_STORYBOOK_RATE_LIMIT.
     storybook_limiter = SlidingWindowRateLimiter(config.API_STORYBOOK_RATE_LIMIT)
@@ -1147,7 +1142,7 @@ def create_app(
                 headers={"Retry-After": str(retry_after)},
             )
 
-    # Per-IP limiter for POST /tournaments/upload — same in-memory limiter and
+    # Per-IP limiter for POST /tournaments/upload, same in-memory limiter and
     # same honest scope as /storybook's. Uploads validate and name-resolve up to
     # 128 entrants, so they get a tighter window than a GET.
     upload_limiter = SlidingWindowRateLimiter(config.API_UPLOAD_RATE_LIMIT)
@@ -1170,7 +1165,7 @@ def create_app(
             )
 
     # Per-IP limiter for POST /match/simulate. Same in-memory limiter and same
-    # honest scope as /storybook's — this is the second endpoint that runs real
+    # honest scope as /storybook's, this is the second endpoint that runs real
     # per-request compute (a live single-match Monte Carlo). More generous than
     # /storybook because a single match is ~5x cheaper and is the featured path a
     # user re-runs on every tweak. See config.API_MATCH_RATE_LIMIT.
@@ -1195,8 +1190,8 @@ def create_app(
             )
 
     # Shared concurrency cap across BOTH live-compute routes (/storybook and
-    # /match/simulate). One gate per app instance so the peak simultaneous load —
-    # summed across every IP and every live endpoint — is a small constant. See
+    # /match/simulate). One gate per app instance so the peak simultaneous load,
+    # summed across every IP and every live endpoint, is a small constant. See
     # config.API_LIVE_COMPUTE_MAX_CONCURRENCY for why the per-IP rate limits above
     # do not cover this. Excess is shed with 503, not queued.
     live_compute_gate = LiveComputeGate(config.API_LIVE_COMPUTE_MAX_CONCURRENCY)
@@ -1234,7 +1229,7 @@ def create_app(
 
         The docs UI (/docs, /redoc) gets a looser CSP so Swagger/ReDoc can pull
         their bundle from the CDN and run their inline bootstrap; everything else
-        — every JSON body — gets the strict ``default-src 'none'`` policy.
+        every JSON body, gets the strict ``default-src 'none'`` policy.
         """
         response = await call_next(request)
         # Read the raw ASGI routed path, NOT request.url.path. request.url is
@@ -1249,7 +1244,7 @@ def create_app(
         _apply_security_headers(response, csp=csp)
         return response
 
-    # Explicit allow-list from config — never "*". See config.API_ALLOWED_ORIGINS.
+    # Explicit allow-list from config, never "*". See config.API_ALLOWED_ORIGINS.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.API_ALLOWED_ORIGINS,
@@ -1258,7 +1253,7 @@ def create_app(
     )
 
     # Catch-all so an unhandled exception (which bypasses the header middleware
-    # above — ServerErrorMiddleware sits outside it) still returns the security
+    # above, ServerErrorMiddleware sits outside it) still returns the security
     # headers and a generic, non-leaking body. See unexpected_error_handler.
     app.add_exception_handler(Exception, unexpected_error_handler)
 
@@ -1292,8 +1287,8 @@ def create_app(
     ) -> PlayerSearchResponse:
         """Fuzzy-search the skill table; return every match with its skills.
 
-        Matching is the shared T0.6 resolver (``common.names.resolve_name``) —
-        exact → initials → substring → fuzzy — not a second search
+        Matching is the shared resolver (``common.names.resolve_name``),
+        exact → initials → substring → fuzzy, not a second search
         implementation.
 
         **Ambiguity is a result, not an error** (a deliberate divergence from the
@@ -1311,15 +1306,15 @@ def create_app(
         No 404: a search that legitimately found nothing succeeded. ``strategy``
         is echoed so a client can weight a ``fuzzy`` hit differently from an
         ``exact`` one. A missing, empty or whitespace-only ``query`` is the one
-        failure — a 422 from validation (see :data:`PlayerQuery`), since it is a
+        failure, a 422 from validation (see :data:`PlayerQuery`), since it is a
         malformed request rather than a search.
 
         **Not paginated**, deliberately: the whole result set is returned however
         large. This is a documented call for the current scale, not an oversight
-        — the worst realistic query (``?query=a``) is 1,220 of 1,408 players and
+        the worst realistic query (``?query=a``) is 1,220 of 1,408 players and
         ~407 KB, assembled in ~12 ms, so the server-side cost is negligible. The
         cost that *does* matter is bandwidth to a browser type-ahead, which is
-        T4.1's to manage (debounce, or ask for a limit here then).
+        the frontend's to manage (debounce, or ask for a limit here then).
         """
         index = context.skill_table.name_index
         match = resolve_name(query, index)
@@ -1353,7 +1348,7 @@ def create_app(
         skipping it would make the event vanish with the reason visible only in a
         server log, which is exactly when an operator goes looking for it. So
         each file is loaded independently and a failure becomes a row in
-        ``invalid`` carrying the T2.1 validator's full problem list. ``count``
+        ``invalid`` carrying the draw validator's full problem list. ``count``
         and ``tournaments`` cover the **valid** draws only, so a client rendering
         an event picker can ignore ``invalid`` entirely.
 
@@ -1383,6 +1378,61 @@ def create_app(
             ],
         )
 
+    @app.get("/rankings", response_model=RankingsResponse, tags=["rankings"])
+    def rankings(cache_dir: Path = Depends(get_cache_dir)) -> RankingsResponse:
+        """Precomputed Elo leaderboards: overall plus one per surface.
+
+        **This handler never computes anything.** Like ``/simulate``, it reads a
+        JSON file produced offline (``scripts/precompute_elo.py``) on the weekly
+        refresh cadence, so ratings regenerate with the rest of the data rather
+        than on the request path.
+
+        The ratings are a **display feature only**, Ace's own Elo, not the
+        official ATP ranking, and deliberately walled off from the model
+        (``features/elo.py``). Each player carries an ``is_active`` flag so a
+        client can separate current form from a long-retired player's frozen
+        peak; the ordering itself is by rating so the stale entries are still
+        visible, not silently dropped.
+
+        Failures:
+
+          * **No cache file → 425** (``reason: rankings_missing``) with the exact
+            command that produces one, the same shape ``/simulate`` uses for a
+            missing Monte Carlo cache, and for the same reason: rating is never
+            run inside a request.
+          * **An unreadable/invalid cache file → 422** (``reason:
+            rankings_unreadable``), the server's artefact is bad, so a 500 would
+            wrongly imply a transient fault; regenerate it.
+        """
+        path = elo_cache_path(cache_dir)
+        if not path.is_file():
+            raise HTTPException(
+                status_code=425,
+                detail={
+                    "reason": "rankings_missing",
+                    "message": (
+                        "No precomputed Elo rankings. They are generated offline "
+                        "on the refresh cadence, never inside a request, so run "
+                        "the precompute and retry."
+                    ),
+                    "command": "python scripts/precompute_elo.py",
+                },
+            )
+        try:
+            return RankingsResponse.model_validate_json(path.read_text(encoding="utf-8"))
+        except (ValidationError, ValueError, OSError) as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "reason": "rankings_unreadable",
+                    "message": (
+                        f"The cached Elo rankings could not be read as a "
+                        f"{RankingsResponse.__name__}: {exc}. Re-run "
+                        f"scripts/precompute_elo.py to regenerate them."
+                    ),
+                },
+            ) from exc
+
     @app.post(
         "/tournaments/upload",
         response_model=UploadResponse,
@@ -1399,16 +1449,16 @@ def create_app(
 
         **Ephemeral by design.** The draw is stored in this process's memory only
         (:mod:`api.uploads`), never on disk, because the deploy target has no
-        persistent disk — so it does not survive a restart, a cold-start wake or
+        persistent disk, so it does not survive a restart, a cold-start wake or
         a redeploy, and the response says as much (``ephemeral: true``,
         ``content_note``). It is assigned a generated ``upload-…`` id in a
         namespace separate from the curated draws, so it can never collide with
         or shadow the git-committed, verified example draws.
 
-        **Validation is T2.1's, not a second parser.** The body goes straight to
+        **Validation is the draw schema's, not a second parser.** The body goes straight to
         :func:`sim.draw.parse_draw`, so an uploaded draw is held to exactly the
         rules a curated one is, and a malformed one comes back as the same
-        accumulated problem list ``/bracket`` and ``/simulate`` already return —
+        accumulated problem list ``/bracket`` and ``/simulate`` already return,
         every problem at once, so a hand-entered 128-draw is fixable in one pass.
 
         Guards, in order:
@@ -1418,7 +1468,7 @@ def create_app(
             read.
           * **Body over ``config.API_UPLOAD_MAX_BYTES`` → 413.** Enforced while
             streaming, so an oversized upload is rejected without buffering the
-            whole thing — a 128-slot draw is tens of KB, the cap is 1 MiB.
+            whole thing, a 128-slot draw is tens of KB, the cap is 1 MiB.
           * **Unparseable JSON → 422** (``reason: invalid_json``).
           * **A bad ``event_date`` → 422** (``reason: invalid_event_date``).
           * **A draw that fails validation → 422** (``reason: draw_invalid``)
@@ -1427,7 +1477,7 @@ def create_app(
         On success the draw is stored (evicting the oldest if the store is at
         capacity) and a 201 acknowledges it with the id to simulate it by. Note
         the aggregate Monte Carlo board (``/simulate``) is **not** available for
-        uploads — see :func:`tournament_simulation`; the live storybook is.
+        uploads, see :func:`tournament_simulation`; the live storybook is.
         """
         # 1. Content type: refuse anything that is not JSON up front.
         media_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
@@ -1466,7 +1516,7 @@ def create_app(
         #    errors: deeply-nested JSON (e.g. thousands of open brackets, well
         #    under the size cap) overflows the decoder's recursion and would
         #    otherwise escape this handler as an uncaught 500 with a full stack
-        #    trace logged on every request — a cheap error/log-spam vector on a
+        #    trace logged on every request, a cheap error/log-spam vector on a
         #    public endpoint. It is malformed input like any other, so it earns
         #    the same 422.
         try:
@@ -1483,7 +1533,7 @@ def create_app(
         # 4. Optional event_date → is_forecast (422 on a malformed value).
         event_date, is_forecast = _extract_event_date(data)
 
-        # 5. Validate the draw itself — T2.1's rules, T2.1's problem list.
+        # 5. Validate the draw itself, the draw schema's rules and problem list.
         try:
             draw = parse_draw(data, context.skill_table, source="<uploaded draw>")
         except DrawValidationError as exc:
@@ -1539,8 +1589,8 @@ def create_app(
     ) -> BracketResponse:
         """The resolved draw: positions, entrants, ids and seeds.
 
-        The draw comes from :func:`sim.draw.load_draw` (T2.1) via the startup
-        registry — this handler re-parses nothing and re-validates nothing, so
+        The draw comes from :func:`sim.draw.load_draw` via the startup
+        registry, this handler re-parses nothing and re-validates nothing, so
         there is one draw parser in the codebase and one set of rules. An
         **uploaded** draw (an ``upload-…`` id) is served the same way from the
         in-memory store, so a client renders a user draw's bracket with no
@@ -1548,12 +1598,12 @@ def create_app(
 
         Failures:
 
-          * **Unknown upload id → 404** (``reason: upload_not_found``) — the id
+          * **Unknown upload id → 404** (``reason: upload_not_found``), the id
             is in the upload namespace but no longer held (evicted, or the server
             restarted). The message says so.
           * **Unknown registered id → 404**, naming the ids that *are* registered
             (a draws directory holds a handful of files, so listing them beats a
-            bare "not found" — the same courtesy ``cli/simulate_tournament``
+            bare "not found", the same courtesy ``cli/simulate_tournament``
             extends).
           * **A file that failed validation → 422**, with the
             :class:`~sim.draw.DrawValidationError` ``problems`` list verbatim
@@ -1610,7 +1660,7 @@ def create_app(
         **This handler never simulates anything.** It reads the JSON file
         ``scripts/precompute_sim.py`` wrote offline, validates it and returns it.
         Phase 3's global rules forbid running a 5,000-run Monte Carlo inside a
-        request handler — a 128-draw job is ~40 s — so the endpoint is a cache
+        request handler, a 128-draw job is ~40 s, so the endpoint is a cache
         reader by design, not as an optimisation. The proof is structural: this
         module imports no simulation entry point at all
         (``tests/test_api_simulate.py`` pins it with raising traps on
@@ -1618,33 +1668,32 @@ def create_app(
 
         **Read ``metadata`` before rendering the numbers.** Every response
         carries the reconciliation ``mode``/``w``, an ``is_forecast`` flag and a
-        plain-language ``classifier_limitation``. Since T3.5 the classifier's
-        feature row is fully real (``ace-04-current-state.md §7`` seam 7,
-        closed), so what the disclosure now states is narrower: the model is an
-        as-of-now snapshot, which makes a simulation of an already-played draw
-        retrospective rather than a forecast. They remain required schema fields,
-        so a cache file cannot publish bare probabilities.
+        plain-language ``classifier_limitation``. The classifier's feature row is
+        fully real (``ace-04-current-state.md §7`` seam 7, closed), so what the
+        disclosure states is narrow: the model is an as-of-now snapshot, which
+        makes a simulation of an already-played draw retrospective rather than a
+        forecast. They remain required schema fields, so a cache file cannot
+        publish bare probabilities.
 
         Four failure modes, each distinguishable without parsing prose:
 
           * **Unknown id → 404**, listing simulatable ids separately from draw
             files that failed validation (see :func:`_unknown_tournament`).
           * **A draw file that failed validation → 422** with the validator's
-            problem list — the same body ``/bracket`` returns for the same file.
+            problem list, the same body ``/bracket`` returns for the same file.
           * **A draw containing placeholder entrants → 409**
-            (``reason: "draw_not_simulatable"``). This is T3.3's answer to the
-            open question T3.2 left: the registry keeps listing such draws and
-            ``/bracket`` keeps serving them, and simulability is answered *here*,
-            at the endpoint that needs it, rather than by a ``simulatable`` flag
-            on ``/tournaments`` or by filtering the catalogue. Reasons: a flag
-            would be a second mechanism for a distinction the error already
-            makes, and would have to be kept in sync with cache presence to mean
-            anything useful to a client; filtering would hide a real event
-            (T3.2's explicit rejection of silent skipping, and its pinned
-            behaviour). A 409 also matches the standard T3.2 set — an informative
-            structured error, not a crash — and mirrors, over HTTP, the refusal
-            ``simulate_bracket`` already makes offline, naming every offending
-            slot rather than inventing a probability for it.
+            (``reason: "draw_not_simulatable"``). The registry keeps listing such
+            draws and ``/bracket`` keeps serving them, and simulability is
+            answered *here*, at the endpoint that needs it, rather than by a
+            ``simulatable`` flag on ``/tournaments`` or by filtering the
+            catalogue. Reasons: a flag would be a second mechanism for a
+            distinction the error already makes, and would have to be kept in
+            sync with cache presence to mean anything useful to a client;
+            filtering would hide a real event by silently skipping it. A 409 also
+            matches the standard error set, an informative structured error, not
+            a crash, and mirrors, over HTTP, the refusal ``simulate_bracket``
+            already makes offline, naming every offending slot rather than
+            inventing a probability for it.
           * **No cache file → 425** (``reason: "cache_missing"``) with the exact
             command that produces one. Deliberately *not* the same code as the
             placeholder case: 409 means "this draw can never be simulated as
@@ -1662,7 +1711,7 @@ def create_app(
 
         A cache file that fails to parse, or that describes a different draw than
         the registry holds (a stale file left after the draw was edited), is also
-        a 422 — same reasoning as an invalid draw file: it is the server's
+        a 422, same reasoning as an invalid draw file: it is the server's
         artefact, a 500 would imply a transient fault, and the fix is named in
         the message.
 
@@ -1782,21 +1831,21 @@ def create_app(
         classifier: ClassifierAdapter = Depends(get_classifier),
         store: UploadStore = Depends(get_upload_store),
     ) -> StorybookResponse:
-        """One tournament played out point by point, for one seed — live.
+        """One tournament played out point by point, for one seed, live.
 
         **This one does simulate, and that is within the Phase 3 rule, not an
         exception to it.** The rule forbids a full Monte Carlo (thousands of
-        brackets) in a request handler; a storybook is *one* bracket — 127
-        matches for a Slam — which the ticket budgets at "well under a couple
+        brackets) in a request handler; a storybook is *one* bracket, 127
+        matches for a Slam, which the ticket budgets at "well under a couple
         seconds". Measured on the shipped 128 draw ``usopen_2024_atp_full``
-        (2026-08-03, dev machine, re-measured on T3.5's real-feature adapter):
-        **1.54 s for the first request** on a cold server (was 1.42 s), **0.80 s
+        (2026-08-03, dev machine):
+        **1.54 s for the first request** on a cold server, **0.80 s
         for a subsequent request with a fresh seed**, and **0.45 s to replay a
         seed already served**. The spread is almost entirely the adapter's
         ``predict_proba``: 127 matches need 127 distinct matchups priced, and the
         memo table lives on the startup-built adapter, so it is shared across
         requests and warms as the server runs; the cold request additionally pays
-        the one-off 0.08 s rolling-form table build. 0.45 s is the floor — the
+        the one-off 0.08 s rolling-form table build. 0.45 s is the floor, the
         point-by-point simulation of 127 matches itself.
         ``storybook_run`` is called **exactly once** per request; the rounds,
         scorelines and champion in the response are read off the single
@@ -1807,30 +1856,29 @@ def create_app(
         a function of the draw, the seed and the startup state. That is what makes
         the URL shareable, and it is why an omitted ``?seed=`` falls back to a
         *fixed* default (:data:`config.API_STORYBOOK_SEED`) rather than a
-        time-derived one — a bare ``/storybook`` that returned a different story
+        time-derived one, a bare ``/storybook`` that returned a different story
         on refresh would be unreproducible and uncacheable. ``metadata.seed``
         always echoes what ran, so a client can turn any response into an explicit,
         shareable URL.
 
         **Reconciliation mode is ``config.SIM_CLI_RECONCILE_MODE`` (``blend``),
-        not ``config.RECONCILE_MODE``** — the same value T3.3 chose and the same
-        one the cached ``/simulate`` board was produced under, so the two
-        endpoints publish one model. It began as the seam-7 mitigation and is
-        kept, post-T3.5, because blending lets the point model contribute half
-        the match-win probability (see :data:`config.SIM_CLI_RECONCILE_MODE`).
+        not ``config.RECONCILE_MODE``**, the same value the cached ``/simulate``
+        board was produced under, so the two endpoints publish one model.
+        Blending lets the point model contribute half the match-win probability
+        (see :data:`config.SIM_CLI_RECONCILE_MODE`).
         ``metadata`` carries ``mode``/``w``, ``is_forecast`` and
-        ``classifier_limitation`` — the identical
+        ``classifier_limitation``, the identical
         :class:`~api.schemas.ModelDisclosure` block ``/simulate`` serves,
         inherited rather than restated.
 
         Failures are ``/simulate``'s, from the same
         :func:`_simulatable_entry` gate: unknown id → 404, unloadable draw file →
-        422, placeholder entrants → 409. There is no 425 here — nothing is
+        422, placeholder entrants → 409. There is no 425 here, nothing is
         cached, so there is nothing to be missing.
 
         **Uploaded draws run here too.** An ``upload-…`` id is served from the
         in-memory store with the same live run and the same placeholder refusal;
-        the only differences are in ``metadata`` — an uploaded draw discloses
+        the only differences are in ``metadata``, an uploaded draw discloses
         that it is user-submitted and unverified (``content_source``,
         ``content_note``), and a future-dated one reads ``is_forecast: true``,
         the one case in this project where that is honest. An upload id that is
@@ -1840,7 +1888,7 @@ def create_app(
         **Rate limited** (``config.API_STORYBOOK_RATE_LIMIT``, per IP): this is
         the only endpoint that runs real per-request compute, so a client over
         the limit gets a 429. The limiter's store is in-memory and resets on
-        restart — see the config constant for the honest scope of that.
+        restart, see the config constant for the honest scope of that.
         """
         if seed is None:
             seed = config.API_STORYBOOK_SEED
@@ -1873,7 +1921,7 @@ def create_app(
             context.skill_table,
             classifier.call,
             seed=seed,
-            # See the docstring: T3.3's choice, inherited deliberately.
+            # See the docstring: the same mode the cached board was produced under.
             mode=config.SIM_CLI_RECONCILE_MODE,
             w=config.RECONCILE_BLEND_WEIGHT,
         )
@@ -1898,12 +1946,12 @@ def create_app(
         """Simulate one matchup live and report the betting-relevant outputs.
 
         **This one runs a live Monte Carlo, and that is a deliberate, bounded
-        exception to T3.3's cache-only rule, not a violation of it.** T3.3 forbids
-        a live *aggregate* because a 128-draw board is 5,000 brackets x 127
-        matches. A single match is a different cost class: there is one matchup,
+        exception to the cache-only rule, not a violation of it.** The rule
+        forbids a live *aggregate* because a 128-draw board is 5,000 brackets x
+        127 matches. A single match is a different cost class: there is one matchup,
         so the classifier is priced once and the serve shift solved once, and
         each of ``config.API_MATCH_SIM_RUNS`` runs is only a point-by-point
-        scoreline draw. Measured ~0.24 s for 3,000 runs — cheaper than one live
+        scoreline draw. Measured ~0.24 s for 3,000 runs, cheaper than one live
         ``/storybook`` bracket. The reasoning is recorded in
         ``ace-04-current-state.md``'s seam tracking so "why does a single match
         run live when ``/simulate`` does not" has a durable answer.
@@ -1912,7 +1960,7 @@ def create_app(
         (``sim.single_match``): the match win probability for each player, the
         distribution over final set scores (e.g. how often 3-0 / 3-1 / 3-2 in a
         best-of-5), and a total-games (over/under) summary. Hold/break rates are
-        deliberately **not** here — a simulated set records only game counts, not
+        deliberately **not** here, a simulated set records only game counts, not
         which games were holds versus breaks, so surfacing them would need new
         instrumentation in ``sim/match.py``; that is a follow-up, not this
         endpoint's scope.
@@ -1925,7 +1973,7 @@ def create_app(
         **Players must be known to the model.** Each name is resolved through the
         skill table's name index (the resolver ``/players`` uses). An unknown or
         ambiguous name is a 422 (``player_not_found`` / ``player_ambiguous``),
-        never a silent default — the model refuses to score a player it has no
+        never a silent default, the model refuses to score a player it has no
         history for, which is why the UI restricts selection to players it knows.
 
         **Reconciliation mode is ``config.SIM_CLI_RECONCILE_MODE`` (``blend``)**,
@@ -1938,7 +1986,7 @@ def create_app(
 
         **Rate limited** (``config.API_MATCH_RATE_LIMIT``, per IP): a client over
         the window gets a 429. The limiter's store is in-memory and resets on
-        restart — see the config constant for the honest scope of that.
+        restart, see the config constant for the honest scope of that.
         """
         seed = body.seed if body.seed is not None else config.MC_SEED
         if seed > config.API_MATCH_SEED_MAX:
@@ -1974,7 +2022,7 @@ def create_app(
         except ValueError as exc:
             # Reaches here only if a name resolved in the skill table but has no
             # classifier-visible history (skill table and match frame disagreeing)
-            # — a rare wiring case, surfaced honestly rather than defaulted.
+            # a rare wiring case, surfaced honestly rather than defaulted.
             raise HTTPException(
                 status_code=422,
                 detail={"reason": "player_not_simulatable", "message": str(exc)},

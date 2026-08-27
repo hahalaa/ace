@@ -4,12 +4,12 @@
  *
  * **These are deep-link tests, not navigation tests.** `App` reads
  * `window.location.search` during render and holds no state, so the thing worth
- * pinning is that a *fresh load* of a URL lands on the right screen — which is
+ * pinning is that a *fresh load* of a URL lands on the right screen, which is
  * what a shared link does. Each case rewrites the URL with `history.replaceState`
  * and mounts the component from scratch, exactly as a page load would.
  *
  * The restructure this suite guards: the app now lands on a **dashboard**, not a
- * bracket, and the nav is two tiers — a primary branch row (home / single match /
+ * bracket, and the nav is two tiers, a primary branch row (home / single match /
  * tournament) plus a secondary view row that appears only inside the tournament
  * branch. Which screen mounted is asserted from the screen's own markup, not only
  * from the nav, so a mutation that styled the nav right while rendering the wrong
@@ -25,6 +25,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import {
   getBracket,
+  getRankings,
   getSimulate,
   getStorybook,
   searchPlayers,
@@ -36,6 +37,7 @@ vi.mock('./api/client', async (importOriginal) => {
   return {
     ...actual,
     getBracket: vi.fn(),
+    getRankings: vi.fn(),
     getSimulate: vi.fn(),
     getStorybook: vi.fn(),
     searchPlayers: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock('./api/client', async (importOriginal) => {
 });
 
 const getBracketMock = vi.mocked(getBracket);
+const getRankingsMock = vi.mocked(getRankings);
 const getSimulateMock = vi.mocked(getSimulate);
 const getStorybookMock = vi.mocked(getStorybook);
 const searchPlayersMock = vi.mocked(searchPlayers);
@@ -62,13 +65,14 @@ function loadUrl(url: string) {
   getBracketMock.mockReturnValue(new Promise(() => {}));
   getSimulateMock.mockReturnValue(new Promise(() => {}));
   getStorybookMock.mockReturnValue(new Promise(() => {}));
+  getRankingsMock.mockReturnValue(new Promise(() => {}));
   searchPlayersMock.mockReturnValue(new Promise(() => {}));
   simulateMatchMock.mockReturnValue(new Promise(() => {}));
   window.history.replaceState({}, '', url);
   return render(<App />);
 }
 
-type Screen = 'dashboard' | 'match' | 'bracket' | 'odds' | 'storybook' | 'upload';
+type Screen = 'dashboard' | 'match' | 'rankings' | 'bracket' | 'odds' | 'storybook' | 'upload';
 
 /** Which screen actually mounted, read off the screen's own markup. */
 function mountedScreen(): Screen {
@@ -77,6 +81,7 @@ function mountedScreen(): Screen {
     return 'match';
   }
   if (document.querySelector('section[aria-label="Upload a draw"]') !== null) return 'upload';
+  if (document.querySelector('section[aria-label="Elo rankings"]') !== null) return 'rankings';
   // Storybook renders a run control above the bracket it draws over.
   if (document.querySelector('[data-action="simulate"], [data-action="rerun"]') !== null) {
     return 'storybook';
@@ -84,6 +89,7 @@ function mountedScreen(): Screen {
   const status = screen.getByRole('status').textContent ?? '';
   if (status.includes('bracket')) return 'bracket';
   if (status.includes('simulation')) return 'odds';
+  if (status.includes('rankings')) return 'rankings';
   throw new Error(`No screen identifiable from status: ${status}`);
 }
 
@@ -127,7 +133,7 @@ describe('landing', () => {
 });
 
 // --------------------------------------------------------------------------
-// The single-match view — the featured branch.
+// The single-match view, the featured branch.
 // --------------------------------------------------------------------------
 describe('single match', () => {
   it('loads the single-match view from ?view=match without fetching', () => {
@@ -156,7 +162,7 @@ describe('single match', () => {
 });
 
 // --------------------------------------------------------------------------
-// The tournament branch — every existing view stays reachable.
+// The tournament branch, every existing view stays reachable.
 // --------------------------------------------------------------------------
 describe('tournament branch', () => {
   it('loads the bracket from ?view=bracket and shows the sub-nav', () => {
@@ -221,16 +227,32 @@ describe('tournament branch', () => {
 });
 
 // --------------------------------------------------------------------------
+// The rankings view, a tournament-free branch.
+// --------------------------------------------------------------------------
+describe('rankings', () => {
+  it('loads the rankings view from ?view=rankings without a tournament', () => {
+    loadUrl('/?view=rankings');
+
+    expect(mountedScreen()).toBe('rankings');
+    expect(currentPrimary()).toBe('Rankings');
+    expect(getRankingsMock).toHaveBeenCalledTimes(1);
+    // It reads no tournament axis, so no draw is fetched.
+    expect(getBracketMock).not.toHaveBeenCalled();
+    expect(tournamentNav()).toBeNull();
+  });
+});
+
+// --------------------------------------------------------------------------
 // The primary nav.
 // --------------------------------------------------------------------------
 describe('primary nav', () => {
-  it('offers exactly the three branches, and the wordmark home link', () => {
+  it('offers exactly the four branches, and the wordmark home link', () => {
     loadUrl('/');
 
     const primary = Array.from(
       document.querySelectorAll('nav[aria-label="Sections"] a'),
     ).map((a) => a.textContent?.trim());
-    expect(primary).toEqual(['Home', 'Single match', 'Tournament']);
+    expect(primary).toEqual(['Home', 'Single match', 'Tournament', 'Rankings']);
     // The wordmark also returns home.
     expect(document.querySelector('a[aria-label="Ace home"]')).not.toBeNull();
   });

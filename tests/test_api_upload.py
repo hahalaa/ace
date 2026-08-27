@@ -1,4 +1,4 @@
-"""Tests for the draw upload feature — ``POST /tournaments/upload`` and the
+"""Tests for the draw upload feature, ``POST /tournaments/upload`` and the
 serving of uploaded draws through ``/bracket`` and ``/storybook``.
 
 Like ``tests/test_api_storybook.py``, nothing here touches the vendored CSVs, the
@@ -8,15 +8,15 @@ uploaded draws are built inline from the same toy skill table.
 
 What this file exists to prove, beyond the happy path:
 
-* **Uploads never touch disk** (``test_upload_writes_nothing_to_disk``) — the
+* **Uploads never touch disk** (``test_upload_writes_nothing_to_disk``), the
   whole point of the in-memory design, since the deploy target has no persistent
   disk.
-* **Uploads are ephemeral** — a fresh app instance (a restart) has forgotten
+* **Uploads are ephemeral**, a fresh app instance (a restart) has forgotten
   every prior upload, and an over-capacity store evicts the oldest.
-* **Validation is T2.1's**, surfaced as the same accumulated problem list every
+* **Validation is the draw schema's**, surfaced as the same accumulated problem list every
   other draw-loading path uses.
 * **is_forecast reads true end to end** for a genuinely future-dated draw, live
-  through a storybook run — the first time in the project it legitimately can.
+  through a storybook run, the first time in the project it legitimately can.
 * **The rate limiter engages** on repeated uploads.
 """
 
@@ -60,7 +60,7 @@ TOY_PLAYERS = {
     "Hank Half": "H8",
 }
 
-# A fully-resolvable 8-slot draw over the toy players — no placeholders.
+# A fully-resolvable 8-slot draw over the toy players, no placeholders.
 BRACKET_ORDER = [
     "Alice Ace",
     "Hank Half",
@@ -93,7 +93,7 @@ def valid_draw(event_date: str | None = None) -> dict:
 
 
 def placeholder_draw() -> dict:
-    """A loadable 8-slot draw that still holds a placeholder — not simulatable."""
+    """A loadable 8-slot draw that still holds a placeholder, not simulatable."""
     draw = valid_draw()
     draw["bracket"][1] = {"position": 2, "player": "Qualifier"}
     draw["seeds"] = {"Alice Ace": 1}
@@ -252,7 +252,7 @@ def test_curated_storybook_discloses_curated_content(client):
 # is_forecast: true, end to end, for a genuinely future-dated draw
 # --------------------------------------------------------------------------- #
 def test_future_dated_upload_is_a_forecast_end_to_end(client):
-    """A future event_date flips is_forecast true — the first legitimate case.
+    """A future event_date flips is_forecast true, the first legitimate case.
 
     Confirmed live through a storybook run, not only on the upload ack: the flag
     and the forecast wording must reach the simulated response's metadata.
@@ -292,7 +292,7 @@ def test_malformed_event_date_is_rejected(client):
 
 
 # --------------------------------------------------------------------------- #
-# Rejection paths — each a distinguishable, structured error
+# Rejection paths, each a distinguishable, structured error
 # --------------------------------------------------------------------------- #
 def test_malformed_draw_returns_the_accumulated_problem_list(client):
     bad = valid_draw()
@@ -305,7 +305,7 @@ def test_malformed_draw_returns_the_accumulated_problem_list(client):
     detail = response.json()["detail"]
     assert detail["reason"] == "draw_invalid"
     problems = detail["problems"]
-    # Every problem accumulated, not just the first — the T2.1 contract.
+    # Every problem accumulated, not just the first, the draw contract.
     joined = " ".join(problems)
     assert "surface" in joined
     assert "best_of" in joined
@@ -338,7 +338,7 @@ def test_deeply_nested_json_is_rejected_without_a_500(context):
 
     A few thousand open brackets (tiny, far under the size cap) overflows the
     JSON decoder's recursion. Left uncaught it escapes the handler as a 500 with
-    a full stack trace logged on every request — a cheap error/log-spam vector on
+    a full stack trace logged on every request, a cheap error/log-spam vector on
     a public endpoint. It must come back as ``invalid_json`` like any other
     malformed body, and the server must stay up either way.
 
@@ -376,7 +376,7 @@ def test_placeholder_upload_lists_but_is_not_simulatable(client):
     # Bracket serves fine (placeholders flagged, not dropped).
     bracket = client.get(f"/tournaments/{upload_id}/bracket")
     assert bracket.status_code == 200
-    # Storybook refuses it — same 409 shape as a curated placeholder draw.
+    # Storybook refuses it, same 409 shape as a curated placeholder draw.
     story = client.get(f"/tournaments/{upload_id}/storybook")
     assert story.status_code == 409
     assert story.json()["detail"]["reason"] == "draw_not_simulatable"
@@ -404,7 +404,7 @@ def test_unknown_upload_id_is_a_404(client):
 # The no-persistent-disk design, under test
 # --------------------------------------------------------------------------- #
 def test_upload_writes_nothing_to_disk(client, monkeypatch):
-    """Upload + serve must not write to disk — the core platform constraint.
+    """Upload + serve must not write to disk, the core platform constraint.
 
     ``precompute_sim.write_cache`` (the only cache writer in the codebase) uses
     ``Path.write_text``; spying on the write primitives and asserting they are
@@ -428,7 +428,7 @@ def test_uploads_do_not_survive_a_restart(context):
 
     This is the ephemeral contract asserted the only way a single process can:
     two apps in sequence do not share the in-memory store, so an id minted by the
-    first is unknown to the second — exactly what a real restart produces.
+    first is unknown to the second, exactly what a real restart produces.
     """
     with TestClient(make_app(context)) as first:
         upload_id = upload(first, valid_draw()).json()["tournament_id"]

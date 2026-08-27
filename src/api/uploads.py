@@ -3,8 +3,8 @@
 **The whole design is one platform constraint made explicit.** The deployment
 target (Render's free tier) has no persistent disk: a file written to a running
 container is gone on the next restart, cold-start wake or redeploy. So an
-uploaded draw is held *only* in this process's memory — an LRU keyed by a
-generated id — and never touches the filesystem. The honest consequence, which
+uploaded draw is held *only* in this process's memory, an LRU keyed by a
+generated id, and never touches the filesystem. The honest consequence, which
 the API and the web app both disclose rather than paper over, is that an upload
 does not survive a restart.
 
@@ -15,7 +15,7 @@ Two boundaries this module keeps:
   ``tournament_id``. The git-committed example draws in ``data/draws/`` are
   independently verified against real historical records; a user upload is
   neither, and a generated id in its own namespace makes that distinction
-  un-blurrable — an upload can never collide with or shadow a curated id, and a
+  un-blurrable, an upload can never collide with or shadow a curated id, and a
   glance at an id says which kind it is.
 * **A hard cap on how many are held.** :class:`UploadStore` evicts the
   least-recently-added draw once :data:`config.API_UPLOAD_MAX_DRAWS` is reached,
@@ -23,7 +23,7 @@ Two boundaries this module keeps:
   instance.
 
 This module imports only ``config`` and ``sim.draw`` (for the :class:`~sim.draw.Draw`
-it stores) — no FastAPI, no ``cli/`` — so it stays a plain data structure that a
+it stores), no FastAPI, no ``cli/``, so it stays a plain data structure that a
 test can exercise without a web app.
 """
 
@@ -46,7 +46,7 @@ class UploadedDraw:
     Attributes:
         upload_id: The generated, namespaced id this draw is addressed by
             (``config.UPLOAD_ID_PREFIX`` + random hex). **Not** the draw's own
-            ``tournament_id`` — see the module docstring.
+            ``tournament_id``, see the module docstring.
         draw: The validated :class:`~sim.draw.Draw`.
         is_forecast: True when :attr:`event_date` names a future event, so the
             simulation is a genuine forecast rather than a retrospective of an
@@ -74,7 +74,7 @@ class UploadStore:
     from growing the process without limit.
 
     Nothing here is persisted. A fresh store starts empty, which is exactly the
-    ephemeral behaviour the feature promises — a restart (a new process, a new
+    ephemeral behaviour the feature promises, a restart (a new process, a new
     store) has forgotten every prior upload.
     """
 
@@ -137,7 +137,7 @@ class UploadStore:
 
         A cheap prefix test the handlers use to decide whether to consult this
         store at all, before a lookup. Being in the namespace does not mean the
-        draw is still held (it may have been evicted) — only :meth:`get` answers
+        draw is still held (it may have been evicted), only :meth:`get` answers
         that.
         """
         return tournament_id.startswith(self.id_prefix)

@@ -4,13 +4,13 @@ Static assets copied verbatim into the build output at the site root.
 
 ## Favicons
 
-`favicon.svg` is the source of truth — the seamed tennis-ball ball-mark. The two
+`favicon.svg` is the source of truth, the seamed tennis-ball ball-mark. The two
 raster fallbacks are **generated from it** and must be regenerated if that design
 ever changes, or they will silently drift and look like a bug:
 
-- `favicon.ico` — multi-resolution (16×16 + 32×32 + 48×48), transparent corners;
+- `favicon.ico`, multi-resolution (16×16 + 32×32 + 48×48), transparent corners;
   fallback for browsers/contexts without SVG-favicon support.
-- `apple-touch-icon.png` — 180×180, opaque square (iOS masks the corners itself);
+- `apple-touch-icon.png`, 180×180, opaque square (iOS masks the corners itself);
   iOS home-screen / bookmark icon.
 
 The order and attributes of the `<link>` tags in `index.html` matter (see the
@@ -21,7 +21,7 @@ write-up): the `.ico` is listed **before** the `.svg`, `sizes="any"` goes on the
 the crisp SVG while Safari/IE still fall back to the `.ico`. Inverting it makes
 Chrome pick the raster fallback instead.
 
-Regenerate (macOS, using QuickLook to rasterize + Pillow to resize — no npm
+Regenerate (macOS, using QuickLook to rasterize + Pillow to resize, no npm
 devDependency):
 
 ```bash

@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <!--
       Favicons. favicon.svg is the primary (modern browsers render it); the
-      raster files are fallbacks for surfaces that can't use an SVG icon —
+      raster files are fallbacks for surfaces that can't use an SVG icon,
       favicon.ico (16+32+48) for older Safari/IE, apple-touch-icon.png (180) for
       iOS home-screen/bookmark. The two raster files are GENERATED from
-      favicon.svg — if that ball-mark design ever changes, regenerate them so
+      favicon.svg, if that ball-mark design ever changes, regenerate them so
       they don't drift out of sync. See public/README.md for the command.
 
       Order and attributes are load-bearing, not cosmetic (see the "favicon
@@ -16,8 +16,8 @@
         * the .ico must come BEFORE the .svg, and
         * sizes="any" belongs on the SVG (it marks the scalable icon as the
           most-appropriate choice), NOT on the .ico.
-      Putting sizes="any" on the .ico and listing it last — as an earlier
-      revision did — makes Chrome treat the raster fallback as the best icon and
+      Putting sizes="any" on the .ico and listing it last, as an earlier
+      revision did, makes Chrome treat the raster fallback as the best icon and
       render it (or, with a stale favicon cache, nothing) instead of the SVG.
       The .ico's sizes="48x48" is the real largest frame in the file and is a
       size Chrome considers too big for a 16/32px tab, so Chrome skips it and
@@ -32,7 +32,7 @@
       Apply the theme before first paint (no flash of the wrong ground; a
       navigation restores the stored choice before render). This is a same-origin
       classic script, NOT an inline one, because the deployed CSP is
-      `script-src 'self'` with no 'unsafe-inline' — an inline script is blocked on
+      `script-src 'self'` with no 'unsafe-inline', an inline script is blocked on
       Render and the pre-paint never runs. It is render-blocking (no defer/async)
       so it runs before the module bundle below and before first paint. See
       public/theme-init.js and render.yaml.

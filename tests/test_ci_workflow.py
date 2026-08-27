@@ -1,14 +1,14 @@
-"""Regression guards for the GitHub Actions workflow (T5.2).
+"""Regression guards for the GitHub Actions workflow.
 
-These do not run CI — that happens on GitHub. What they pin is the handful of
+These do not run CI, that happens on GitHub. What they pin is the handful of
 facts that are *silently* wrong when broken: a workflow that runs green while
 type-checking nothing, or a frontend job made to "pass" by handing it a dummy
 ``VITE_API_BASE_URL``. That last one is the trap this file exists for: the
 variable is inlined at build time, so a dummy value is not a harmless
-placeholder — it removes the warning T4.5 deliberately kept as the signal that
+placeholder, it removes the warning deliberately kept as the signal that
 nobody set the real value, and trains people to satisfy the check instead.
 
-Follows ``tests/test_docker_config.py``'s pattern (T5.1), including its
+Follows ``tests/test_docker_config.py``'s pattern, including its
 ``importorskip`` on PyYAML.
 """
 
@@ -30,14 +30,14 @@ def _workflow() -> dict[str, Any]:
     yaml = pytest.importorskip(
         "yaml", reason="PyYAML (a uvicorn[standard] dependency) not installed"
     )
-    assert WORKFLOW.exists(), f"{WORKFLOW.name} is missing — T5.2 creates it"
+    assert WORKFLOW.exists(), f"{WORKFLOW.name} is missing"
     return yaml.safe_load(WORKFLOW.read_text())
 
 
 def _triggers(workflow: dict[str, Any]) -> dict[str, Any]:
     """The ``on:`` block.
 
-    PyYAML follows YAML 1.1, where a bare ``on`` key is the boolean ``True`` —
+    PyYAML follows YAML 1.1, where a bare ``on`` key is the boolean ``True``,
     so the block is read under either spelling rather than ``workflow["on"]``.
     """
     for key in ("on", True):
@@ -97,7 +97,7 @@ def test_frontend_job_type_checks_and_builds() -> None:
 
 
 def test_the_frontend_job_does_not_supply_a_dummy_api_base_url() -> None:
-    """T4.5's warn-but-succeed behaviour is the point; do not paper over it.
+    """The warn-but-succeed behaviour is the point; do not paper over it.
 
     Checked structurally (env blocks + run commands), not as raw text, so the
     file may keep explaining *why* the variable is absent.

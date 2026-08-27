@@ -1,4 +1,4 @@
-"""Single-match simulation CLI (T1.10).
+"""Single-match simulation CLI.
 
 Simulate one named matchup end-to-end and print a real scoreline plus a Monte
 Carlo win probability::
@@ -6,29 +6,20 @@ Carlo win probability::
     python src/cli/simulate_match.py "Carlos Alcaraz" "Jannik Sinner" \
         --surface Clay --best-of 5 --seed 7
 
-This is the first entry point that drives the whole Phase 1 stack together:
-skill table (T1.1) → point-win model (T1.2) → point-by-point scoring engine
-(T1.3–T1.7) → reconciliation with the classifier (T1.8). It is a manual sanity
-tool and a demo, and it is also where the **ClassifierProb adapter** T1.8
-deliberately deferred finally gets built (see below).
+This drives the whole match stack together: skill table → point-win model →
+point-by-point scoring engine → reconciliation with the classifier. It is a
+manual sanity tool and a demo.
 
-**The ClassifierProb adapter (built here in T1.10; shared since T3.5).**
-``sim/reconcile.py`` takes its classifier as an injected callable
-``(player_a, player_b, surface) -> P_clf`` rather than the raw estimator, because
-``predict_proba`` needs a *name-keyed* feature row assembled from the pipeline's
-``surface_history`` / ``h2h_history`` and latest rank/age. T1.8's audit recorded
-that wiring as "owed by predictor.py/T1.10", and this module built it. **T3.5
-moved the implementation to ``common/classifier_adapter.py``** — a UI-free module
-the API may import — and this CLI now re-exports it (:func:`make_classifier_prob`
-below *is* that function). Two consequences worth stating:
-
-* The CLI's ``P_clf`` is now built from **all 27** ``config.MODEL_FEATURES``,
-  including the 20 recent-form columns this file used to synthesise
-  (``ace-04-current-state.md §7`` seam 7, closed by T3.5). Same interface, same
-  memoisation, better numbers.
-* The dependency inversion is unchanged and now also unnecessary in one
-  direction: ``sim/`` and ``api/`` still only *receive* the callable, and neither
-  has to reach into ``cli/`` to obtain one.
+**The ClassifierProb adapter.** ``sim/reconcile.py`` takes its classifier as an
+injected callable ``(player_a, player_b, surface) -> P_clf`` rather than the raw
+estimator, because ``predict_proba`` needs a *name-keyed* feature row assembled
+from the pipeline's ``surface_history`` / ``h2h_history`` and latest rank/age.
+The implementation lives in ``common/classifier_adapter.py``, a UI-free module
+the API may import, and this CLI re-exports it (:func:`make_classifier_prob`
+below *is* that function). The CLI's ``P_clf`` is built from **all 27**
+``config.MODEL_FEATURES``, including the 20 recent-form columns. ``sim/`` and
+``api/`` only *receive* the callable, and neither has to reach into ``cli/`` to
+obtain one.
 
 The histories the adapter reads come from ``features.engineering.add_features``,
 run **once** at startup by :func:`build_context`, never per simulated match; the
@@ -36,11 +27,9 @@ adapter memoises per ``(player_a, player_b, surface)``, so ~1,000 MC runs cost
 exactly one ``predict_proba`` call.
 
 **Reconciliation mode.** This CLI defaults to ``config.SIM_CLI_RECONCILE_MODE``
-(``"blend"``), *not* the system-wide ``config.RECONCILE_MODE``. That default was
-introduced by T1.10 as a mitigation for the form-blind ``P_clf`` and is **kept**
-after T3.5 as a deliberate modelling choice rather than a workaround: blending
-lets the point model contribute half the match-win probability, which is the
-configuration T1.9's scoreline-realism validation was run under.
+(``"blend"``), *not* the system-wide ``config.RECONCILE_MODE``. Blending lets the
+point model contribute half the match-win probability, which is the
+configuration the scoreline-realism validation was run under.
 ``--reconcile-mode classifier_anchor`` makes ``P_clf`` the sole target instead.
 """
 
@@ -56,7 +45,7 @@ import pandas as pd
 
 # Running this file directly (`python src/cli/simulate_match.py`) puts src/cli/
 # on sys.path[0], not src/, so the src-relative imports below would fail. Add
-# src/ explicitly — same bootstrap scripts/validate_sim.py uses. A no-op under
+# src/ explicitly, same bootstrap scripts/validate_sim.py uses. A no-op under
 # pytest, which already has src/ on the path via pyproject's pythonpath.
 _SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _SRC not in sys.path:
@@ -83,21 +72,21 @@ from sim.reconcile import (  # noqa: E402
 # The winner-first renderer, reused rather than reimplemented. This module's own
 # format_scoreline is A-perspective by contract (see its docstring), which is the
 # right framing for MatchSimulation.scoreline and win_prob_a but the *wrong* one
-# for a "winner def. loser" line — see print_simulation. cli/ -> sim/ is the
+# for a "winner def. loser" line, see print_simulation. cli/ -> sim/ is the
 # allowed import direction, and a third copy of this rendering is exactly what
 # sim.tournament.format_scoreline's docstring exists to prevent.
 from sim.tournament import format_scoreline as winner_first_scoreline  # noqa: E402
 
 
 # --------------------------------------------------------------------------- #
-# Matchup stats — the one place the REPL's history helpers are read.
+# Matchup stats, the one place the REPL's history helpers are read.
 # --------------------------------------------------------------------------- #
 @dataclass(frozen=True)
 class MatchupStats(MatchupFeatures):
     """The shared :class:`~common.classifier_adapter.MatchupFeatures`, plus the
     rendered H2H line.
 
-    The numbers are the adapter's own — inherited, not re-gathered — so the
+    The numbers are the adapter's own, inherited, not re-gathered, so the
     printed matchup table and the feature row the classifier scores cannot
     disagree. ``h2h_msg`` is the one genuinely CLI-side field, and it stays here.
     """
@@ -119,7 +108,7 @@ def matchup_stats(
     same call the adapter makes) and adds only the REPL's H2H message.
 
     Raises:
-        ValueError: If either player has no match history in ``data`` — the
+        ValueError: If either player has no match history in ``data``, the
             classifier cannot be given a feature row for an unknown player, and
             failing here is better than silently predicting off defaults.
     """
@@ -131,7 +120,7 @@ def matchup_stats(
 
 
 # --------------------------------------------------------------------------- #
-# Startup context — everything expensive, paid once.
+# Startup context, everything expensive, paid once.
 # --------------------------------------------------------------------------- #
 @dataclass(frozen=True)
 class SimContext:
@@ -153,7 +142,7 @@ class SimContext:
 
     @property
     def name_index(self) -> NameIndex:
-        """Resolvable index of every display name in the data (T0.6)."""
+        """Resolvable index of every display name in the data."""
         return NameIndex.from_names(self.player_names)
 
 
@@ -191,14 +180,14 @@ def build_context(
 
 
 # --------------------------------------------------------------------------- #
-# Name resolution (reuses the shared T0.6 resolver + the REPL's messages).
+# Name resolution (reuses the shared resolver + the REPL's messages).
 # --------------------------------------------------------------------------- #
 @dataclass(frozen=True)
 class NameResolution:
     """A resolved display name, or ``None`` plus the message to show the user.
 
     ``message`` carries the shared resolver's candidate list when the query was
-    ambiguous — rendered by ``interactive.ambiguity_message``, so the suggestion
+    ambiguous, rendered by ``interactive.ambiguity_message``, so the suggestion
     text is byte-identical to the REPL's.
     """
 
@@ -209,9 +198,9 @@ class NameResolution:
 def resolve_display_name(query: str, index: NameIndex) -> NameResolution:
     """Resolve a user-typed name to a canonical display name.
 
-    Delegates matching to the shared, UI-free resolver (``common/names.py``,
-    T0.6) — no new matching logic here — and turns its structured result into
-    something printable.
+    Delegates matching to the shared, UI-free resolver (``common/names.py``),
+    no new matching logic here, and turns its structured result into something
+    printable.
 
     Note the canonical *name* is what the caller wants: ``sim/reconcile.py``
     performs the authoritative name→``player_id`` join itself (via the skill
@@ -235,9 +224,8 @@ def resolve_display_name(query: str, index: NameIndex) -> NameResolution:
 # Simulation + rendering.
 # --------------------------------------------------------------------------- #
 # Shown only in "classifier_anchor" mode, so the printed win % says which model
-# produced it. Until T3.5 this warned that the row behind P_clf was
-# synthetic-filled (ace-04-current-state.md §7 seam 7); the row is now fully
-# populated, so anchoring is a legitimate choice rather than a degraded one —
+# produced it. The row behind P_clf is fully populated, so anchoring is a
+# legitimate choice rather than a degraded one,
 # what remains worth stating is that it hands the winner entirely to the
 # classifier and leaves the point model only the scoreline.
 ANCHOR_MODE_CAVEAT = (
@@ -305,10 +293,9 @@ def simulate_named_match(
         seed: Seed for ``numpy.random.default_rng``.
         reconcile_mode: ``"blend"``/``"classifier_anchor"``. Defaults to
             ``config.SIM_CLI_RECONCILE_MODE`` (``"blend"``), **not** the
-            system-wide ``config.RECONCILE_MODE`` — so the point model keeps half
-            the say in the match-win probability. That default began as T1.10's
-            seam-7 mitigation and is kept, post-T3.5, as a modelling choice; see
-            the module docstring.
+            system-wide ``config.RECONCILE_MODE``, so the point model keeps half
+            the say in the match-win probability. A modelling choice; see the
+            module docstring.
 
     Returns:
         A :class:`MatchSimulation`.
@@ -333,7 +320,7 @@ def simulate_named_match(
             mode=reconcile_mode,
         )
 
-    result = run()  # the storybook match — one full scoreline
+    result = run()  # the storybook match, one full scoreline
     wins_a = sum(1 for _ in range(n_sims) if run().winner == 0)
 
     return MatchSimulation(
@@ -360,7 +347,7 @@ def print_simulation(sim: MatchSimulation) -> None:
 
     **The result line renders the scoreline winner-first, not A-first.** It reads
     ``"<winner> def. <loser>  <scoreline>"``, the tennis convention, so every set
-    must be written from the *winner's* side — otherwise a match player B wins
+    must be written from the *winner's* side, otherwise a match player B wins
     prints as ``"B def. A  6-2 1-6 2-6 0-6"``, naming B the winner beside a
     scoreline showing B losing three sets to one. That is why this uses
     :func:`winner_first_scoreline` over ``sim.result`` rather than
@@ -423,7 +410,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--final-set-rule",
-        # Choices come from the canonical enum (T2.1) so they cannot drift from
+        # Choices come from the canonical enum so they cannot drift from
         # what sim/match.py accepts.
         choices=sorted(config.FINAL_SET_TB_TARGET),
         default=config.SIM_CLI_FINAL_SET_RULE,
@@ -449,7 +436,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--seed",
         type=int,
         default=None,
-        help="Seed for reproducibility — the same seed replays the same "
+        help="Seed for reproducibility; the same seed replays the same "
              "scoreline and MC estimate.",
     )
     return parser.parse_args(argv)
@@ -475,7 +462,7 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 query = input(f"Enter {label}: ").strip()
             except EOFError:
-                # Closed/empty stdin — leave cleanly rather than crash (the
+                # Closed/empty stdin, leave cleanly rather than crash (the
                 # pre-existing REPL defect in ace-04-current-state.md §8).
                 print("\nInput closed. Exiting.")
                 return 1

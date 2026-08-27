@@ -7,12 +7,12 @@
  *     width (`min-width` on `.round`) rather than shrinking, so a 128 draw's
  *     seven columns scroll instead of compressing into illegibility.
  *   * `.matches` uses `justify-content: space-around` inside a stretched
- *     column, so each later card sits at the midpoint of the pair feeding it —
+ *     column, so each later card sits at the midpoint of the pair feeding it,
  *     no per-card offsets, no draw-size arithmetic.
  *
  * The look is editorial: hairline cards on near-black, monospace for every
  * number, wide-tracked labels for the round columns. The accent is spent in
- * exactly one place here — the entrant a storybook run marks as the winner —
+ * exactly one place here, the entrant a storybook run marks as the winner,
  * so a bracket with no run attached is entirely monochrome. Tokens come from
  * src/index.css.
  */
@@ -256,7 +256,7 @@
   font-style: italic;
 }
 
-/* A side this round has not produced yet — every round after the first. */
+/* A side this round has not produced yet, every round after the first. */
 .entrant[data-state='unknown'] .name {
   color: var(--ink-dim);
 }
@@ -282,7 +282,7 @@
   position: relative;
 }
 
-/* An accent tick on the winning side — the ball, marking who advanced. */
+/* An accent tick on the winning side, the ball, marking who advanced. */
 .entrant[data-result='won']::before {
   content: '';
   position: absolute;
@@ -339,5 +339,5 @@
   text-overflow: ellipsis;
 }
 
-/* Loading and error panels live in panel.module.css — shared with the odds
+/* Loading and error panels live in panel.module.css, shared with the odds
    screen so a message looks the same wherever the app shows one. */

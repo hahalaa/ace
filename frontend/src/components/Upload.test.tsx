@@ -65,7 +65,7 @@ it('POSTs the file text and links into the new draw on success', async () => {
   const bracket = screen.getByRole('link', { name: 'View bracket' });
   expect(bracket.getAttribute('href')).toBe('?tournament=upload-abc123&view=bracket');
 
-  // The server's own content note is shown, not a paraphrase — it already
+  // The server's own content note is shown, not a paraphrase, it already
   // carries the ephemeral-storage caveat, so the screen adds no second copy.
   expect(screen.getByText(OK_RESULT.content_note)).toBeTruthy();
 });

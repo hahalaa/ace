@@ -1,7 +1,7 @@
 # Tournament draws
 
-Draw files are validated and loaded by `sim/draw.py` (`load_draw`, T2.1) and
-simulated by `sim/tournament.py` (`simulate_bracket`, T2.2). Each file's own
+Draw files are validated and loaded by `sim/draw.py` (`load_draw`) and
+simulated by `sim/tournament.py` (`simulate_bracket`). Each file's own
 `note` field is authoritative about what it is; this is the index. For the
 field-by-field format (what a valid draw JSON must contain), see
 [`DRAW_SCHEMA.md`](DRAW_SCHEMA.md).
@@ -23,7 +23,7 @@ including how placeholders are handled, see [`DRAW_SCHEMA.md`](DRAW_SCHEMA.md).
 vendored round-by-round results in `data/raw/` and verified by replaying all
 127 matches through the reconstructed pairings. Every entrant is a genuine
 named player, qualifiers and wildcards included, so no slot needs a
-placeholder. It exists so T2.3 has a full-size, fully-resolvable draw to
+placeholder. It exists so the Monte Carlo runner has a full-size, fully-resolvable draw to
 measure Monte Carlo performance against.
 
 **Two caveats on the real draw**, both spelled out in its `note`:
@@ -44,7 +44,7 @@ players who last appear in 2024 do not resolve against a 2025+ skill table.
 `ausopen_2026_atp_full.json` is a second such file: the **real** 128-player
 men's singles bracket of the **2026 Australian Open** (Carlos Alcaraz d. Novak
 Djokovic 2–6 6–2 6–3 7–5), reconstructed from `data/raw/atp_matches_2026.csv`
-(`tourney_id 2026-580`) by the identical method — recurse backward from the
+(`tourney_id 2026-580`) by the identical method: recurse backward from the
 champion through each round's recorded winners, then replay all 127 matches
 through the reconstructed pairings to verify. Every entrant is a genuine named
 player, so there are no placeholders and the draw simulates end-to-end. The two

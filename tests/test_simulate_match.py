@@ -1,8 +1,8 @@
-"""Tests for cli/simulate_match.py (T1.10) — the single-match simulation CLI.
+"""Tests for cli/simulate_match.py, the single-match simulation CLI.
 
 Covers the ticket's acceptance + testing criteria:
   * The underlying function (not the input loop) simulates a matchup from a
-    *fixture* skill table + a *stub* classifier — no 35k-row real dataset and no
+    *fixture* skill table + a *stub* classifier, no 35k-row real dataset and no
     real pickled model required.
   * The ClassifierProb adapter builds the same name-keyed feature row the REPL
     builds and calls predict_proba on it.
@@ -57,8 +57,8 @@ def make_skill_table() -> SkillTable:
 def make_data() -> pd.DataFrame:
     """A two-row engineered-frame stand-in.
 
-    Enough for ``get_latest`` (rank/age) *and*, since T3.5, for the adapter's
-    as-of-now rolling-form snapshot — hence the outcome/games/sets columns, which
+    Enough for ``get_latest`` (rank/age) *and*, now for the adapter's
+    as-of-now rolling-form snapshot, hence the outcome/games/sets columns, which
     are what ``features.rolling`` averages. A frame without them is not an
     engineered frame, and the adapter now says so instead of quietly filling the
     20 recent-form features with constants.
@@ -138,7 +138,7 @@ def test_simulate_named_match_smoke():
     assert sim.winner in ("Player A", "Player B")
     assert 0.0 <= sim.win_prob_a <= 1.0
     assert sim.n_sims == 50
-    # A scoreline like "6-4 3-6 7-6(5)" — one token per set played.
+    # A scoreline like "6-4 3-6 7-6(5)", one token per set played.
     tokens = sim.scoreline.split()
     assert len(tokens) == len(sim.result.sets) >= 2
     assert all("-" in t for t in tokens)
@@ -156,7 +156,7 @@ def test_simulate_named_match_bo5_and_stronger_player_favoured():
 
 
 def test_unresolvable_name_raises_from_the_sim_layer():
-    """A name absent from the skill table fails loudly (T1.8's contract)."""
+    """A name absent from the skill table fails loudly (reconciliation's contract)."""
     ctx, _ = make_context()
     with pytest.raises(ValueError, match="resolve player name"):
         SM.simulate_named_match(
@@ -168,15 +168,14 @@ def test_unresolvable_name_raises_from_the_sim_layer():
 # The ClassifierProb adapter.
 # --------------------------------------------------------------------------- #
 def test_adapter_builds_a_fully_real_feature_row_and_calls_predict_proba():
-    """All 27 features are real state — the T3.5 fix, from the CLI's side.
+    """All 27 features are real state, the current adapter, from the CLI's side.
 
-    Before T3.5 this test asserted the row was byte-identical to
+    Previously this test asserted the row was byte-identical to
     ``interactive.build_feature_row``'s, i.e. that 20 of the 27 features were
     synthetic constants (``ace-04-current-state.md §7`` seam 7). The CLI now
     shares ``common.classifier_adapter`` with the API, so it gets the real
     rolling-form values too; what is pinned here is that the 7 history-derived
-    features are unchanged from T1.10 **and** that the other 20 are no longer
-    constants.
+    features are unchanged **and** that the other 20 are no longer constants.
     """
     data = make_data()
     surf_hist, h2h_hist = HISTORIES
@@ -191,7 +190,7 @@ def test_adapter_builds_a_fully_real_feature_row_and_calls_predict_proba():
     assert list(row.columns) == config.MODEL_FEATURES
     assert not row.isna().any().any()
 
-    # The seven T1.10 already built correctly, unchanged.
+    # The seven already built correctly, unchanged.
     assert row["p1_rank"].iloc[0] == 1.0          # A's latest rank (2025 row)
     assert row["p2_rank"].iloc[0] == 3.0
     assert row["p1_age"].iloc[0] == 22.0
@@ -210,7 +209,7 @@ def test_adapter_builds_a_fully_real_feature_row_and_calls_predict_proba():
     assert row["p2_recent_sets_won_avg_5"].iloc[0] == pytest.approx(1.0)
 
     # And they are *not* the constants the old row carried (0 for every
-    # games/sets average) — the mutation this test exists to catch.
+    # games/sets average), the mutation this test exists to catch.
     old_row = interactive.build_feature_row(1.0, 3.0, 22.0, 24.0, 0.8, 0.5, 2)
     assert old_row["p1_recent_games_won_avg_5"].iloc[0] == 0
     assert row["p1_recent_games_won_avg_5"].iloc[0] != 0
@@ -226,7 +225,7 @@ def test_adapter_is_memoised_so_mc_runs_cost_one_predict_proba():
 
 
 def test_adapter_cache_key_includes_surface():
-    """Surface is part of the memoisation key — a Clay request must not be
+    """Surface is part of the memoisation key, a Clay request must not be
     served the cached Hard probability.
 
     The feature row is surface-dependent (``p1_surface_win_pct`` comes from the
@@ -254,7 +253,7 @@ def test_adapter_cache_key_includes_surface():
 
 
 def test_adapter_raises_for_a_player_with_no_history():
-    """No feature row is possible without match history — fail, don't default."""
+    """No feature row is possible without match history, fail, don't default."""
     data = make_data()
     surf_hist, h2h_hist = HISTORIES
     adapter = SM.make_classifier_prob(StubEstimator(), data, surf_hist, h2h_hist)
@@ -268,7 +267,7 @@ def test_matchup_stats_inherits_the_shared_feature_fields():
     That is the stated reason the printed matchup table and the feature row the
     classifier scores cannot drift apart: they are the same fields, declared
     once. Re-declaring them here instead would compile, pass every other test,
-    and reintroduce exactly the duplication the subclassing removes — so the
+    and reintroduce exactly the duplication the subclassing removes, so the
     relationship is asserted, not left implied.
     """
     assert issubclass(SM.MatchupStats, MatchupFeatures)
@@ -315,7 +314,7 @@ def test_unknown_name_message_is_helpful():
 
 
 def test_ambiguous_name_message_carries_the_resolver_candidate_list():
-    """The suggestion mechanism is the REPL's, verbatim — not a reimplementation."""
+    """The suggestion mechanism is the REPL's, verbatim, not a reimplementation."""
     names = ["Alexander Zverev", "Mischa Zverev", "Carlos Alcaraz"]
     index = NameIndex.from_names(names)
 
@@ -406,17 +405,17 @@ def test_format_scoreline_uses_the_losers_tiebreak_points():
 # --------------------------------------------------------------------------- #
 # The printed result line: "<winner> def. <loser>  <scoreline>".
 #
-# Regression coverage for a real defect that shipped in T1.10 and survived every
+# Regression coverage for a real defect that shipped early and survived every
 # later audit: format_scoreline is A-perspective *by contract*, and
 # print_simulation composed it into a winner-first sentence. When player B won,
-# the line named B the winner beside a scoreline showing B losing — e.g.
+# the line named B the winner beside a scoreline showing B losing, e.g.
 # "Jannik Sinner def. Carlos Alcaraz  6-2 1-6 2-6 0-6". Both halves were tested
 # in isolation (format_scoreline above; the winner field in the smoke test) and
 # the *composition* was not, which is precisely why nothing caught it. These
 # tests assert the rendered line itself, in both winner directions.
 # --------------------------------------------------------------------------- #
 def make_simulation(result: MatchResult, winner_name: str) -> SM.MatchSimulation:
-    """A MatchSimulation over a hand-built MatchResult — no pipeline, no model."""
+    """A MatchSimulation over a hand-built MatchResult, no pipeline, no model."""
     stats = SM.MatchupStats(
         a_rank=1.0, b_rank=3.0, a_age=22.0, b_age=24.0,
         a_pct=0.8, b_pct=0.5, a_wins=8, a_total=10, b_wins=5, b_total=10,
@@ -472,7 +471,7 @@ A_WINS = MatchResult(
     best_of=5,
 )
 
-# B won 3-1 — the shape the live seed-7 run produced. A-perspective renders this
+# B won 3-1, the shape the live seed-7 run produced. A-perspective renders this
 # as "6-2 1-6 2-6 0-6", which beside "Player B def. Player A" is the defect.
 B_WINS = MatchResult(
     winner=1,
@@ -532,7 +531,7 @@ def test_printed_line_names_the_player_its_scoreline_shows_winning(
 
 
 def test_the_scoreline_field_stays_a_perspective(capsys):
-    """MatchSimulation.scoreline is unchanged — only the printed line flipped.
+    """MatchSimulation.scoreline is unchanged, only the printed line flipped.
 
     The field feeds ``win_prob_a``'s framing and the "A wins X%" line, so it must
     stay A-perspective. This pins the two apart: for a match B wins, the printed
@@ -604,7 +603,7 @@ def test_reconcile_mode_flag_opts_into_classifier_anchor(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "mode: classifier_anchor" in out
     assert SM.ANCHOR_MODE_CAVEAT in out
-    # Post-T3.5 the note explains what anchoring *does* (the classifier alone
+    # Now the note explains what anchoring *does* (the classifier alone
     # picks the winner) rather than warning that the row behind it is synthetic.
     assert "classifier alone decides the winner" in out
     assert "synthetic" not in out
@@ -655,7 +654,7 @@ def test_blend_lets_the_point_model_speak_when_p_clf_is_flat():
 
 
 def test_global_reconcile_mode_is_untouched():
-    """This fix is CLI-scoped: T1.8's system-wide default must not have moved."""
+    """This fix is CLI-scoped: reconciliation's system-wide default must not have moved."""
     import sim.reconcile as reconcile
 
     assert config.RECONCILE_MODE == "classifier_anchor"

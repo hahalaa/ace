@@ -3,8 +3,8 @@
  * with a champion at the end and a URL that reproduces it exactly.
  *
  * **The seed is the feature, not a parameter.** `/storybook` is the one endpoint
- * that simulates live (T3.4), and the same id + the same seed returns a
- * byte-identical body — that is what makes a link shareable. So the seed lives
+ * that simulates live, and the same id + the same seed returns a
+ * byte-identical body, that is what makes a link shareable. So the seed lives
  * in the **URL** (`./seed` reads and writes it), never in a `useState`
  * initialiser that rolls a fresh number, and every run goes through `runSeed`:
  * pick a seed, write it to the address bar, fetch it. Reloading the page
@@ -13,16 +13,16 @@
  * Nothing here re-rolls on a render, so a React re-render cannot silently change
  * the story on screen.
  *
- * **The bracket is not reimplemented.** T4.2's {@link Bracket} fetches and lays
+ * **The bracket is not reimplemented.** { Bracket} fetches and lays
  * out the draw exactly as it does on its own screen; this passes it the run to
  * draw over, and `./storybook` does the keying. Before a run, and while one is
- * in flight, the same component renders the same empty draw — no second layout,
+ * in flight, the same component renders the same empty draw, no second layout,
  * no storybook-only bracket.
  *
  * **What is shown comes from the response, not from re-derivation.** The
  * champion is `StorybookResponse.champion` (never "whoever won the last match"),
  * and scorelines are copied strings. `StorybookMetadata` still carries the
- * required `ModelDisclosure` fields on the wire for any non-browser consumer —
+ * required `ModelDisclosure` fields on the wire for any non-browser consumer,
  * this screen simply stopped rendering them; the backend contract is
  * unchanged.
  *
@@ -61,7 +61,7 @@ type CopyState = 'idle' | 'copied' | 'failed';
 
 function Champion({ story }: { story: StorybookResponse }) {
   // Identity is the response's own `champion` field. The run row is looked up
-  // for the *summary* numbers only, and the final's line for its scoreline —
+  // for the *summary* numbers only, and the final's line for its scoreline,
   // neither decides who won.
   const { champion } = story;
   const run = story.runs.find((entrant) => entrant.is_champion) ?? null;
@@ -179,7 +179,7 @@ export default function Storybook({ tournamentId }: StorybookProps) {
             Share this run
           </button>
         </div>
-        {/* The seed the address bar carries — i.e. the one a link shared right
+        {/* The seed the address bar carries, i.e. the one a link shared right
             now would replay. */}
         {hasRun && (
           <p className={styles.seed} data-meta="url_seed">
@@ -213,9 +213,9 @@ export default function Storybook({ tournamentId }: StorybookProps) {
         <>
           <Champion story={story} />
           {/* Provenance of the draw itself, distinct from the model disclosure
-              (no longer rendered on this screen — the backend contract is
+              (no longer rendered on this screen, the backend contract is
               unchanged). An uploaded draw is user-submitted, unverified and
-              held in memory only — the uploader saw this on the upload form,
+              held in memory only, the uploader saw this on the upload form,
               and anyone who opens a shared link to this run needs to see it
               too, not just at upload time. Curated draws
               (`content_source === 'curated'`) carry no such note. */}

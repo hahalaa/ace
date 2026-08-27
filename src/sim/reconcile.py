@@ -1,5 +1,5 @@
 """Reconcile the point model with the classifier, and expose one authoritative
-match-win probability plus a scoreline generator consistent with it (T1.8).
+match-win probability plus a scoreline generator consistent with it.
 
 Implements ``ace-03-tennis-math.md §6``. The existing classifier yields
 ``P_clf(A beats B)`` from rank/form/H2H/surface features; the point model yields
@@ -14,21 +14,21 @@ Three pieces, in dependency order:
    :func:`simulate_reconciled_match` receives player **names**, resolves each to a
    ``player_id`` *exactly once* via ``SkillTable.resolve_name`` (which delegates to
    ``common/names.py``), and uses the ids for the point model while the classifier
-   keeps its name-keyed view. A name that does not resolve raises immediately — a
+   keeps its name-keyed view. A name that does not resolve raises immediately, a
    resolution failure must never surface downstream as a ``KeyError`` or a silent
    wrong-player bug.
 
 2. **The analytic match-win probability.** :func:`match_win_prob_point` composes
    the closed-form hold (``§2``), tiebreak (``§4``) and set (``§3``) probabilities
-   directly — **deterministic, no RNG, no games/points simulated**. This is a hard
-   performance requirement: T2.2/T2.3's Monte-Carlo bracket runs call it via
+   directly, **deterministic, no RNG, no games/points simulated**. This is a hard
+   performance requirement: Monte-Carlo bracket runs call it via
    ``simulate_bracket(..., outcome_only=True)`` on the order of hundreds of
    thousands of match evaluations per pass, and that budget only holds if this
    stays non-stochastic. It deliberately does **not** call
    :func:`~sim.match.simulate_match_bo3` / ``_bo5`` (there is no
    ``simulate_match(best_of=...)`` dispatcher on disk, and those functions
    *simulate*). A separate MC estimator, :func:`match_win_prob_point_mc`, exists
-   **only** for cross-validating the analytic composition (T1.9) — it is never on
+   **only** for cross-validating the analytic composition, it is never on
    the hot path and ``outcome_only`` runs must never call it.
 
 3. **Reconciliation + scoreline.** :func:`solve_delta` finds the symmetric serve
@@ -40,20 +40,20 @@ Three pieces, in dependency order:
 
 **On the ``classifier`` argument (design decision, flagged for review).** The
 classifier's ``predict_proba`` needs a *name-keyed feature row* built from the
-pipeline's ``surface_history`` / ``h2h_history`` / rank-age data — state that lives
-in the classifier/CLI layer and that ``sim/`` must not import (the layering rule in
-``CLAUDE.md``). The ticket's signature does not thread those histories in, so
+pipeline's ``surface_history`` / ``h2h_history`` / rank-age data, state that lives
+in the classifier/CLI layer and that ``sim/`` must not import (the layering
+rule). Those histories are not threaded into this module's signatures, so
 ``sim/reconcile`` cannot faithfully rebuild that feature row itself. We therefore
-model ``classifier`` as a **callable adapter** :class:`ClassifierProb` —
-``classifier(player_a, player_b, surface) -> P(A beats B)`` — which *is* the
+model ``classifier`` as a **callable adapter** :class:`ClassifierProb`,
+``classifier(player_a, player_b, surface) -> P(A beats B)``, which *is* the
 opaque ``predict_proba`` boundary, just wrapped so the feature-row plumbing stays
-in the layer that owns it (``predictor.py`` / the T1.10 CLI, where importing
+in the layer that owns it (``predictor.py`` / the match CLI, where importing
 ``cli/`` is allowed). :func:`load_pinned_classifier` loads and *pins* the persisted
 estimator (recording which of the best-of-four it is; see
 ``ace-04-current-state.md §4``) for that wiring and for the calibration check.
 
 This module belongs to the ``sim/`` core: its only project imports are ``config``,
-``sim.match``, ``sim.points`` and (for skills/typing) ``features.serve`` — never
+``sim.match``, ``sim.points`` and (for skills/typing) ``features.serve``, never
 ``cli/``. It is not on the pure-by-construction list that ``sim/points.py`` and the
 scoring functions of ``sim/match.py`` are; :func:`load_pinned_classifier` does load
 a file, but only once at wiring time, never in the per-match hot path.
@@ -96,13 +96,13 @@ class ClassifierProb(Protocol):
 
 
 # ---------------------------------------------------------------------------
-# Analytic match-win probability (the hot path — deterministic, no RNG).
+# Analytic match-win probability (the hot path, deterministic, no RNG).
 # ---------------------------------------------------------------------------
 # The closed-form composition §2→§4→§3. It reuses the *exact* serve schedule
 # helpers of the point-by-point simulator (``_tiebreak_server`` / ``_set_server``)
-# so the analytic model and the simulation agree on who serves each point/game —
+# so the analytic model and the simulation agree on who serves each point/game,
 # which is what lets a δ solved on the analytic function reproduce the target as a
-# *simulated* win rate (the T1.8 acceptance criterion). All functions here are
+# *simulated* win rate. All functions here are
 # deterministic and make no RNG draws.
 
 
@@ -224,7 +224,7 @@ def _match_win_prob_from_sets(s_std: float, s_dec: float, best_of: int) -> float
 
     Non-deciding sets carry win prob ``s_std``; the single deciding set carries
     ``s_dec`` (it differs only through the final-set tiebreak rule). Enumerates the
-    set-count paths — the deciding-set prob applies only to the path that actually
+    set-count paths, the deciding-set prob applies only to the path that actually
     reaches it (2–1 in Bo3, 3–2 in Bo5).
     """
     if best_of == 3:
@@ -240,17 +240,17 @@ def _match_win_prob_from_sets(s_std: float, s_dec: float, best_of: int) -> float
 def match_win_prob_point(
     pA: float, pB: float, best_of: int, final_set_rule: str
 ) -> float:
-    """Analytic P(A beats B) from the point model — the hot path (``§2``–``§4``).
+    """Analytic P(A beats B) from the point model, the hot path (``§2``–``§4``).
 
     Composes the closed-form hold (``§2``), tiebreak (``§4``) and set (``§3``)
     probabilities into a match-win probability **without simulating** and **without
     any RNG draws**: it is fully deterministic in its four inputs. This is the
-    function T2.2/T2.3's ``outcome_only=True`` bracket runs call hundreds of
+    function the ``outcome_only=True`` bracket runs call hundreds of
     thousands of times per Monte-Carlo pass; keeping it non-stochastic is a hard
     requirement, not a preference. For a stochastic cross-check use
     :func:`match_win_prob_point_mc` (never on the hot path).
 
-    Modelling note — the composition treats sets as i.i.d. with the per-set win
+    Modelling note, the composition treats sets as i.i.d. with the per-set win
     prob :func:`_avg_set_prob` (averaged over who serves first), i.e. it ignores
     the second-order correlation introduced by cross-set serve continuity. The
     error this introduces is small (serve-first is worth a fraction of a percent
@@ -303,7 +303,7 @@ def match_win_prob_point_mc(
 ) -> float:
     """MC estimate of P(A beats B) by simulating ``n_sims`` matches.
 
-    **Cross-validation only** (T1.9): this exists to sanity-check the analytic
+    **Cross-validation only**: this exists to sanity-check the analytic
     :func:`match_win_prob_point` against the actual point-by-point simulator. It is
     stochastic and slow; it must **never** be what an ``outcome_only=True`` bracket
     run calls. Each simulated match draws a fresh first server from ``rng``, mirror-
@@ -366,7 +366,7 @@ def solve_delta(
     and lowering ``pB`` raises A's break rate, both of which raise every set-win
     prob and hence the match-win prob. Crucially, because the window keeps both
     probabilities strictly inside ``[P_MIN, P_MAX]``, the ``[P_MIN, P_MAX]`` clamp
-    inside :func:`~sim.points.point_win_prob` **never fires during the solve** — so
+    inside :func:`~sim.points.point_win_prob` **never fires during the solve**, so
     the clamp cannot introduce a flat region that would break strict monotonicity
     (the boundary flat regions live *outside* the window, where we saturate on
     purpose). A target beyond the window's reach saturates to the nearest endpoint.
@@ -482,8 +482,8 @@ def solve_reconciled_serve_probs(
 
     This is steps 1–4 of :func:`simulate_reconciled_match`, factored out so a
     caller that simulates the **same** matchup many times (the single-match
-    aggregator) solves ``δ`` **once** rather than re-solving it — a ~3 ms bisection
-    — on every scoreline draw. It makes no RNG draws and simulates nothing; it is
+    aggregator) solves ``δ`` **once** rather than re-solving it, a ~3 ms bisection
+    on every scoreline draw. It makes no RNG draws and simulates nothing; it is
     pure model composition. :func:`simulate_reconciled_match` calls it and then
     plays out one scoreline; the extraction is behaviour-preserving.
 
@@ -500,7 +500,7 @@ def solve_reconciled_serve_probs(
         A :class:`ReconciledServe`.
 
     Raises:
-        ValueError: If either name fails to resolve (fail loudly — no silent
+        ValueError: If either name fails to resolve (fail loudly, no silent
             fallback) or the surface is unknown.
     """
     # 1. Name → id, exactly once each. Fail loudly rather than let a bad name
@@ -562,7 +562,7 @@ def simulate_reconciled_match(
     w: float = config.RECONCILE_BLEND_WEIGHT,
     first_server: int | None = None,
 ) -> MatchResult:
-    """Simulate one reconciled match — the entry point Phase 2 calls.
+    """Simulate one reconciled match, the entry point Phase 2 calls.
 
     Resolves both names to ids **once** (the single name/id join), reads the
     id-keyed point-win probabilities, obtains ``P_clf`` from the name-keyed
@@ -589,8 +589,7 @@ def simulate_reconciled_match(
             the opening server when ``first_server`` is ``None``.
         mode, w: Reconciliation mode / blend weight (default from ``config``).
         first_server: Index (``0`` = A, ``1`` = B) of the player serving the first
-            game, or ``None`` (the default) to draw it from ``rng`` — the original
-            T1.8 behaviour, unchanged for every existing caller. T2.2's bracket
+            game, or ``None`` (the default) to draw it from ``rng``. The bracket
             simulation passes an explicit value because a tournament needs a
             *deterministic serve-first convention* per match (see
             ``sim/tournament.py``), which a per-match coin flip cannot express.
@@ -599,7 +598,7 @@ def simulate_reconciled_match(
         A :class:`~sim.match.MatchResult` for the simulated match.
 
     Raises:
-        ValueError: If either name fails to resolve (fail loudly — no silent
+        ValueError: If either name fails to resolve (fail loudly, no silent
             fallback), the surface is unknown, ``best_of`` is not 3/5, or
             ``first_server`` is neither ``0``, ``1`` nor ``None``.
     """
@@ -639,7 +638,7 @@ class PinnedClassifier:
     its *type* can change across data refreshes (``ace-04-current-state.md §4``).
     Recording the estimator class and feature count alongside the estimator lets
     downstream code (calibration, published probabilities) note exactly what it
-    used. The estimator is treated opaquely — only ``predict_proba`` is assumed.
+    used. The estimator is treated opaquely, only ``predict_proba`` is assumed.
 
     Attributes:
         estimator: The loaded scikit-learn/xgboost estimator (opaque).
@@ -657,7 +656,7 @@ class PinnedClassifier:
 def load_pinned_classifier(path=config.MODEL_PATH) -> PinnedClassifier:
     """Load and pin the persisted classifier (not on the hot path).
 
-    Loads the artefact once — at wiring/calibration time, never per match — and
+    Loads the artefact once, at wiring/calibration time, never per match, and
     records which best-of-four estimator it is. Raises ``FileNotFoundError`` if the
     artefact is missing (run ``python src/predictor.py`` to train and persist it).
     """

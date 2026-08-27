@@ -1,24 +1,18 @@
-"""UI-free ``ClassifierProb`` adapter with **real** rolling-form features (T3.5).
+"""UI-free ``ClassifierProb`` adapter with **real** rolling-form features.
 
-This module closes ``ace-04-current-state.md §7`` seam 7, open since T1.10. It
-does two things that were previously impossible together:
+This module closes ``ace-04-current-state.md §7`` seam 7. It does two things:
 
-1. **It lives where neither ``cli/`` nor ``api/`` owns it** — the same precedent
-   T0.6 set when it lifted the fuzzy name resolver out of ``cli/interactive.py``
-   into ``common/names.py``. Before this, the only ``ClassifierProb`` adapter was
-   ``cli.simulate_match.make_classifier_prob``, built on
-   ``cli/interactive.build_feature_row``; the layering rule forbids ``api/`` from
-   importing ``cli/``, so T3.4 had to reach it by name through
-   ``config.API_CLASSIFIER_ADAPTER`` and disclose the runtime coupling. With the
-   adapter here, that coupling is gone rather than disclosed: ``api/`` and
+1. **It lives where neither ``cli/`` nor ``api/`` owns it**, the same placement
+   ``common/names.py`` uses for the fuzzy name resolver. The layering rule
+   forbids ``api/`` from importing ``cli/``; with the adapter here, ``api/`` and
    ``scripts/`` import ``common``, which imports nothing but ``config`` and
    ``features``.
 
 2. **It assembles all 27 of ``config.MODEL_FEATURES`` from real state.** The
    7 the CLI already built correctly (both ranks, both ages, both surface
    win %, ``h2h_diff``) come from the same leakage-safe histories
-   ``features.engineering.add_features`` returns. The other 20 — every
-   recent-form rolling column, previously filled with ``0.5``/``0`` constants —
+   ``features.engineering.add_features`` returns. The other 20, every
+   recent-form rolling column, previously filled with ``0.5``/``0`` constants,
    come from :class:`features.rolling.RollingFormTable`, the as-of-now snapshot
    accessor added alongside this module. Those values are the ones the training
    pipeline would compute for a match played immediately after the last row of
@@ -30,20 +24,19 @@ does two things that were previously impossible together:
 snapshot of the *end* of the loaded data: latest rank/age, full surface record,
 full H2H, last-N form. That is the correct state for simulating a match played
 now (which is what the simulator does), and it never reaches backwards into a
-row's own future the way a leaky training feature would — nothing here is used
+row's own future the way a leaky training feature would, nothing here is used
 to fit anything. It does mean simulating an **already-played** draw is
 retrospective rather than a forecast: the model knows what happened after the
 event. That caveat is what ``api.schemas.CLASSIFIER_LIMITATION`` now describes.
 
-**Shape.** :func:`make_classifier_prob` keeps the exact factory signature T1.10
-established and T3.3/T3.4 build against — ``(estimator, data, surface_history,
-h2h_history) -> ClassifierProb`` — so ``sim/reconcile.py``'s expected interface,
+**Shape.** :func:`make_classifier_prob` has the factory signature every caller
+builds against, ``(estimator, data, surface_history, h2h_history) ->
+ClassifierProb``, so ``sim/reconcile.py``'s expected interface,
 ``api.main.ClassifierFactory`` and ``scripts/precompute_sim.py`` are unchanged.
 The returned :class:`ClassifierProbAdapter` is a **module-level class with a
 ``__call__``**, not a closure: same behaviour, same memoisation, but it pickles,
 which is the one thing ``sim/tournament.py``'s ``workers > 1`` path needs from an
-adapter (``§7`` seam 8 — unblocked here as a side effect; actually exposing a
-``--workers`` flag, and re-verifying it, remains that seam's own work).
+adapter (``§7`` seam 8).
 """
 
 from __future__ import annotations
@@ -63,8 +56,7 @@ import features.rolling as rolling
 # These are the helpers ``cli/interactive.py`` grew for the REPL (``get_latest``,
 # ``get_surf_record``, ``compute_h2h``). They are the *classifier's* view of the
 # pipeline's history structures, not UI, so they belong here; the CLI's versions
-# are now thin wrappers that keep their printable extras (T0.6's pattern for the
-# resolver, applied to the same file's other reusable helpers).
+# are thin wrappers that keep their printable extras.
 # --------------------------------------------------------------------------- #
 def latest_rank_age(name: str, data: pd.DataFrame) -> tuple[float | None, float | None]:
     """A player's rank and age as of their most recent match in ``data``.
@@ -129,7 +121,7 @@ class MatchupFeatures:
     """The non-rolling half of a feature row: the 7 features built from history.
 
     Carries the raw surface records alongside the percentages because callers
-    that *display* a matchup want "80% (8-2)", not just the rate — that is what
+    that *display* a matchup want "80% (8-2)", not just the rate, that is what
     ``cli/simulate_match.MatchupStats`` wraps for its table.
     """
 
@@ -168,7 +160,7 @@ def matchup_features(
 
     Raises:
         ValueError: If either player has no match history in ``data``. Failing
-            here is deliberate — a feature row built from defaults for an unknown
+            here is deliberate, a feature row built from defaults for an unknown
             player is a silently wrong prediction, which is the class of problem
             this module exists to remove.
     """
@@ -220,7 +212,7 @@ def build_feature_row(
         ``config.MODEL_FEATURES``, in order.
 
     Raises:
-        KeyError: If a model feature has no value — i.e. if ``MODEL_FEATURES``
+        KeyError: If a model feature has no value, i.e. if ``MODEL_FEATURES``
             has gained a column neither half supplies. Loud by design: quietly
             defaulting an unknown feature is precisely the seam-7 defect.
     """
@@ -259,17 +251,17 @@ class ClassifierProbAdapter:
     """``(player_a, player_b, surface) -> P(A beats B)`` over the pinned estimator.
 
     Implements ``sim.reconcile.ClassifierProb``. Constructing one does **no**
-    work — the contract every existing caller was built against
+    work, the contract every existing caller was built against
     (``api.main.build_classifier``, ``scripts/precompute_sim.py``). The as-of-now
     rolling-form table is built on first use and kept (0.08 s over the full
     frame, once per adapter), the first call for a matchup builds its row and
     calls ``predict_proba``, and every repeat is served from the memo table. A
     5,000-run Monte Carlo over a 128 draw therefore costs at most 8,128
-    ``predict_proba`` calls, not 635,000 — the property T2.2's ``prob_cache``
-    contract depends on.
+    ``predict_proba`` calls, not 635,000, the property the bracket simulator's
+    ``prob_cache`` contract depends on.
 
     A class rather than a closure so the adapter is picklable (``§7`` seam 8) and
-    so its assembled row is inspectable via :meth:`feature_row` — which is how
+    so its assembled row is inspectable via :meth:`feature_row`, which is how
     ``tests/test_classifier_adapter.py`` proves the rolling features are the
     pipeline's real ones rather than constants.
     """
@@ -284,7 +276,7 @@ class ClassifierProbAdapter:
     ) -> None:
         """
         Args:
-            estimator: The pinned classifier — treated opaquely, only
+            estimator: The pinned classifier, treated opaquely, only
                 ``predict_proba`` is assumed (``ace-04-current-state.md §4``).
             data: The engineered match frame.
             surface_history, h2h_history: Name-keyed histories from
@@ -318,7 +310,7 @@ class ClassifierProbAdapter:
 
         Raises:
             ValueError: If either player has no history (see
-                :func:`matchup_features`) — including the rolling-form lookup,
+                :func:`matchup_features`), including the rolling-form lookup,
                 whose ``KeyError`` is translated here so callers see one
                 exception type for "unknown player".
         """
@@ -329,7 +321,7 @@ class ClassifierProbAdapter:
         for name in (player_a, player_b):
             if name not in form_table:
                 # matchup_features already rejects a player absent from `data`,
-                # so reaching here means `data` and the form table disagree — a
+                # so reaching here means `data` and the form table disagree, a
                 # wiring error, not a user error. Say so rather than defaulting.
                 raise ValueError(
                     f"No rolling-form history for {name!r}; the form table and the "
@@ -364,9 +356,9 @@ def make_classifier_prob(
 ) -> ClassifierProbAdapter:
     """Build the ``ClassifierProb`` adapter ``sim/reconcile.py`` takes.
 
-    The factory signature T1.10 established, kept verbatim so every existing
-    caller (``api.main.build_classifier``, ``scripts/precompute_sim.py``,
-    ``cli/simulate_match.build_context``) is unchanged by the move.
+    The shared factory signature: every caller (``api.main.build_classifier``,
+    ``scripts/precompute_sim.py``, ``cli/simulate_match.build_context``) builds
+    against it.
 
     Args:
         estimator: The pinned ``predict_proba`` estimator.

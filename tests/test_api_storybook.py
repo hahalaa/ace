@@ -1,4 +1,4 @@
-"""Tests for ``GET /tournaments/{id}/storybook`` (T3.4).
+"""Tests for ``GET /tournaments/{id}/storybook``.
 
 Nothing here touches the vendored CSVs, the shipped draws or the real
 classifier: the app is pointed at ``tests/fixtures/draws/`` and given a
@@ -6,16 +6,16 @@ deterministic stub ``ClassifierProb`` through ``create_app``'s injection seam.
 
 Four things this file exists to prove, beyond the happy path:
 
-* **Determinism survives the API layer.** T2.4 already proved ``storybook_run``
-  replays a seed; what is new here is everything wrapped around it — seed
-  defaulting, serialisation, a metadata block — any of which could make two
+* **Determinism survives the API layer.** the storybook run already proved ``storybook_run``
+  replays a seed; what is new here is everything wrapped around it, seed
+  defaulting, serialisation, a metadata block, any of which could make two
   identical requests differ. So the assertion is on raw response *bytes*, not
   on a parsed subset.
 * **One run per request.** The endpoint is allowed to simulate precisely because
   a storybook is one bracket; a handler that quietly ran one per round would
   satisfy every other test here and violate the reason it is allowed at all.
 * **The seam-7 disclosure is the same one ``/simulate`` serves**, field for field
-  and word for word — inherited from ``api.schemas.ModelDisclosure``, not a
+  and word for word, inherited from ``api.schemas.ModelDisclosure``, not a
   second format that happens to look similar today.
 * **The placeholder refusal is the same check**, not a second opinion: the 409
   body is compared against ``/simulate``'s for the same draw.
@@ -50,7 +50,7 @@ from api.schemas import (
 )
 from features.serve import PlayerSkill, SkillTable
 
-# scripts/ is not on pyproject's ``pythonpath = ["src"]`` — same hack
+# scripts/ is not on pyproject's ``pythonpath = ["src"]``, same hack
 # tests/test_api_simulate.py uses.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../scripts")))
 
@@ -98,7 +98,7 @@ def context(skill_table: SkillTable) -> ApiContext:
     """A fixture context: real skill table, stub everything the adapter would use.
 
     ``data``/``estimator`` are deliberately unusable, which is safe precisely
-    because the classifier is injected below — if the injection seam ever stopped
+    because the classifier is injected below, if the injection seam ever stopped
     being honoured and the real adapter were built from this context instead, the
     first simulated match would raise rather than quietly produce numbers.
     """
@@ -127,7 +127,7 @@ def stub_classifier_factory(estimator, data, surface_history, h2h_history):
     """A ``ClassifierFactory`` with ``make_classifier_prob``'s signature.
 
     A named function rather than a lambda so ``metadata.adapter`` reports
-    something a human can look up — the endpoint derives that string from the
+    something a human can look up, the endpoint derives that string from the
     factory that actually ran.
     """
     return StubClassifier()
@@ -165,7 +165,7 @@ def test_storybook_returns_a_full_structured_story(client):
     assert body["final_set_tiebreak"] == "7pt_at_6_6"
     assert body["draw_size"] == 8
 
-    # An 8-draw is three rounds and seven matches — every slot played.
+    # An 8-draw is three rounds and seven matches, every slot played.
     assert [r["label"] for r in body["rounds"]] == ["QF", "SF", "F"]
     assert [len(r["matches"]) for r in body["rounds"]] == [4, 2, 1]
     assert body["match_count"] == 7 == sum(len(r["matches"]) for r in body["rounds"])
@@ -207,7 +207,7 @@ def test_storybook_champion_agrees_with_the_final_and_the_runs(client):
 
 
 def test_storybook_runs_cover_every_entrant_best_finish_first(client):
-    """``runs`` is T2.4's own per-entrant summary, ordered as T2.4 orders it."""
+    """``runs`` is the storybook run's own per-entrant summary, ordered as the storybook run orders it."""
     body = client.get("/tournaments/toy_open_2026/storybook?seed=7").json()
 
     runs = body["runs"]
@@ -240,9 +240,9 @@ def test_storybook_response_is_schema_typed_and_exact(client):
 def test_storybook_same_seed_is_byte_identical(client):
     """Acceptance: same seed → identical response.
 
-    Compared as raw bytes rather than as a parsed subset: T2.4 already proved the
+    Compared as raw bytes rather than as a parsed subset: the storybook run already proved the
     simulator replays a seed, so what this pins is that *the endpoint* adds
-    nothing non-reproducible on top of it — no timestamp, no ordering that
+    nothing non-reproducible on top of it, no timestamp, no ordering that
     depends on dict iteration, no state carried between requests.
     """
     first = client.get("/tournaments/toy_open_2026/storybook?seed=7")
@@ -255,8 +255,8 @@ def test_storybook_same_seed_is_byte_identical(client):
 def test_storybook_same_seed_is_identical_across_app_instances(context):
     """...and not merely within one process's warmed-up state.
 
-    A second app repeats the whole path — fresh registry, fresh adapter, empty
-    memo table — so this catches a response that only *happened* to repeat
+    A second app repeats the whole path, fresh registry, fresh adapter, empty
+    memo table, so this catches a response that only *happened* to repeat
     because something was cached from the first call.
     """
     with TestClient(make_app(context)) as first_client:
@@ -268,7 +268,7 @@ def test_storybook_same_seed_is_identical_across_app_instances(context):
 
 
 def test_storybook_different_seeds_tell_different_stories(client):
-    """The seed is real, not decoration — otherwise determinism is trivial."""
+    """The seed is real, not decoration, otherwise determinism is trivial."""
     baseline = client.get("/tournaments/toy_open_2026/storybook?seed=7").content
     others = [
         client.get(f"/tournaments/toy_open_2026/storybook?seed={seed}").content
@@ -278,7 +278,7 @@ def test_storybook_different_seeds_tell_different_stories(client):
 
 
 def test_storybook_default_seed_is_fixed_and_echoed(client):
-    """Acceptance: a default seed, echoed — and reproducible on retry.
+    """Acceptance: a default seed, echoed, and reproducible on retry.
 
     A time-derived default would make a bare ``/storybook`` return a different
     story on refresh, which is exactly what the shareable-URL contract rules out.
@@ -308,15 +308,15 @@ def test_storybook_rejects_an_unusable_seed(client, bad_seed):
 # Exactly one live run per request
 # --------------------------------------------------------------------------- #
 def test_storybook_calls_storybook_run_exactly_once_per_request(client, monkeypatch):
-    """The same "exactly once" standard T2.4 holds its own bracket call to.
+    """The same "exactly once" standard the storybook run holds its own bracket call to.
 
     A storybook is allowed to run inside a request handler *because* it is one
     bracket. Re-running it per round, or once to find the champion and again to
-    fill the rounds, would multiply the cost the Phase 3 rule bounds — and no
+    fill the rounds, would multiply the cost the Phase 3 rule bounds, and no
     other assertion in this file would notice.
 
     The spy is installed on ``api.main``'s reference, which is the one the
-    handler resolves (T2.2/T2.3's patching discipline), and delegates to the real
+    handler resolves (the simulator's patching discipline), and delegates to the real
     function so the response under test is still a real storybook.
     """
     real = api_main.storybook_run
@@ -337,12 +337,12 @@ def test_storybook_calls_storybook_run_exactly_once_per_request(client, monkeypa
 def test_storybook_does_not_render_the_cli_text_format(client):
     """Structured JSON, not ``render_storybook``'s plain text.
 
-    The T2.4 renderer composes the same ``StorybookResult`` into a terminal
+    The storybook renderer composes the same ``StorybookResult`` into a terminal
     layout; this endpoint is the other consumer of that structure. Calling the
     renderer here would bake the CLI's presentation into the HTTP contract.
     """
     source = Path("src/api/main.py").read_text(encoding="utf-8")
-    # The docstrings name it in prose; a call carries the opening parenthesis —
+    # The docstrings name it in prose; a call carries the opening parenthesis,
     # the same convention tests/test_api_simulate.py uses for its traps.
     assert "render_storybook(" not in source
     assert "import render_storybook" not in source
@@ -352,7 +352,7 @@ def test_storybook_does_not_render_the_cli_text_format(client):
 
 
 def test_the_classifier_adapter_is_built_once_at_startup(context):
-    """Startup state, like the context and the registry — never per request.
+    """Startup state, like the context and the registry, never per request.
 
     Per-request construction would also throw away the adapter's memo table,
     which is what keeps a repeat matchup from re-paying ``predict_proba``.
@@ -376,15 +376,14 @@ def test_the_classifier_adapter_is_built_once_at_startup(context):
 
 
 # --------------------------------------------------------------------------- #
-# Seam-7 disclosure — the same block /simulate serves
+# Seam-7 disclosure, the same block /simulate serves
 # --------------------------------------------------------------------------- #
 def test_storybook_discloses_the_model_limitation(client):
-    """The disclosure requirement, live rather than cached — same fields, same words.
+    """The disclosure requirement, live rather than cached, same fields, same words.
 
-    T3.5 rewrote the text (seam 7 fixed; the as-of-now snapshot caveat remains)
-    but not the requirement, and the redesign split it into a one-line summary
-    plus a full detail field. This still checks both are the canonical wording
-    and that their claims are the current ones.
+    The disclosure text describes an as-of-now snapshot caveat, and is split into
+    a one-line summary plus a full detail field. This checks both are the
+    canonical wording and that their claims are the current ones.
     """
     metadata = client.get("/tournaments/toy_open_2026/storybook").json()["metadata"]
 
@@ -406,14 +405,14 @@ def test_storybook_disclosure_is_the_same_shape_as_simulate(client):
     """Not a parallel format: both metadata blocks are ``ModelDisclosure``.
 
     The shared fields are inherited, so the two endpoints cannot drift into
-    disclosing different things — and a consumer that learned to read one
+    disclosing different things, and a consumer that learned to read one
     response's disclosure has learned to read the other's.
 
     **Inheritance is asserted directly, and the field-set check below is not a
     substitute for it.** A ``StorybookMetadata`` that copied all eight fields
     verbatim onto a plain ``BaseModel`` satisfies every field-name and every
     field-value assertion in this test while restoring exactly the drift risk
-    the shared base exists to remove — verified by mutation, which the field-set
+    the shared base exists to remove, verified by mutation, which the field-set
     check alone did not catch. So the structural claim is pinned structurally.
     """
     assert issubclass(StorybookMetadata, ModelDisclosure)
@@ -438,7 +437,7 @@ def test_storybook_disclosure_is_the_same_shape_as_simulate(client):
 
 
 def test_storybook_uses_the_cli_scoped_reconciliation_mode(client):
-    """T3.3's choice, inherited: ``blend``, because the adapter is the same one.
+    """`/simulate`'s choice, inherited: ``blend``, because the adapter is the same one.
 
     ``config.RECONCILE_MODE`` (``classifier_anchor``) would make the flattened
     ``P_clf`` the target every simulated match is solved to reproduce.
@@ -479,7 +478,7 @@ def test_resolve_classifier_factory_fails_loudly_on_a_missing_attribute():
 
 
 # --------------------------------------------------------------------------- #
-# Failures — the same gate /simulate uses
+# Failures, the same gate /simulate uses
 # --------------------------------------------------------------------------- #
 def test_storybook_placeholder_draw_returns_409(client):
     """A draw with unfilled slots is refused cleanly, naming every offender."""
@@ -496,7 +495,7 @@ def test_storybook_placeholder_draw_returns_409(client):
 
 
 def test_storybook_409_is_the_same_check_and_body_as_simulate(client):
-    """Acceptance: T3.3's ``is_simulatable``, reused — not a second placeholder scan.
+    """Acceptance: `/simulate`'s ``is_simulatable``, reused, not a second placeholder scan.
 
     Byte-for-byte the same detail body from both endpoints, because both go
     through ``_simulatable_entry`` and the verdict is
@@ -513,7 +512,7 @@ def test_storybook_409_is_the_same_check_and_body_as_simulate(client):
 def test_storybook_409_refuses_exactly_what_storybook_run_refuses(
     client, skill_table, context
 ):
-    """The 409 tracks T2.2's actual rule, checked against the simulator itself."""
+    """The 409 tracks the simulator's actual rule, checked against the simulator itself."""
     from sim.draw import load_draw
 
     refused = load_draw(FIXTURE_DRAWS / "qualifier_open.json", skill_table)
@@ -549,7 +548,7 @@ def test_storybook_invalid_draw_file_422_matches_simulate(client):
 # The endpoint presents; it does not re-derive
 # --------------------------------------------------------------------------- #
 def test_storybook_response_reuses_storybookresult_fields(client, skill_table, context):
-    """Every published fact is read off T2.4's structures, not recomputed.
+    """Every published fact is read off the storybook run's structures, not recomputed.
 
     Same renderer/data separation ``scripts/precompute_sim.build_payload`` keeps
     for a Monte Carlo result: run the simulator directly with the same inputs and

@@ -1,18 +1,18 @@
 /**
- * Bracket structure, derived from a `/bracket` response — pure, no React.
+ * Bracket structure, derived from a `/bracket` response, pure, no React.
  *
  * `BracketResponse` carries **entrants, not matches**: `draw_size` slots in
  * position order and nothing about who meets whom after round one. Everything a
  * column layout needs is a function of those two facts, and this module is the
  * one place that function lives:
  *
- *   * **Round labels mirror `sim.tournament.round_labels`** — `log2(draw_size)`
+ *   * **Round labels mirror `sim.tournament.round_labels`**, `log2(draw_size)`
  *     rounds, halving the field each time, with `8/4/2` named `QF/SF/F`. They
  *     are *derived*, never assumed: an 8 draw's first round **is** the QF, so a
  *     layout hardcoded to `R128 … F` is wrong for every draw size but one.
  *   * **Only round one has known participants.** Later rounds are real slots in
  *     the layout with `null` entrants, because the shape of the draw is known
- *     long before its results are. T4.3/T4.4 fill them in; nothing here
+ *     long before its results are. Later overlays fill them in; nothing here
  *     invents a name for them.
  *
  * Kept out of `Bracket.tsx` so the pure part is importable and testable without
@@ -30,7 +30,7 @@ export interface BracketMatchModel {
   roundIndex: number;
   /** 0-based within the round, top of the draw first. */
   matchIndex: number;
-  /** The lower-numbered bracket position — `sim.tournament`'s player A. */
+  /** The lower-numbered bracket position, `sim.tournament`'s player A. */
   top: BracketSlot | null;
   bottom: BracketSlot | null;
 }
@@ -50,7 +50,7 @@ export function isValidDrawSize(drawSize: number): boolean {
 /**
  * Label for the round that `playersRemaining` players start.
  *
- * `128 → "R128"`, `16 → "R16"`, `8 → "QF"`, `4 → "SF"`, `2 → "F"` — the same
+ * `128 → "R128"`, `16 → "R16"`, `8 → "QF"`, `4 → "SF"`, `2 → "F"`, the same
  * mapping as `sim.tournament.round_label`.
  */
 export function roundLabel(playersRemaining: number): string {
@@ -63,7 +63,7 @@ export function roundLabel(playersRemaining: number): string {
  * An 8 draw gives `["QF", "SF", "F"]`; a 128 draw gives
  * `["R128", "R64", "R32", "R16", "QF", "SF", "F"]`.
  *
- * @returns The labels, or `[]` for a draw size that cannot halve cleanly — the
+ * @returns The labels, or `[]` for a draw size that cannot halve cleanly, the
  *   caller renders that as an error rather than looping forever.
  */
 export function roundLabels(drawSize: number): string[] {
@@ -81,7 +81,7 @@ export function roundLabels(drawSize: number): string[] {
  * Round one pairs slots `2k-1` and `2k` (`sim.draw.first_round_pairings`), read
  * off `slots` sorted by `position` rather than by array index, so the pairing
  * rule is the API's and not this file's assumption about ordering. A slot the
- * response did not supply becomes `null` — a short `slots` array must not
+ * response did not supply becomes `null`, a short `slots` array must not
  * render `undefined`.
  *
  * @returns One `BracketRoundModel` per round, or `[]` for an invalid draw size.

@@ -5,7 +5,7 @@
  * client POSTs its text verbatim to `/tournaments/upload`, and the server runs
  * the same validation a curated draw goes through. On success the draw gets a
  * generated `upload-…` id, and this screen links to that id's bracket and
- * storybook — normal deep links, so the rest of the app needs no upload-aware
+ * storybook, normal deep links, so the rest of the app needs no upload-aware
  * code.
  *
  * **Honest about ephemerality, without saying it twice.** Uploaded draws live
@@ -13,7 +13,7 @@
  * so they do not survive a restart and a shared link to one can stop working.
  * `result.content_note` (`CONTENT_NOTE_UPLOAD`, `api/schemas.py`) already says
  * so on the result, in the same breath as "not checked against any official
- * record" — the one place that caveat needs to live. It used to be repeated in
+ * record", the one place that caveat needs to live. It used to be repeated in
  * a second, frontend-authored box; that box is gone, not because the caveat
  * stopped mattering but because duplicating it back-to-back with the server's
  * own copy was the over-explaining this file otherwise tries to avoid.

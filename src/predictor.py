@@ -18,12 +18,12 @@ def main() -> None:
     4. Generate visualizations.
     5. Start interactive prediction loop.
     """
-    # 1. Load Data (vendored data/raw/ only — no network; run scripts/refresh_data.py to update)
+    # 1. Load Data (vendored data/raw/ only, no network; run scripts/refresh_data.py to update)
     data = loader.load_atp_data(config.START_YEAR, config.END_YEAR)
 
     # 2. Preprocess & Feature Engineering
     processed_data = preprocess.preprocess_data(data)
-    # add_features also returns the T1.1 serve/return skill table; the classifier
+    # add_features also returns the serve/return skill table; the classifier
     # pipeline/REPL don't consume it yet (the point-based simulator does), so it's
     # bound and left unused here.
     final_df, surf_history, h2h_history, _skill_table = features.add_features(processed_data)

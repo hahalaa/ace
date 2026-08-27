@@ -3,21 +3,21 @@
  *
  * Two halves, from two different places, and the split is the point:
  *
- *   * **Skill** comes from `/players` — serve- and return-points-won per
+ *   * **Skill** comes from `/players`, serve- and return-points-won per
  *     surface, fetched on expand rather than for all 128 rows up front.
  *   * **Probabilities** come from the `/simulate` row the caller already holds
  *     and are passed in. Re-fetching them per player would ask the server for a
  *     number the table is already displaying, and risk the card disagreeing
  *     with the row above it.
  *
- * **`n_serve_pts === 0` means "no measurement", not "no points won".** T3.1
+ * **`n_serve_pts === 0` means "no measurement", not "no points won".** The API
  * fills every surface for every player, falling back to the surface baseline
  * when a player has never been measured there; the raw counts are how a client
  * tells the two apart, so a baseline figure is labelled rather than presented
  * as this player's record.
  *
  * **`/players` answers all three resolver outcomes with a 200** (unique,
- * ambiguous, no match — T4.1's note), so this branches on `count` rather than
+ * ambiguous, no match, the client's note), so this branches on `count` rather than
  * treating anything but success as an error. An exact name match is preferred
  * out of an ambiguous candidate list, since the name came from the draw file
  * and is already canonical.
@@ -31,11 +31,11 @@ import ErrorPanel from './ErrorPanel';
 import styles from './titleOdds.module.css';
 
 export interface PlayerCardProps {
-  /** The simulate row this card expands — the source of every probability shown. */
+  /** The simulate row this card expands, the source of every probability shown. */
   player: SimulationPlayer;
   /** The tournament's surface, highlighted among the three. */
   surface: Surface;
-  /** Round labels after the first, in draw order — the columns `p_reach` is keyed by. */
+  /** Round labels after the first, in draw order, the columns `p_reach` is keyed by. */
   roundLabels: string[];
   /** For the error panel's 404 wording, should the lookup fail outright. */
   tournamentId: string;

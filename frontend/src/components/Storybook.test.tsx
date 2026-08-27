@@ -3,9 +3,9 @@
  * Storybook tests: the run drawn onto the bracket, the champion, and the URL
  * contract that makes a link replay the same tournament.
  *
- * **The seed tests are the load-bearing ones.** T2.4/T3.4 already guarantee that
+ * **The seed tests are the load-bearing ones.** The API already guarantees that
  * one id plus one seed is one deterministic bracket; this ticket's only way to
- * break that guarantee is to lose the seed — by rolling a fresh one on a render,
+ * break that guarantee is to lose the seed, by rolling a fresh one on a render,
  * by not writing it to the URL, or by not reading it back on load. Each of those
  * has a test, and they assert on `window.location.search` and on the argument
  * `getStorybook` actually received, not on anything the component says about
@@ -45,7 +45,7 @@ afterEach(() => {
 });
 
 // --------------------------------------------------------------------------
-// Fixtures — an 8 draw whose winners are deliberately not all on one side.
+// Fixtures, an 8 draw whose winners are deliberately not all on one side.
 // --------------------------------------------------------------------------
 
 const PLAYERS = [
@@ -114,8 +114,8 @@ function match(
  * A full 8-draw run: 7 matches over 3 rounds.
  *
  * Round one is won by the **bottom** side in three of four matches, so a
- * component that always credited the top slot — or that keyed results by array
- * order — cannot pass. The winners then meet in the order the simulator
+ * component that always credited the top slot, or that keyed results by array
+ * order, cannot pass. The winners then meet in the order the simulator
  * preserves: SF match 0 is the winners of QF 0 and QF 1.
  */
 function toyEightStory(overrides: Partial<StorybookResponse> = {}): StorybookResponse {
@@ -215,7 +215,7 @@ function cardsIn(label: string): HTMLElement[] {
   return within(screen.getByRole('list', { name: `${label} matches` })).getAllByRole('listitem');
 }
 
-/** `[name, result]` for both sides of a card — `result` is `null` when unclaimed. */
+/** `[name, result]` for both sides of a card, `result` is `null` when unclaimed. */
 function sides(card: HTMLElement): [string, string | null][] {
   return [...card.querySelectorAll('[data-state]')].map((row) => [
     row.querySelector('[data-cell="name"]')?.textContent ?? '',
@@ -275,7 +275,7 @@ describe('a run populates the bracket', () => {
     mountAt('/?seed=7');
     await waitFor(() => expect(screen.queryAllByText('TBD')).toHaveLength(0));
 
-    // SF 0 is the winners of QF 0 and QF 1, in that order — the ordering
+    // SF 0 is the winners of QF 0 and QF 1, in that order, the ordering
     // `sim.tournament.simulate_bracket` preserves round to round.
     expect(cardsIn('SF').map(sides)).toEqual([
       [
@@ -319,7 +319,7 @@ describe('champion', () => {
     expect(panel.textContent).toContain('Carlos Alcaraz');
     expect(panel.textContent).toContain('[2]');
     expect(panel.textContent).toContain('3 matches won');
-    // The final's line, as sent — not reassembled from set scores.
+    // The final's line, as sent, not reassembled from set scores.
     expect(panel.textContent).toContain('Carlos Alcaraz def. Taylor Fritz 6-3 3-6 7-6(4) 6-4');
   });
 
@@ -332,7 +332,7 @@ describe('champion', () => {
   });
 
   it('trusts `champion` rather than re-deriving it from the last match', async () => {
-    // A body whose `champion` disagrees with the final is a server bug — but it
+    // A body whose `champion` disagrees with the final is a server bug, but it
     // pins *which* field this component reads.
     mountAt(
       '/?seed=7',
@@ -361,7 +361,7 @@ describe('the seed round-trips through the URL', () => {
     expect(seedInUrl()).toBe('1234');
   });
 
-  it('runs seed 0 — a legal seed, not an absent one', async () => {
+  it('runs seed 0, a legal seed, not an absent one', async () => {
     mountAt('/?seed=0');
     await screen.findByRole('region', { name: 'Champion' });
 
@@ -425,7 +425,7 @@ describe('re-run', () => {
     const after = seedInUrl();
     expect(after).not.toBe('1234');
     expect(after).not.toBeNull();
-    // The URL and the request agree — a link shared now replays what is shown.
+    // The URL and the request agree, a link shared now replays what is shown.
     expect(String(getStorybookMock.mock.calls[1][1])).toBe(after);
   });
 
@@ -488,7 +488,7 @@ describe('share', () => {
 });
 
 // --------------------------------------------------------------------------
-// Failures — the same panels the rest of the app renders.
+// Failures, the same panels the rest of the app renders.
 // --------------------------------------------------------------------------
 
 describe('loading and error states', () => {
@@ -561,7 +561,7 @@ describe('loading and error states', () => {
 // --------------------------------------------------------------------------
 // The disclosure and the bottom stats strip: dropped from this screen. The
 // wire fields (`StorybookMetadata`'s `ModelDisclosure` base) still travel in
-// the response for any non-browser consumer — only the browser's rendering
+// the response for any non-browser consumer, only the browser's rendering
 // of them is gone, which is what these tests pin.
 // --------------------------------------------------------------------------
 
@@ -578,7 +578,7 @@ describe('disclosure', () => {
 });
 
 // --------------------------------------------------------------------------
-// Content provenance — an uploaded draw's "user-submitted, unverified,
+// Content provenance, an uploaded draw's "user-submitted, unverified,
 // ephemeral" note must reach a shared-link viewer here, not only the uploader
 // at upload time. Distinct from the model disclosure above (is_forecast).
 // --------------------------------------------------------------------------
@@ -636,7 +636,7 @@ describe('overlay keying', () => {
     expect(describesBracket(toyEightStory(), 'toy_8', 8)).toBe(true);
   });
 
-  it('claims no winner — and stops propagating — when a name matches neither side', () => {
+  it('claims no winner, and stops propagating, when a name matches neither side', () => {
     // A body disagreeing with its own draw. The scoreline still shows; the side
     // does not, and the round above stays unknown rather than being guessed.
     const story = toyEightStory();

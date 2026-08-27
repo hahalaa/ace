@@ -1,8 +1,8 @@
 /**
  * The bracket: one column per round, matchups as {@link MatchCard}s.
  *
- * Fetches through **T4.1's `getBracket`** — there is no second fetch wrapper
- * here, and no second copy of the wire types. Everything about the layout is
+ * Fetches through the API client's `getBracket`, there is no second fetch
+ * wrapper here, and no second copy of the wire types. Everything about the layout is
  * derived from the response (`./rounds`), so an 8 draw renders three columns
  * labelled `QF/SF/F` and a 128 draw renders seven labelled `R128 … F` from the
  * same code path.
@@ -10,28 +10,28 @@
  * **Navigating a large draw: horizontal scroll *and* a round selector.** They
  * solve different problems and neither covers the other. Seven columns of
  * legible cards is ~1,700 px, so the all-rounds view scrolls horizontally
- * rather than shrinking cards to fit. But round one of a 128 draw is 64 cards —
- * ~4,000 px of vertical page — so "scroll to the QF" is a poor way to reach the
+ * rather than shrinking cards to fit. But round one of a 128 draw is 64 cards,
+ * ~4,000 px of vertical page, so "scroll to the QF" is a poor way to reach the
  * QF; the selector filters the board to a single column instead. Small draws
  * need neither, and get both anyway, because a size-dependent affordance is a
  * hardcoded draw-size assumption in another costume.
  *
- * **Every failure the client can throw renders as itself.** T4.1's typed errors
- * are branched on directly — an unknown id, a broken draw file and an
+ * **Every failure the client can throw renders as itself.** The client's typed
+ * errors are branched on directly, an unknown id, a broken draw file and an
  * unreachable server are visibly different panels rather than one "something
- * went wrong". That branching lives in {@link ErrorPanel}, shared with T4.3's
+ * went wrong". That branching lives in {@link ErrorPanel}, shared with the odds
  * screen; only the one failure unique to laying out a bracket (a draw size that
  * cannot halve) is rendered here.
  *
- * **T4.4 adds results *on top of* this, and changes nothing underneath.** The
- * optional `storybook` prop is the whole of that ticket's footprint here: absent
- * — every T4.2/T4.3 caller, and this screen before a run — the component fetches
- * and renders exactly as it always did, byte for byte (pinned by the snapshot
+ * **The storybook overlay sits *on top of* this and changes nothing underneath.**
+ * The optional `storybook` prop is its whole footprint here: absent, every
+ * caller without a run, and this screen before a run, the component fetches
+ * and renders exactly as it does without it, byte for byte (pinned by the snapshot
  * differential in `Bracket.test.tsx`). Present, each card gains the winner,
  * loser and scoreline that `./overlay` keys onto this same layout, and the
  * later rounds `/bracket` leaves as `TBD` fill in with whoever won their way
  * there. The two bodies come from two endpoints and are joined by structure, not
- * by trust — see `./overlay`, whose `describesBracket` refuses a run that is not
+ * by trust, see `./overlay`, whose `describesBracket` refuses a run that is not
  * about this draw.
  */
 
@@ -50,10 +50,10 @@ export interface BracketProps {
   /** Registry id, as listed by `/tournaments`. */
   tournamentId: string;
   /**
-   * A played-out run to draw over the draw (T4.4), or nothing.
+   * A played-out run to draw over the draw, or nothing.
    *
    * Passed by {@link Storybook}; **nobody else passes it**, and without it this
-   * component behaves precisely as T4.2 shipped it.
+   * component behaves precisely as it does with no overlay.
    */
   storybook?: StorybookResponse | null;
 }
@@ -100,7 +100,7 @@ export default function Bracket({ tournamentId, storybook = null }: BracketProps
   );
   const overlay = useMemo(() => {
     if (bracket === null || storybook === null || storybook === undefined) return null;
-    // A run for another draw is not drawn at all — see `./overlay`.
+    // A run for another draw is not drawn at all, see `./overlay`.
     if (!describesBracket(storybook, bracket.tournament_id, bracket.draw_size)) return null;
     return buildStorybookOverlay(rounds, storybook);
   }, [bracket, rounds, storybook]);
@@ -176,7 +176,7 @@ export default function Bracket({ tournamentId, storybook = null }: BracketProps
             <ol className={styles.matches} aria-label={`${round.label} matches`}>
               {round.matches.map((match) => {
                 // `played === undefined` for every non-storybook render, which
-                // reduces the props below to exactly T4.2's two `{ slot }`s.
+                // reduces the props below to exactly the two `{ slot }`s.
                 const played = overlay?.get(overlayKey(round.index, match.matchIndex));
                 return (
                   <MatchCard

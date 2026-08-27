@@ -1,7 +1,7 @@
-# Build-context exclusions (T5.1). One context (the repo root) feeds both the
+# Build-context exclusions. One context (the repo root) feeds both the
 # API and the frontend stages of Dockerfile, so this file covers both.
 #
-# Two entries below are load-bearing rather than cosmetic — see the flagged blocks.
+# Two entries below are load-bearing rather than cosmetic; see the flagged blocks.
 
 # ---- VCS, tooling, editor ---------------------------------------------------
 .git
@@ -26,13 +26,13 @@ env/
 frontend/node_modules/
 frontend/dist/
 
-# frontend/.env — THE ENTRY MOST WORTH KEEPING.
+# frontend/.env: THE ENTRY MOST WORTH KEEPING.
 # It is gitignored, so it is in no checkout, but it is on every developer
 # machine and holds http://localhost:8000. `vite build` reads .env files, not
-# only `vite dev` (T4.5 verified both directions), so a `COPY frontend/ .` that
-# picked this up would bake a stale localhost URL into a shipped image
+# only `vite dev`, so a `COPY frontend/ .` that picked this up would bake a
+# stale localhost URL into a shipped image
 # regardless of the VITE_API_BASE_URL build ARG. Excluded by name, not merely
-# by excluding node_modules. .env.example stays out too — it is documentation
+# by excluding node_modules. .env.example stays out too; it is documentation
 # and Vite would not read it anyway.
 frontend/.env
 frontend/.env.*
@@ -50,8 +50,6 @@ data/cache/
 tests/
 docs/
 README.md
-DEPLOYING.md
-CLAUDE.md
 ace-startup-guide.md
 render.yaml
 docker-compose.yml

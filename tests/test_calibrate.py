@@ -1,4 +1,4 @@
-"""Tests for model/calibrate.py (T1.8) — the pure calibration helpers.
+"""Tests for model/calibrate.py, the pure calibration helpers.
 
 The full run_calibration pipeline (load → engineer → predict → plot) is exercised
 manually / by the script entry point; here we pin the pure, fixture-sized helpers

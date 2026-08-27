@@ -6,7 +6,7 @@
  * storybook views as their results complete (see `../history/store`); this only
  * renders what is stored and offers a way to clear it. Every item is a plain link
  * carrying the existing `?view=…&seed=…` URL state, so following one lands on the
- * unchanged view with its own disclosures intact — nothing here is duplicated or
+ * unchanged view with its own disclosures intact, nothing here is duplicated or
  * altered.
  *
  * **Empty means empty.** With no history there is nothing to render, so a

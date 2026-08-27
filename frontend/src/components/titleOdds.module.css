@@ -115,7 +115,7 @@
   border-bottom: none;
 }
 
-/* The projected champion — rank 1 — is the one lit row. */
+/* The projected champion, rank 1, is the one lit row. */
 .table tbody tr[data-position]:first-child td {
   background: var(--ball-soft);
 }

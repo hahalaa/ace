@@ -1,4 +1,4 @@
-"""Tests for ``common/classifier_adapter.py`` (T3.5) — the shared, real-feature
+"""Tests for ``common/classifier_adapter.py``, the shared, real-feature
 ``ClassifierProb`` adapter that closes ``ace-04-current-state.md §7`` seam 7.
 
 Four things this file exists to prove:
@@ -12,12 +12,13 @@ Four things this file exists to prove:
 * **No ``cli/`` module is imported by ``api/`` or by the precompute script**,
   statically (an AST walk) or at runtime (a clean interpreter that resolves the
   configured adapter and reports every ``cli`` module in ``sys.modules``). The
-  runtime half is what T3.4's audit could not claim.
-* **The real adapter works through a live endpoint.** T3.4's tests inject a stub
-  ``ClassifierProb``, so nothing exercised the shipped adapter over HTTP. Here
+  runtime half is what a static audit could not claim.
+* **The real adapter works through a live endpoint.** The ``/storybook`` tests
+  inject a stub ``ClassifierProb``, so nothing else exercises the shipped
+  adapter over HTTP. Here
   ``/storybook`` runs on the factory ``config.API_CLASSIFIER_ADAPTER`` actually
   resolves, over a pipeline-built context and a real fitted estimator.
-* **The behavioural contract T1.10 established survives the move**: memoisation
+* **The behavioural contract survives the move**: memoisation
   per matchup, surface in the cache key, and a loud failure for a player with no
   history.
 
@@ -216,7 +217,7 @@ def expected_next_match_row(
 
     Appends one more match (A as p1, B as p2, latest date) to the preprocessed
     frame and re-runs ``add_features``. Every feature on that row is what the
-    pipeline itself considers correct for this matchup at this point in time —
+    pipeline itself considers correct for this matchup at this point in time,
     which is exactly what the adapter claims to reproduce without a match row.
     """
     extra = processed.iloc[[0]].copy()
@@ -248,7 +249,7 @@ def test_adapter_row_equals_the_pipelines_own_row_for_the_same_matchup(
 
     The comparison is against ``add_features`` itself, for the same players at
     the same point in time, so it cannot be satisfied by plausible-looking
-    numbers — only by the pipeline's own.
+    numbers, only by the pipeline's own.
     """
     data, surface_history, h2h_history, _ = pipeline
     built = adapter.ClassifierProbAdapter(
@@ -306,7 +307,7 @@ def test_adapter_row_differs_from_the_old_synthetic_row(pipeline, estimator):
 
 
 def test_every_model_feature_is_populated_and_finite(real_adapter):
-    """All 27, from real state — no NaN, no silent default."""
+    """All 27, from real state, no NaN, no silent default."""
     row = real_adapter.feature_row("Alice Ace", "Bob Baseline", "Hard")
 
     assert list(row.columns) == config.MODEL_FEATURES
@@ -333,7 +334,7 @@ def test_feature_row_build_fails_loudly_if_model_features_gains_a_column(
 
 
 # --------------------------------------------------------------------------- #
-# Behaviour T1.10 established, preserved by the move
+# Behaviour preserved by the move
 # --------------------------------------------------------------------------- #
 def test_adapter_is_memoised_per_matchup(pipeline, estimator):
     calls: list[pd.DataFrame] = []
@@ -382,7 +383,7 @@ def test_probability_is_orientation_sensitive(real_adapter):
 def test_adapter_is_picklable(real_adapter):
     """A module-level class, not a closure.
 
-    Not a requirement of this ticket — ``§7`` seam 8 (``workers > 1``) is still
+    Not a requirement of this ticket, ``§7`` seam 8 (``workers > 1``) is still
     open and still owns exposing a ``--workers`` flag and re-verifying it. But
     the barrier that seam names, "the only adapter is an unpicklable closure",
     is gone, and a test keeps it gone.
@@ -394,7 +395,7 @@ def test_adapter_is_picklable(real_adapter):
 
 
 def test_history_helpers_match_the_cli_wrappers(pipeline):
-    """``cli/interactive``'s helpers are wrappers now — same answers, one impl."""
+    """``cli/interactive``'s helpers are wrappers now, same answers, one impl."""
     import cli.interactive as interactive
 
     data, surface_history, h2h_history, _ = pipeline
@@ -471,9 +472,8 @@ def test_resolving_the_configured_adapter_imports_no_cli_module():
     A ``sys.modules`` diff *inside* pytest proves little: ``cli.simulate_match``
     is already imported by other test modules, so nothing new would appear
     either way. A fresh interpreter that imports only what the running server
-    imports is the honest version of that check — and this is the exact import
-    T3.4 had to disclose, since ``resolve_classifier_factory`` is what pulled
-    ``cli/`` in.
+    imports is the honest version of that check, and this is the exact import
+    that pulled ``cli/`` in, via ``resolve_classifier_factory``.
     """
     name, cli_modules = _clean_interpreter(
         "import sys\n"
@@ -490,7 +490,7 @@ def test_resolving_the_configured_adapter_imports_no_cli_module():
 
 
 def test_importing_the_api_app_imports_no_cli_module():
-    """``import api.main`` — what ``uvicorn api.main:app`` does — stays cli-free."""
+    """``import api.main``, what ``uvicorn api.main:app`` does, stays cli-free."""
     (cli_modules,) = _clean_interpreter(
         "import sys\n"
         "import api.main\n"
@@ -502,7 +502,7 @@ def test_importing_the_api_app_imports_no_cli_module():
 
 
 def test_importing_the_precompute_script_imports_no_cli_module():
-    """The offline producer, too — it used to import ``cli.simulate_match``."""
+    """The offline producer, too, it used to import ``cli.simulate_match``."""
     name, cli_modules = _clean_interpreter(
         "import sys\n"
         "import precompute_sim\n"
@@ -516,7 +516,7 @@ def test_importing_the_precompute_script_imports_no_cli_module():
 
 
 def test_the_shared_adapter_module_imports_neither_cli_nor_api():
-    """``common/`` is below both callers — the T0.6 rule, applied to T3.5's module."""
+    """``common/`` is below both callers, the layering rule, applied to this module."""
     tree = ast.parse(
         (REPO_ROOT / "src/common/classifier_adapter.py").read_text(encoding="utf-8")
     )
@@ -536,11 +536,11 @@ def test_the_shared_adapter_module_imports_neither_cli_nor_api():
 
 
 # --------------------------------------------------------------------------- #
-# End-to-end: the real adapter through a live endpoint (T3.4's missing test)
+# End-to-end: the real adapter through a live endpoint
 # --------------------------------------------------------------------------- #
 @pytest.fixture
 def live_client(pipeline, estimator):
-    """An app running on the *configured* adapter — no injected stub.
+    """An app running on the *configured* adapter, no injected stub.
 
     ``classifier_factory=None`` means ``create_app`` resolves
     ``config.API_CLASSIFIER_ADAPTER`` exactly as the shipped server does, so what
@@ -584,7 +584,7 @@ def test_storybook_runs_end_to_end_on_the_real_adapter(live_client):
 
 
 def test_storybook_on_the_real_adapter_is_deterministic(live_client):
-    """Same seed, same story — with a real classifier in the loop."""
+    """Same seed, same story, with a real classifier in the loop."""
     first = live_client.get("/tournaments/toy_open_2026/storybook?seed=11")
     second = live_client.get("/tournaments/toy_open_2026/storybook?seed=11")
     assert first.content == second.content
@@ -627,7 +627,7 @@ def test_live_storybook_reflects_the_classifier_it_was_given(live_client, pipeli
     baseline = live_client.get("/tournaments/toy_open_2026/storybook?seed=7").json()
 
     # Under "A always wins", every match goes to the lower bracket position, so
-    # the champion is position 1 — and that differs from the real model's story
+    # the champion is position 1, and that differs from the real model's story
     # only if the classifier is genuinely driving the simulation.
     assert skewed["champion"]["position"] == 1
     assert skewed != baseline
@@ -652,8 +652,8 @@ def _context_from(pipeline, estimator) -> ApiContext:
 def test_build_classifier_warms_the_rolling_form_table_eagerly(pipeline, estimator):
     """The deferred scan is charged to startup, not to the first simulate request.
 
-    ``build_classifier`` moves the adapter's one lazy artefact — the as-of-now
-    rolling-form table — off the first-request path. After it returns, the table
+    ``build_classifier`` moves the adapter's one lazy artefact, the as-of-now
+    rolling-form table, off the first-request path. After it returns, the table
     is already built and memoised, so the first ``/match`` or ``/storybook``
     does not pay the ~0.08 s scan on a cold instance.
     """
@@ -670,7 +670,7 @@ def test_build_classifier_warm_up_never_breaks_startup_on_a_bad_frame(
 
     A minimal frame that lacks the columns ``build_rolling_form_table`` needs
     (the shape every small test fixture has) must not abort app startup. The
-    adapter is still returned, and the table simply builds — or fails — on first
+    adapter is still returned, and the table simply builds, or fails, on first
     use exactly as it did before the warm-up existed.
     """
     context = _context_from(pipeline, estimator)
@@ -681,7 +681,7 @@ def test_build_classifier_warm_up_never_breaks_startup_on_a_bad_frame(
 
 
 def test_config_default_and_precompute_still_name_the_same_adapter():
-    """The T3.4 invariant, re-pinned on the new module.
+    """The live-endpoint invariant, re-pinned on the new module.
 
     ``/simulate`` (cached) and ``/storybook`` (live) must not publish different
     models while claiming the same one.

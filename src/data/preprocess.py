@@ -6,9 +6,9 @@ import config
 import pandas as pd
 import numpy as np
 
-# Per-match serve/return MatchStats carried through to p1/p2 (T0.4). In the raw
-# data these are prefixed w_ (winner) / l_ (loser) — see ace-02-data-schema.md.
-# They are raw totals, not rates; rate aggregation is T1.1's job.
+# Per-match serve/return MatchStats carried through to p1/p2. In the raw
+# data these are prefixed w_ (winner) / l_ (loser), see ace-02-data-schema.md.
+# They are raw totals, not rates; rate aggregation is the skill table's job.
 SERVE_STAT_COLUMNS = [
     "ace", "df", "svpt", "1stIn", "1stWon", "2ndWon", "SvGms", "bpSaved", "bpFaced",
 ]
@@ -31,8 +31,8 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     df["winner_age"] = df["winner_age"].fillna(df["winner_age"].median())
     df["loser_age"]  = df["loser_age"].fillna(df["loser_age"].median())
 
-    # Randomise player order. Threshold and seed are config constants (T0.5),
-    # decoupled from DEFAULT_WIN_PCT even though both are 0.5 today — see the
+    # Randomise player order. Threshold and seed are config constants,
+    # decoupled from DEFAULT_WIN_PCT even though both are 0.5 today, see the
     # Gotcha 1 note in ace-04-current-state.md §2.
     rng = np.random.default_rng(seed=config.PLAYER_SWAP_SEED)
     swap_players = rng.random(len(df)) > config.PLAYER_SWAP_THRESHOLD
@@ -44,9 +44,9 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
         "tourney_level": df["tourney_level"],
         "round": df["round"],
         "best_of": df["best_of"],
-        # Raw score string carried through for the T1.1 skill table, which must
+        # Raw score string carried through for the skill table, which must
         # exclude retirements/walkovers from serve aggregates (parse_match_score
-        # over-counts pre-RET sets — see ace-02-data-schema.md data-quality note).
+        # over-counts pre-RET sets, see ace-02-data-schema.md data-quality note).
         # has_serve_stats alone can't catch a mid-match RET with a complete stat
         # line, so the marker (RET/W-O/def.) is needed. Inert for the classifier:
         # rolling/engineering select feature columns explicitly, so a string
@@ -64,13 +64,13 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
         "p2_age":  np.where(swap_players, df["winner_age"],  df["loser_age"]),
     })
 
-    # Player ids are alphanumeric strings ("D875", "H0DC"), not integers — a handful
+    # Player ids are alphanumeric strings ("D875", "H0DC"), not integers, a handful
     # are digit-only, so an inferred numeric dtype would corrupt them. They are the
     # canonical join key for sim/ and api/ (ace-02-data-schema.md; §7 of -04).
     # Use astype("string"), not astype(str): on pandas 2.x (permitted by
     # requirements.txt) the naive cast turns a missing id into the literal "nan".
     # On pandas >=3.0 both casts are NaN-preserving and safe, so the tests can't
-    # tell them apart there — the distinction only bites on 2.x.
+    # tell them apart there, the distinction only bites on 2.x.
     new_df[["p1_id", "p2_id"]] = new_df[["p1_id", "p2_id"]].astype("string")
 
     # Target: did Player 1 win?
@@ -80,7 +80,7 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     # Raw per-match serve/return stats, winner/loser -> p1/p2
     # ----------------------------------------------------
     # Same swap mask as above, so serve stats stay consistent with names/ids/target.
-    # NaNs are left as NaN on purpose: aggregation (T1.1) must be able to tell a
+    # NaNs are left as NaN on purpose: aggregation must be able to tell a
     # missing stat line from a real zero, so imputing here would be a silent lie.
     for stat in SERVE_STAT_COLUMNS:
         new_df[f"p1_{stat}"] = np.where(swap_players, df[f"l_{stat}"], df[f"w_{stat}"])

@@ -1,14 +1,14 @@
 """Refresh the vendored raw match data from TML-Database.
 
 This script is the **only** place in the project that hits the network for match
-data. It is run **manually** (or by CI, T5.3) to (re)populate ``data/raw/`` with
-one CSV per year. Simulation, training, and API code must never fetch at request
-time — they read the vendored files this script produces.
+data. It is run **manually** (or by the scheduled workflow) to (re)populate
+``data/raw/`` with one CSV per year. Simulation, training, and API code must
+never fetch at request time, they read the vendored files this script produces.
 
-Source: Tennismylife's ``TML-Database`` (confirmed as the primary source in T0.0;
-see ``docs/ace-02-data-schema.md``). Match data is served from the website's
+Source: Tennismylife's ``TML-Database`` (the primary source; see
+``docs/ace-02-data-schema.md``). Match data is served from the website's
 data-files API, not Jeff Sackmann's ``tennis_atp`` (which is currently unreachable
-and remains a documented fallback only — it is deliberately not a fetch target here).
+and remains a documented fallback only, it is deliberately not a fetch target here).
 
 Usage::
 
@@ -29,16 +29,16 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 import config  # noqa: E402  (import after sys.path tweak)
 
-# --- TML-Database endpoints (see docs/ace-02-data-schema.md, T0.0) ---------
+# --- TML-Database endpoints (see docs/ace-02-data-schema.md) ---------------
 # The data-files API returns a JSON manifest of every available file with its
 # download URL. Main-tour per-year files are named "YYYY.csv" (NOT
-# "atp_matches_YYYY.csv" — that was a Sackmann-derived assumption). We resolve
+# "atp_matches_YYYY.csv", that was a Sackmann-derived assumption). We resolve
 # each year's URL from the manifest, falling back to the direct data path.
 MANIFEST_URL = "https://stats.tennismylife.org/api/data-files"
 DATA_BASE_URL = "https://stats.tennismylife.org/data"
 
 # Vendored per-year files are saved here. Kept as an internal local name; the
-# loader (T0.2) reads this same pattern. RAW_DATA_DIR moves to config in T0.2.
+# loader reads this same pattern. (config.RAW_DATA_DIR is the shared constant.)
 RAW_DATA_DIR = _REPO_ROOT / "data" / "raw"
 LOCAL_NAME = "atp_matches_{year}.csv"
 
@@ -97,7 +97,7 @@ def refresh(start_year: int, end_year: int, raw_dir: Path = RAW_DATA_DIR) -> dic
     """Download main-tour CSVs for ``start_year..end_year`` (inclusive) into ``raw_dir``.
 
     Downloads are sequential and polite. Individual year failures are logged and
-    skipped — one bad year never aborts the whole run.
+    skipped, one bad year never aborts the whole run.
 
     Returns:
         A ``{year: path}`` map of the years that were successfully written.
@@ -112,14 +112,14 @@ def refresh(start_year: int, end_year: int, raw_dir: Path = RAW_DATA_DIR) -> dic
             size = dest.stat().st_size
             print(f"   {year}: {size:,} bytes -> {dest}")
             written[year] = dest
-        except Exception as err:  # noqa: BLE001 — continue on any single-year failure
+        except Exception as err:  # noqa: BLE001, continue on any single-year failure
             print(f"   Failed to refresh {year}: {err}")
 
     print(f"\nRefreshed {len(written)}/{end_year - start_year + 1} years into {raw_dir}")
     # Self-contained on purpose: this is the terms notice, printed to whoever
     # just downloaded the data, and it must not depend on any file they may not
     # have. It pointed at `docs/ace-02-data-schema.md` until the 2026-08-09
-    # audit — a path that is not distributed, so the notice resolved to nothing.
+    # audit, a path that is not distributed, so the notice resolved to nothing.
     # The wording below is the operative-terms summary from that research.
     print(
         "Data source: Tennismylife TML-Database (stats.tennismylife.org),\n"
@@ -131,7 +131,7 @@ def refresh(start_year: int, end_year: int, raw_dir: Path = RAW_DATA_DIR) -> dic
         "   permission from TennisMyLife and/or the ATP may infringe copyright.\n"
         "   Acknowledge both sources in anything you publish from it.\n"
         "   (TML-Database was originally inspired by Jeff Sackmann's tennis_atp,\n"
-        "   which is CC BY-NC-SA 4.0 — that is *his* dataset's licence and does\n"
+        "   which is CC BY-NC-SA 4.0, that is *his* dataset's licence and does\n"
         "   not govern the files downloaded here.)"
     )
     return written

@@ -1,5 +1,5 @@
 /*
- * Panel styles — shared by every full-width message the app renders: the
+ * Panel styles, shared by every full-width message the app renders: the
  * loading status, the typed error panels, and the "cannot lay this out"
  * refusal. One stylesheet, so a message looks the same wherever it appears.
  *

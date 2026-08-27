@@ -1,8 +1,8 @@
-"""Tests for the FastAPI app (T3.1) — ``/health`` and ``/players``.
+"""Tests for the FastAPI app, ``/health`` and ``/players``.
 
 Everything runs against a **fixture** :class:`~api.deps.ApiContext` injected via
 ``create_app(context_factory=...)``: a nine-player toy skill table, no vendored
-CSVs, no pickled model. Same standard as T1.10/T2.5's tests — the suite must stay
+CSVs, no pickled model. Same standard as the CLI tests, the suite must stay
 fast, and the endpoints' behaviour does not depend on the size of the dataset.
 
 Covers the ticket's acceptance + testing criteria, plus the two decisions this
@@ -12,7 +12,7 @@ ticket owns:
     (200, possibly empty), not the CLI's error.
 
 ``build_api_context`` itself is the one thing a fixture context cannot cover, so
-it gets a dedicated test over stubbed pipeline steps — see
+it gets a dedicated test over stubbed pipeline steps, see
 ``test_build_api_context_reports_the_observed_max_year``.
 """
 
@@ -47,7 +47,7 @@ TOY_PLAYERS = {
     "Carlos Ruud": "R2",
     "Taylor Fritz": "F1",
     "Grigor Dimitrov": "G1",
-    # No serve rows for this one — resolves to an id, falls back to the default.
+    # No serve rows for this one, resolves to an id, falls back to the default.
     "Unmeasured Newcomer": "N1",
 }
 
@@ -85,7 +85,7 @@ def context(skill_table: SkillTable) -> ApiContext:
         surface_history={},
         h2h_history={},
         skill_table=skill_table,
-        estimator=object(),  # never called by any T3.1 endpoint
+        estimator=object(),  # never called by any the API endpoint
         estimator_class="StubClassifier",
         data_through_year=2026,
     )
@@ -153,7 +153,7 @@ def test_build_api_context_reports_the_observed_max_year(monkeypatch, skill_tabl
     """``data_through_year`` is read off the frame, not copied from ``END_YEAR``.
 
     Every other test injects a ready-made :class:`ApiContext`, which leaves the
-    real orchestration — and this decision in particular — unexercised. The stub
+    real orchestration, and this decision in particular, unexercised. The stub
     frame's latest season is deliberately **not** ``config.END_YEAR``: with the
     two equal (they are, on today's vendored data) a context that simply echoed
     the configured year would be indistinguishable from a correct one.
@@ -267,7 +267,7 @@ def test_players_exact_query_returns_one_player(client):
 
 
 def test_players_ambiguous_query_returns_all_candidates_not_an_error(client):
-    """Ambiguity is a result, not a 404/409 — the documented HTTP-search shape."""
+    """Ambiguity is a result, not a 404/409, the documented HTTP-search shape."""
     response = client.get("/players", params={"query": "C Ruud"})
     assert response.status_code == 200
 
@@ -350,8 +350,8 @@ def test_every_route_declares_a_response_model():
 
     This is the enforceable half of "no raw dicts". A handler that *returns* a
     dict whose keys and types already match its ``response_model`` is
-    indistinguishable over HTTP — FastAPI validates and re-serialises it to the
-    identical bytes, and with ``extra="forbid"`` any deviation 500s — so that
+    indistinguishable over HTTP, FastAPI validates and re-serialises it to the
+    identical bytes, and with ``extra="forbid"`` any deviation 500s, so that
     part of the convention is style, not behaviour. What is observable, and what
     this pins, is the ``response_model`` itself: drop it and the schema stops
     guarding the response at all.
@@ -363,6 +363,7 @@ def test_every_route_declares_a_response_model():
     assert {r.path for r in routes} == {
         "/health",
         "/players",
+        "/rankings",
         "/match/simulate",
         "/tournaments",
         "/tournaments/upload",
@@ -377,7 +378,7 @@ def test_every_route_declares_a_response_model():
 def test_response_bodies_carry_exactly_the_declared_fields(client):
     """No handler may put a field on the wire that its schema does not declare.
 
-    ``model_validate`` alone cannot enforce this — Pydantic v2 drops undeclared
+    ``model_validate`` alone cannot enforce this, Pydantic v2 drops undeclared
     keys by default, so a handler returning a raw dict with an extra field would
     still round-trip cleanly. The schemas set ``extra="forbid"`` and this test
     pins the exact key set at every level, which together make "responses are

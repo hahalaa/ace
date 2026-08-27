@@ -1,4 +1,4 @@
-"""Tournament draw schema, loader and validator (T2.1).
+"""Tournament draw schema, loader and validator.
 
 Defines the on-disk draw format (``ace-02-data-schema.md`` "Tournament draw JSON
 schema") and turns one of those files into a validated :class:`Draw` whose
@@ -7,23 +7,23 @@ one JSON file per event under ``config.DRAWS_DIR``.
 
 This module is **structure only**: it says who is in the draw, where they sit,
 and under what match format the event is played. It deliberately imports
-*nothing* from ``sim/match.py``, ``sim/points.py`` or ``sim/reconcile.py`` —
-simulating the bracket is T2.2's job. Its only project imports are ``config``
+*nothing* from ``sim/match.py``, ``sim/points.py`` or ``sim/reconcile.py``,
+simulating the bracket is ``sim/tournament.py``'s job. Its only project imports are ``config``
 and ``features.serve`` (for name → id resolution and the default profile), and,
 like the rest of ``sim/``, it never imports from ``cli/``.
 
 **Validation is fail-loudly-but-complete.** Every problem found in a file is
 collected and reported together in a single :class:`DrawValidationError`, rather
-than raising on the first one — including *all* unresolved player names, so a
+than raising on the first one, including *all* unresolved player names, so a
 hand-entered 128-draw can be fixed in one pass instead of 128.
 
 **Placeholder entrants.** Strings that name a slot rather than a person
-(``"Qualifier"``, ``"Lucky Loser"``, ``"Bye"``, … — see
+(``"Qualifier"``, ``"Lucky Loser"``, ``"Bye"``, …, see
 ``config.DRAW_PLACEHOLDER_ENTRANTS``) are not resolved. Their
 :attr:`DrawSlot.player_id` stays ``None`` and :meth:`Draw.skill_for` hands back
-``SkillTable.default(surface)``, T1.1's surface-baseline profile.
+``SkillTable.default(surface)``, the surface-baseline profile.
 
-**Unknown keys are ignored** — both at the top level and inside a bracket slot —
+**Unknown keys are ignored**, both at the top level and inside a bracket slot,
 so a file can carry provenance/notes alongside the schema fields.
 """
 
@@ -61,7 +61,7 @@ class DrawValidationError(ValueError):
 
     Attributes:
         source: Where the draw came from (file path, or a label for in-memory
-            data) — prefixed to the message so the error names the bad file.
+            data), prefixed to the message so the error names the bad file.
         problems: Every validation problem found, in the order they were
             detected. Exposed separately so callers/tests can assert on
             individual rules without parsing the joined message.
@@ -136,7 +136,7 @@ class Draw:
         """The slot's serve/return profile on this draw's surface.
 
         Placeholder entrants (and any id the table doesn't know) fall back to
-        ``SkillTable.default(surface)`` — T1.1's existing default mechanism.
+        ``SkillTable.default(surface)``, the skill table's default mechanism.
         """
         return skill_table.get(slot.player_id, self.surface)
 
@@ -156,7 +156,7 @@ def is_placeholder(player: str) -> bool:
 
 
 def _is_int(value: Any) -> bool:
-    """True for a genuine int — bools are ints in Python, and are not wanted."""
+    """True for a genuine int, bools are ints in Python, and are not wanted."""
     return isinstance(value, int) and not isinstance(value, bool)
 
 
@@ -196,7 +196,7 @@ def _parse_bracket(
 ) -> list[tuple[int, str]]:
     """Validate the raw bracket list; return the usable ``(position, player)`` pairs.
 
-    ``draw_size`` is the validated size, or ``None`` when it was itself invalid —
+    ``draw_size`` is the validated size, or ``None`` when it was itself invalid,
     in which case position contiguity is checked against the bracket's own
     length so the caller still gets a useful second error.
     """
@@ -254,7 +254,7 @@ def _resolve_entrants(
         if is_placeholder(player):
             slots.append(DrawSlot(position, player, is_placeholder=True))
             continue
-        # Reuse T1.1's adapter over the shared T0.6 resolver — never a new one.
+        # Reuse the skill table's adapter over the shared resolver, never a new one.
         player_id = skill_table.resolve_name(player)
         if player_id is None and player not in unresolved:
             unresolved.append(player)
@@ -298,11 +298,11 @@ def parse_draw(
 ) -> Draw:
     """Validate already-parsed draw data and resolve its entrants.
 
-    The in-memory half of :func:`load_draw` — same rules, no file I/O.
+    The in-memory half of :func:`load_draw`, same rules, no file I/O.
 
     Args:
         data: The decoded JSON object.
-        skill_table: T1.1 skill table used to resolve entrant names to ids.
+        skill_table: id-keyed skill table used to resolve entrant names to ids.
         source: Label used in error messages (a path, when called by
             :func:`load_draw`).
 
@@ -388,7 +388,7 @@ def load_draw(path: str | Path, skill_table: SkillTable) -> Draw:
 
     Args:
         path: Path to the draw file (conventionally under ``config.DRAWS_DIR``).
-        skill_table: T1.1 skill table used to resolve entrant names to ids.
+        skill_table: id-keyed skill table used to resolve entrant names to ids.
 
     Returns:
         A validated :class:`Draw`.
@@ -396,7 +396,7 @@ def load_draw(path: str | Path, skill_table: SkillTable) -> Draw:
     Raises:
         FileNotFoundError: If ``path`` does not exist.
         DrawValidationError: If the file is not valid JSON, or fails any
-            validation rule — every problem is reported together.
+            validation rule, every problem is reported together.
     """
     path = Path(path)
     text = path.read_text(encoding="utf-8")

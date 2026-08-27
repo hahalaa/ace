@@ -1,9 +1,9 @@
-# Ace — scheduled data refresh + simulation precompute (T5.3).
+# Ace, scheduled data refresh + simulation precompute.
 #
 # Refreshes the vendored match data, retrains the classifier, regenerates the
 # Monte Carlo cache the API serves, and opens a PULL REQUEST with the result.
 # All of the sequencing and every abort live in `scripts/update_and_cache.py`,
-# not here — this file decides *when* to run and *what to do with the output*.
+# not here, this file decides *when* to run and *what to do with the output*.
 #
 # ── IT NEVER TOUCHES data/draws/ ──────────────────────────────────────────────
 # Draw entrants are entered by hand. There is no scraper in this project and
@@ -17,7 +17,7 @@
 # ── WHY A PR AND NOT A PUSH TO main ──────────────────────────────────────────
 # This is the only workflow in the repo that can write to the default branch,
 # and it runs unattended on a schedule. Its output changes what the public demo
-# shows — a refresh moves every published title probability — so it is put in
+# shows, a refresh moves every published title probability, so it is put in
 # front of a human as a reviewable diff instead of shipping itself. The cost is
 # that "auto-updates before each Slam" means *prepared, awaiting merge*; the
 # benefit is that a bad refresh that survives every gate in the orchestrator
@@ -27,21 +27,21 @@
 # Settings → Actions → General → Workflow permissions:
 #   1. "Read and write permissions" (or leave it read-only and rely on the
 #      job-level `permissions:` block below, which is what is used here).
-#   2. "Allow GitHub Actions to create and approve pull requests" — WITHOUT
+#   2. "Allow GitHub Actions to create and approve pull requests", WITHOUT
 #      IT `gh pr create` FAILS with a 403 even though the token has
-#      `pull-requests: write`. See DEPLOYING.md.
+#      `pull-requests: write`.
 # Note also that GitHub disables scheduled workflows after 60 days with no
 # repository activity, and that `ci.yml` does NOT run on its own against a PR
 # this job opens: a `pull_request` event caused by GITHUB_TOKEN does queue a
 # run, but GitHub holds it in an approval-required state until someone with
 # write access clicks "Approve workflows to run". Nothing checks the refreshed
-# data automatically — which is why this job runs `pytest -q` itself (below).
+# data automatically, which is why this job runs `pytest -q` itself (below).
 name: Refresh data + precompute simulations
 
 on:
   # Weekly, late Monday UTC. Justified against the source rather than picked:
   # TML-Database's per-season main-tour file (`2026.csv`, the only one this
-  # project fetches for the current year) is republished roughly weekly — the
+  # project fetches for the current year) is republished roughly weekly, the
   # manifest's mtimes on 2026-08-08 read 2026-08-03 (Mon) for the season file
   # against a bulk republish of every historical year on 2026-07-30, while the
   # daily-churning files (`ongoing_tourneys.csv`) are ones this project never
@@ -54,11 +54,11 @@ on:
   # published the previous Monday and been a week behind by construction. Late
   # Monday stays on the same day (no extra week of latency, which a Tuesday slot
   # would add) while landing comfortably after the observed publish. CAVEAT: that
-  # is a SINGLE observed timestamp — enough to rule out the morning, not enough
+  # is a SINGLE observed timestamp, enough to rule out the morning, not enough
   # to pin the vendor's publish window. Worth revisiting once a few real runs
   # have logged which years they found changed; if runs start coming back as
   # no-ops, the publish drifted and this needs moving again.
-  # :17 rather than :00 — GitHub queues on-the-hour schedules heavily and delays
+  # :17 rather than :00, GitHub queues on-the-hour schedules heavily and delays
   # them.
   schedule:
     - cron: '17 23 * * 1'
@@ -91,7 +91,7 @@ permissions:
   pull-requests: write
 
 # Never two of these at once: they push the same branch and would race.
-# cancel-in-progress is off — a half-finished refresh is not worth interrupting
+# cancel-in-progress is off, a half-finished refresh is not worth interrupting
 # a complete one that is nearly done.
 concurrency:
   group: refresh-and-simulate
@@ -114,7 +114,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          # 3.11 — the same interpreter ci.yml and the Dockerfile use.
+          # 3.11, the same interpreter ci.yml and the Dockerfile use.
           python-version: '3.11'
           cache: pip
           cache-dependency-path: requirements.txt
@@ -149,7 +149,7 @@ jobs:
           [ -z "$TOURNAMENT_ID" ] || args+=(--draw "$TOURNAMENT_ID")
           python scripts/update_and_cache.py "${args[@]}"
 
-      # `regenerated` — did the orchestrator actually write a cache file — is
+      # `regenerated`, did the orchestrator actually write a cache file, is
       # the commit gate. It is deliberately not "did git notice a diff": every
       # cache file carries a `generated_at` timestamp that moves on every run,
       # so `git diff data/cache/` is dirty even when nothing real changed and
@@ -157,7 +157,7 @@ jobs:
       # by sha256-comparing data/raw/ across the refresh and stopping before it
       # regenerates anything when the bytes are identical. A `--no-refresh`
       # manual run reaches this step with `data_changed: false` and a
-      # regenerated cache — which is exactly what it was asked to do, and must
+      # regenerated cache, which is exactly what it was asked to do, and must
       # still be committed.
       - name: Read the run summary
         id: summary
@@ -181,8 +181,8 @@ jobs:
       # access to press "Approve workflows to run". So the refreshed data would
       # otherwise reach a reviewer with nothing green behind it. Running the
       # suite here is the substitute, and it is the check that matters: it is the
-      # first thing to fail if the vendored data changed shape. No network (T5.2
-      # verified that property).
+      # first thing to fail if the vendored data changed shape. It makes no
+      # network access.
       - name: Run the test suite against the refreshed data
         if: steps.summary.outputs.regenerated == 'true'
         run: pytest -q
@@ -191,7 +191,7 @@ jobs:
       # stays exactly as it is. That rule protects developer machines from
       # committing a locally-generated cache by accident, which is still worth
       # having; this workflow is the one place where writing that file is the
-      # intended act, so it is the one place that overrides the rule — a
+      # intended act, so it is the one place that overrides the rule, a
       # deliberate, single-caller exception rather than a repo-wide relaxation.
       # Without the -f the add is a SILENT no-op and the "fresh" cache would
       # never leave the runner.
@@ -206,7 +206,7 @@ jobs:
           git add data/raw
           git add -f data/cache
           if git diff --cached --quiet; then
-            echo "nothing staged — no commit, no PR"
+            echo "nothing staged, no commit, no PR"
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             git --no-pager diff --cached --stat
@@ -236,12 +236,12 @@ jobs:
           git push --force-with-lease origin "HEAD:refs/heads/$BRANCH"
 
           cat > pr-body.md <<EOF
-          Automated by \`.github/workflows/refresh-and-simulate.yml\` (T5.3).
+          Automated by \`.github/workflows/refresh-and-simulate.yml\`.
 
           - **Seasons whose vendored CSV changed:** ${YEARS:-none}
           - **Caches regenerated:** ${CACHES:-none}
-          - **Estimator retrained to:** \`${ESTIMATOR}\` — best-of-four on \`TEST_YEAR\`, so the *type* can change with the data (\`ace-04-current-state.md\` §4). The model itself is gitignored and is not in this diff; \`metadata.estimator_class\` in each cache file records it.
-          - **Not touched:** \`data/draws/\` — entrants are entered by hand.
+          - **Estimator retrained to:** \`${ESTIMATOR}\`, best-of-four on \`TEST_YEAR\`, so the *type* can change with the data (\`ace-04-current-state.md\` §4). The model itself is gitignored and is not in this diff; \`metadata.estimator_class\` in each cache file records it.
+          - **Not touched:** \`data/draws/\`, entrants are entered by hand.
 
           The suite ran green against the refreshed data before this PR was opened.
           Review the title probabilities before merging: merging changes what the
@@ -251,7 +251,7 @@ jobs:
           EOF
 
           if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
-            echo "PR already open for $BRANCH — the force-push above updated it."
+            echo "PR already open for $BRANCH; the force-push above updated it."
           else
             gh pr create --base "${GITHUB_REF_NAME}" --head "$BRANCH" \
               --title "data: weekly refresh + regenerated simulation cache" \
