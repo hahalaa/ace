@@ -291,7 +291,7 @@ def test_unhandled_500_carries_headers_and_a_non_leaking_body(context, monkeypat
 def test_frontend_csp_connect_src_is_pinned_not_wildcard():
     render_yaml = Path(__file__).resolve().parents[1] / "render.yaml"
     text = render_yaml.read_text(encoding="utf-8")
-    assert "connect-src 'self' https://ace-e21v.onrender.com;" in text
+    assert "connect-src 'self' https://ace-7acv.onrender.com;" in text
     # No wildcard host as a CSP source (the comment may still name it as the
     # anti-pattern being avoided; what must never reappear is a wildcard origin).
     assert "https://*.onrender.com" not in text
