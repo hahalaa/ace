@@ -115,7 +115,7 @@ services:
           style-src 'self';
           img-src 'self' data:;
           font-src 'self';
-          connect-src 'self' https://ace-e21v.onrender.com;
+          connect-src 'self' https://ace-7acv.onrender.com;
           frame-ancestors 'none';
           base-uri 'none';
           form-action 'self'
