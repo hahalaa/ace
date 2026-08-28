@@ -12,7 +12,7 @@ FEATURE_IMPORTANCE_PLOT = OUTPUT_DIR / "feature_importance.png"
 # ==========================================
 # MODEL PARAMETERS
 # ==========================================
-START_YEAR = 2014
+START_YEAR = 2000
 END_YEAR = 2026            # Data now vendored through 2026 (partial season)
 TEST_YEAR = 2025          # Held-out test season, decoupled from END_YEAR (2026 is partial)
 DEFAULT_RANK = 2000
@@ -47,11 +47,11 @@ SERVE_SHRINKAGE_K = 200.0
 # Data-derived tour-average serve-points-won (μ) per surface, the point-model
 # baseline (ace-03-tennis-math.md §1). Canonical home is the table in
 # ace-02-data-schema.md; recompute with features.serve.compute_surface_mu if the
-# vendored data range changes. Values below computed from data/raw 2014–2026.
+# vendored data range changes. Values below computed from data/raw 2000–2026.
 SURFACE_MU = {
-    "Hard": 0.6423,
-    "Clay": 0.6196,
-    "Grass": 0.6606,
+    "Hard": 0.6375,
+    "Clay": 0.6125,
+    "Grass": 0.6560,
 }
 
 # ==========================================
