@@ -423,3 +423,34 @@ MODEL_FEATURES = [
     'p1_recent_sets_lost_avg_5', 'p2_recent_sets_lost_avg_5',
     'p1_recent_sets_lost_avg_10', 'p2_recent_sets_lost_avg_10',
 ]
+
+# ==========================================
+# ELO — DISPLAY ONLY
+# ==========================================
+# The tunable knobs for the Elo leaderboards on the Rankings screen. Elo is a
+# standalone *display* feature: it is served by GET /rankings and consumed by
+# nothing else, so these constants must never reach MODEL_FEATURES, the
+# classifier, the point model, reconciliation or any simulation path. Only
+# src/features/elo.py reads them (plus its precompute script). config.py is
+# imported by preprocess.py, so these names are technically reachable from the
+# training path; tests/test_elo_isolation.py enforces by static analysis that
+# nothing there reaches for a config.ELO_* name or imports features.elo, the
+# same way tests/test_benchmark_vs_market.py guards BENCHMARK_*.
+ELO_INITIAL_RATING = 1500.0
+# Dynamic-K curve. K(n) = ELO_K_FACTOR / (n + ELO_K_OFFSET) ** ELO_K_SHAPE is the
+# published tennis-Elo curve (Kovalchik 2016; FiveThirtyEight): K ≈ 131 for a
+# debutant, ≈ 39 after 100 matches, ≈ 23 after 400, fast to place a new player,
+# slow to move a veteran.
+ELO_K_FACTOR = 250.0
+ELO_K_OFFSET = 5.0
+ELO_K_SHAPE = 0.4
+# A player is "active" if their most recent match on *any* surface is within this
+# many days of the data's latest match. 365 days ≈ one full tour season, so a
+# genuinely active player has necessarily played inside it. Anchored to the
+# data's own latest date, not today's.
+ELO_ACTIVE_WINDOW_DAYS = 365
+# Surfaces that get their own rating track, derived from VALID_SURFACES so the
+# two cannot drift.
+ELO_SURFACES = tuple(sorted(VALID_SURFACES))
+# Cap on how many players each track publishes, top-rated first.
+ELO_LEADERBOARD_LIMIT = 200

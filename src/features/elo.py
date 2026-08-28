@@ -4,10 +4,12 @@
 computes are shown on a Rankings screen and nowhere else. They must never enter
 ``config.MODEL_FEATURES``, the classifier, the point model, reconciliation, or
 any simulation path. Nothing under ``data/preprocess.py``, ``features/`` (except
-this file), ``model/`` or ``sim/`` may import it. That wall is not a convention
-here, ``tests/test_elo_isolation.py`` walks the import graph and fails if it is
-breached, the same way ``tests/test_benchmark_vs_market.py`` guards the
-odds benchmark. Adding Elo as "a 28th feature" would need the same multi-tier
+this file), ``model/`` or ``sim/`` may import it or name one of its
+``config.ELO_*`` knobs. That wall is not a convention here,
+``tests/test_elo_isolation.py`` walks the import graph and the source for both
+and fails if either is breached, the same way
+``tests/test_benchmark_vs_market.py`` guards the ``BENCHMARK_*`` constants that
+also live in ``config.py``. Adding Elo as "a 28th feature" would need the same multi-tier
 validation-year process the four prior model-accuracy experiments went through,
 which is explicitly out of scope for a display feature.
 
@@ -63,36 +65,23 @@ import pandas as pd
 import config
 
 # --------------------------------------------------------------------------- #
-# Constants, deliberately local to this module, NOT in config.py.
+# Constants.
 # --------------------------------------------------------------------------- #
-# This is a display feature that must never reach the model, so its knobs stay
-# out of the shared model-configuration namespace on purpose (see the report's
-# "never touches config.py" requirement and the module docstring). The one thing
-# read from config is the canonical surface set, so the two cannot drift.
-ELO_INITIAL_RATING = 1500.0
-# Dynamic-K parameters. 250 / (n + 5) ** 0.4 is the published tennis-Elo curve
-# (Kovalchik 2016; FiveThirtyEight): K ≈ 112 for a debutant, ≈ 34 after 100
-# matches, ≈ 22 after 400, fast to place a new player, slow to move a veteran.
-ELO_K_FACTOR = 250.0
-ELO_K_OFFSET = 5.0
-ELO_K_SHAPE = 0.4
-# A player is "active" if their most recent match (on *any* surface) is within
-# this window of the data's latest match. 365 days ≈ one full tour season, which
-# spans every surface's swing exactly once, so a genuinely active player has
-# necessarily played inside it while a retired one has not. Anchored to the
-# data's own latest date, not today's, because the vendored data can lag the
-# real calendar and "active" should mean "recent in what we know".
-ELO_ACTIVE_WINDOW_DAYS = 365
-# Surfaces that get their own track. Read from config so this list cannot drift
-# from the rest of the project (reading config is fine; the wall is about never
-# *adding* Elo to it).
-ELO_SURFACES: tuple[str, ...] = tuple(sorted(config.VALID_SURFACES))
+# The tunable knobs live in config.py under the "ELO — DISPLAY ONLY" block, next
+# to BENCHMARK_* and for the same reason: the project keeps magic numbers in one
+# place, and the real wall (nothing in the model/simulation path importing this
+# module or naming a config.ELO_* constant) is enforced by static analysis in
+# tests/test_elo_isolation.py, not by hiding the values here. Re-exported at
+# module scope so callers and tests can read them from features.elo directly.
+ELO_INITIAL_RATING = config.ELO_INITIAL_RATING
+ELO_K_FACTOR = config.ELO_K_FACTOR
+ELO_K_OFFSET = config.ELO_K_OFFSET
+ELO_K_SHAPE = config.ELO_K_SHAPE
+ELO_ACTIVE_WINDOW_DAYS = config.ELO_ACTIVE_WINDOW_DAYS
+ELO_SURFACES: tuple[str, ...] = config.ELO_SURFACES
+ELO_LEADERBOARD_LIMIT = config.ELO_LEADERBOARD_LIMIT
 ELO_OVERALL = "overall"
 ELO_TRACKS: tuple[str, ...] = (ELO_OVERALL, *ELO_SURFACES)
-# Cap on how many players each track publishes, top-rated first. A leaderboard
-# nobody scrolls past 200 of; keeps the cache file small while still carrying
-# enough inactive-but-high entries to show the stale-player separation in action.
-ELO_LEADERBOARD_LIMIT = 200
 
 # Where the precompute writes the ratings and the API reads them back, the one
 # definition of that path, shared by writer and reader (mirrors

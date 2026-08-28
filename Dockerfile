@@ -181,6 +181,13 @@ RUN python scripts/precompute_sim.py \
         --seed "${PRECOMPUTE_SEED}" \
  && test -s "data/cache/${PRECOMPUTE_DRAW}.json"
 
+# The Elo leaderboards GET /rankings serves. A display feature walled off from
+# the model (src/features/elo.py), computed offline on the same cadence as the
+# sim cache, never per request. Without this the endpoint answers 425
+# rankings_missing for every visitor.
+RUN python scripts/precompute_elo.py \
+ && test -s data/cache/elo_ratings.json
+
 
 # --------------------------------------------------------------------------- #
 # Stage 4, frontend-builder: `npm run build` and nothing else ships from here.

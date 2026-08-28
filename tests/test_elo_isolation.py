@@ -13,9 +13,12 @@ Two directions are checked:
     ``scripts/update_and_cache.py``) are the *intended* consumers, Elo is meant
     to be shown, so those are allowed. Everything that builds features, trains,
     reconciles or simulates is not.
-  * **``config.py`` is untouched.** The report requires it: Elo's knobs live in
-    ``features/elo.py``, not in the shared model-configuration namespace, so no
-    ``ELO_*`` constant exists in config and ``MODEL_FEATURES`` names no Elo column.
+  * **Nothing in that path names a ``config.ELO_*`` knob.** Elo's tunable
+    constants live in ``config.py`` (the project keeps magic numbers in one
+    place), next to ``BENCHMARK_*`` and guarded the same way: ``config.py`` is
+    imported by ``preprocess.py``, so the names are *reachable* from the training
+    path, and this file asserts by source scan that nothing there reaches for
+    them. ``MODEL_FEATURES`` also names no Elo column.
 """
 
 from __future__ import annotations
@@ -114,11 +117,30 @@ def test_model_features_names_no_elo_column():
     assert not any("elo" in feature.lower() for feature in config.MODEL_FEATURES)
 
 
-def test_config_holds_no_elo_constants():
-    """The report's 'never touches config.py' requirement: Elo's knobs live in
-    features/elo.py, not the shared model-configuration namespace."""
-    elo_constants = [name for name in dir(config) if name.upper().startswith("ELO")]
-    assert elo_constants == [], (
-        f"config.py defines {elo_constants}; Elo constants belong in features/elo.py "
-        "so the display feature never touches model configuration."
+def test_elo_config_constants_are_read_only_by_the_elo_feature():
+    """The sharpest version of the wall: nothing in the model/simulation path
+    even names a ``config.ELO_*`` constant.
+
+    ``config.py`` is imported by ``preprocess.py``, so the ELO_* names are
+    technically reachable from the training path. This asserts nothing there
+    reaches for them, mirroring
+    ``tests/test_benchmark_vs_market.py::test_benchmark_config_constants_are_read_only_by_the_benchmark``.
+    Only the serving/precompute layers (ALLOWED_IMPORTERS) and config.py itself
+    may name them.
+    """
+    constants = [name for name in dir(config) if name.startswith("ELO_")]
+    assert constants, "expected the Elo constants to live in config.py"
+
+    offenders: list[str] = []
+    for path in _python_sources():
+        relative = str(path.relative_to(REPO_ROOT))
+        if path.name == "config.py" or relative in ALLOWED_IMPORTERS:
+            continue
+        text = path.read_text()
+        for name in constants:
+            if name in text:
+                offenders.append(f"{relative}: {name}")
+    assert offenders == [], (
+        f"config.ELO_* referenced outside the Elo feature: {offenders}. Elo is a "
+        "display feature; the model and simulator must not read its knobs."
     )
