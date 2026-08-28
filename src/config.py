@@ -50,7 +50,7 @@ SERVE_SHRINKAGE_K = 200.0
 # vendored data range changes. Values below computed from data/raw 2000–2026.
 SURFACE_MU = {
     "Hard": 0.6375,
-    "Clay": 0.6125,
+    "Clay": 0.6126,
     "Grass": 0.6560,
 }
 
