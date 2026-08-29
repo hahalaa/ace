@@ -77,13 +77,33 @@
   gap: 0.75rem 1rem;
 }
 
+/* Mirrors .picker's own vertical rhythm (label row, input row, hint row) so
+   that under the shared `align-items: end` the "vs" text lands centered on
+   the input row rather than on the picker's overall bottom edge, which sits
+   below the input once the reserved hint line is counted. The spacer rows
+   reuse .pickerLabel/.pickerHint exactly so their heights always match,
+   including if a label's text ever wraps. */
 .versus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.versusSpacer {
+  visibility: hidden;
+}
+
+.versusText {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
   font-family: var(--mono);
   font-size: 0.8rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-dim);
-  padding-bottom: 0.6rem;
 }
 
 .options {
@@ -528,7 +548,14 @@
   }
 
   .versus {
-    padding-bottom: 0;
     justify-self: start;
+  }
+
+  .versusSpacer {
+    display: none;
+  }
+
+  .versusText {
+    height: auto;
   }
 }

@@ -436,7 +436,13 @@ export default function MatchSim() {
             onChange={(a) => setForm((f) => ({ ...f, a }))}
           />
           <span className={styles.versus} aria-hidden="true">
-            vs
+            <span className={`${styles.pickerLabel} ${styles.versusSpacer}`}>
+              &nbsp;
+            </span>
+            <span className={styles.versusText}>vs</span>
+            <span className={`${styles.pickerHint} ${styles.versusSpacer}`}>
+              &nbsp;
+            </span>
           </span>
           <PlayerPicker
             label="Player B"
