@@ -1,6 +1,6 @@
 """Elo ratings, a standalone *display* feature (elo-ratings branch).
 
-⚠️ **DISPLAY ONLY. This module is walled off from the model.** The ratings it
+**DISPLAY ONLY. This module is walled off from the model.** The ratings it
 computes are shown on a Rankings screen and nowhere else. They must never enter
 ``config.MODEL_FEATURES``, the classifier, the point model, reconciliation, or
 any simulation path. Nothing under ``data/preprocess.py``, ``features/`` (except

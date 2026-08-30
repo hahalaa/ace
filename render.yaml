@@ -1,29 +1,17 @@
-# Static-host deploy config for the ace frontend.
+# Render Blueprint for the ace frontend (static site). Read from the repo root;
+# `rootDir` moves the build into `frontend/` and every path below is relative to it.
 #
-# A Render Blueprint. Render reads this file from the repo root; `rootDir` moves
-# the build into `frontend/`, and every other path below is relative to that.
-# These three facts are the whole contract and port to any static host,
-# Netlify (base `frontend`, publish `dist`), Vercel (root `frontend`, Vite
-# preset), or any file server (`npx serve dist`, nginx, S3 + CloudFront):
+# The portable contract for any static host:
+#   build command   npm ci && npm run build
+#   publish dir     frontend/dist
+#   build env var   VITE_API_BASE_URL   (required, no default, inlined at BUILD time)
 #
-#     build command   npm ci && npm run build
-#     publish dir     frontend/dist
-#     build env var   VITE_API_BASE_URL   (required, no default, BUILD-time only)
+# After a real deploy: add the frontend origin to config.API_ALLOWED_ORIGINS and
+# restart the API, and serve the API over HTTPS if the frontend is (browsers block
+# https -> http and it surfaces as the generic "could not reach the ace API" panel).
 #
-# Render is the only host with a committed, checked config; the one-liners above
-# are read off each host's documented settings and have not been deployed.
-#
-# Two things on the API side after any real deploy: add the frontend's origin to
-# config.API_ALLOWED_ORIGINS and restart (the allow-list ships with local dev
-# origins only, and is never `*`), and serve the API over HTTPS if the frontend
-# is, a browser blocks an https:// page from calling http://, and it surfaces
-# as the generic "could not reach the ace API" panel.
-#
-# SCOPE NOTE, this is the static-site path. Container packaging for the frontend
-# is separate and is **not** built here: no frontend Dockerfile in this file, no
-# docker-compose.yml. Finding this file must not read as "the frontend is already
-# containerised"; the Docker path lives in the root `Dockerfile` and
-# `docker-compose.yml`. See `ace-04-current-state.md`.
+# Frontend container packaging is separate and lives in the root Dockerfile /
+# docker-compose.yml, not here.
 
 services:
   - type: web
@@ -34,43 +22,26 @@ services:
     staticPublishPath: ./dist
 
     envVars:
-      # Base URL of the deployed ace API, e.g. https://ace-api.example.com,
-      # read by Vite at BUILD time and inlined into the bundle, so changing it
-      # in the dashboard requires a redeploy that actually rebuilds; a rollback
-      # to a previously built bundle keeps whatever URL that build baked in.
-      #
-      # `sync: false` = Render prompts for the value and stores it on the
-      # service instead of reading it here. Deliberate: the repo hardcodes no
-      # origin (frontend/.env.example is the only place a value is written
-      # down), and the API's CORS allow-list is an explicit list, so the two
-      # sides must be configured together at deploy time, whatever origin this
-      # site ends up on has to be added to config.API_ALLOWED_ORIGINS.
+      # Base URL of the deployed ace API. Read by Vite at build time and inlined
+      # into the bundle, so a change needs a rebuild, not just a restart.
+      # `sync: false`: Render prompts for the value and stores it on the service.
+      # The repo hardcodes no origin, and the API CORS allow-list is explicit, so
+      # both sides are configured together at deploy time.
       - key: VITE_API_BASE_URL
         sync: false
 
     headers:
-      # Vite content-hashes everything under /assets, so those filenames change
-      # whenever their bytes do and may be cached forever.
+      # Hashed asset filenames change whenever their bytes do: cache forever.
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
-      # index.html is NOT hashed, it is the file that points at the current
-      # asset hashes. Caching it is how a deploy goes out and nobody sees it.
+      # Un-hashed files that a deploy must be able to replace immediately.
       - path: /index.html
         name: Cache-Control
         value: no-cache
-      # theme-init.js is a fixed, un-hashed path referenced by index.html, so a
-      # cached copy would outlive a deploy that changes the pre-paint logic.
-      # no-cache it too, for the same reason as index.html.
       - path: /theme-init.js
         name: Cache-Control
         value: no-cache
-      # The favicons are fixed, un-hashed paths too (favicon.svg is referenced
-      # by index.html; the .ico and apple-touch-icon.png are picked up by
-      # convention). Without an explicit rule they fall through to Render's
-      # default static policy (s-maxage=300), so a favicon change can sit behind
-      # a stale CDN copy across a deploy. no-cache them for the same reason as
-      # theme-init.js and index.html.
       - path: /favicon.svg
         name: Cache-Control
         value: no-cache
@@ -81,32 +52,13 @@ services:
         name: Cache-Control
         value: no-cache
 
-      # ---- Security headers (security hardening) ----
-      # Scoped to what a Vite build of THIS app actually loads:
-      #   * script-src 'self', the hashed ES module bundle AND the
-      #                              same-origin pre-paint script /theme-init.js
-      #                              (public/theme-init.js, copied to dist root).
-      #                              Both are 'self', so neither needs a hash and
-      #                              there is no 'unsafe-inline'. The theme logic
-      #                              MUST stay in that external file, never an
-      #                              inline <script>: an inline script would be
-      #                              blocked here and the pre-paint would silently
-      #                              never run (regression guarded by test).
-      #   * style-src  'self', the one hashed stylesheet; the app uses plain
-      #                              CSS, no CSS-in-JS and no inline style attrs.
-      #   * connect-src, the browser calls the API cross-origin, so
-      #                              'self' alone would BREAK it. Pinned to the
-      #                              EXACT deployed API origin, not a wildcard:
-      #                              *.onrender.com is a shared public hosting
-      #                              domain, so it would let a future XSS exfil to
-      #                              any onrender.com sub-app. This must match the
-      #                              origin baked into the bundle at build time
-      #                              (VITE_API_BASE_URL); change both together if
-      #                              the API is ever redeployed to a new origin.
-      #   * img-src 'self' data:, favicon.svg is 'self'; data: covers any
-      #                              inlined image Vite emits.
-      #   * frame-ancestors 'none', this app is not meant to be iframed.
-      # No 'unsafe-inline' / 'unsafe-eval' anywhere, the build needs neither.
+      # CSP scoped to what a Vite build of this app actually loads: same-origin
+      # ES module bundle + stylesheet + the same-origin pre-paint /theme-init.js
+      # (which must stay an external file, never an inline <script>, or CSP blocks
+      # it; regression-guarded by test). connect-src is pinned to the exact
+      # deployed API origin, not *.onrender.com (a shared host), and must match
+      # the origin baked into the bundle via VITE_API_BASE_URL. No 'unsafe-inline'
+      # or 'unsafe-eval' anywhere.
       - path: /*
         name: Content-Security-Policy
         value: >-
@@ -128,16 +80,12 @@ services:
       - path: /*
         name: X-Frame-Options
         value: DENY
-      # HSTS is intentionally omitted: Render terminates TLS and owns the
-      # certificate/redirect at its edge, so Strict-Transport-Security is the
-      # platform's to set (its dashboard offers it). A wrong max-age pinned from
-      # the app could outlive the deployment. See the security report.
+      # HSTS is omitted on purpose: Render terminates TLS and owns that header at
+      # its edge (its dashboard offers it).
 
-    # No SPA rewrite rule, on purpose. The app does no path-based routing: every
-    # screen is `/` plus a query string (`?tournament=`, `?view=`, `?seed=`,
-    # App.tsx), so no deep link ever requests a path that is not index.html, and
-    # a catch-all rewrite would only turn genuine 404s into blank app shells.
-    # If a real router is ever adopted, this is the rule to add:
+    # No SPA rewrite rule on purpose: every screen is `/` plus a query string, so
+    # no deep link requests a non-index path, and a catch-all rewrite would only
+    # turn genuine 404s into blank app shells. If a real router is adopted, add:
     #
     # routes:
     #   - type: rewrite

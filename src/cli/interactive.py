@@ -228,10 +228,7 @@ def build_feature_row(
         'h2h_diff': h2h_diff
     }
     
-    # Create DataFrame with all model features
     df = pd.DataFrame(columns=config.MODEL_FEATURES)
-    
-    # Fill known features
     for col, val in features.items():
         if col in df.columns:
             df.loc[0, col] = val
@@ -241,7 +238,7 @@ def build_feature_row(
     # Since we can't easily fetch the *latest* rolling stats without more complex logic,
     # we accept this limitation for the CLI tool.
     
-    df = df.fillna(0) # Initialize with 0
+    df = df.fillna(0)
     
     # Set neutral win rates
     win_cols = [c for c in df.columns if 'win_rate' in c]

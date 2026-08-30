@@ -1,81 +1,25 @@
 # syntax=docker/dockerfile:1
 #
-# ace, container build.
-#
-# ONE Dockerfile, six stages, two shippable images. The default target is the
-# API (it is the last stage), so `docker build -t ace-api .` does the expected
-# thing; the frontend is `--build-arg VITE_API_BASE_URL=… --target frontend`.
-# BuildKit only builds the stages its target depends on, so an API build never
-# touches Node and a frontend build never trains a model.
+# ace, container build. ONE Dockerfile, six stages, two shippable images.
 #
 #   deps              python:3.11-slim + /opt/venv from requirements.txt
-#   runtime-deps      ⬑ the same venv minus build-only packages (1.2 GB → 693 MB)
-#   artefacts         ⬑ trains the model and precomputes the sim cache
+#   runtime-deps      the same venv minus build-only packages (1.2 GB -> 693 MB)
+#   artefacts         trains the model and precomputes the sim + Elo caches, OFFLINE
 #   frontend-builder  node + `npm ci && npm run build`
 #   frontend          nginx serving dist/            (--target frontend)
 #   api               uvicorn + src/ + data/ + the artefacts   (default target)
 #
-# --------------------------------------------------------------------------
-# The artefact problem, and which of the three resolutions this file takes
-# --------------------------------------------------------------------------
-# Two files the API needs at runtime are gitignored and are therefore in NO
-# clean checkout (.gitignore:10 `outputs/`, .gitignore:15 `data/cache/*.json`):
+#   docker build -t ace-api .                                  # the API image
+#   docker build --build-arg VITE_API_BASE_URL=... --target frontend -t ace-web .
+#   docker build --build-arg PRECOMPUTE_RUNS=200 -t ace-api:ci .   # fast CI image
 #
-#   outputs/tennis_model.pkl   api/deps.py loads it at startup and fails fast
-#                              without it, no model, no API at all.
-#   data/cache/<id>.json       what GET /tournaments/{id}/simulate serves;
-#                              absent, every simulatable draw answers 425
-#                              cache_missing (a draw with placeholder entrants
-#                              answers 409 first, cache or no cache).
+# BuildKit only builds the stages its target depends on, so an API build never
+# touches Node and a frontend build never trains a model.
 #
-# Only data/raw/ (the vendored per-year CSVs) and data/draws/ are in git. So
-# "COPY data/ and hope" ships a broken image. The ticket allows three fixes,
-# (a) regenerate in a builder stage, (b) mount volumes, (c) fetch a release
-# artefact. **This file takes (a).** Reasons, in order:
-#
-#   * The image stays self-contained and offline. (b) makes `docker run` alone
-#     insufficient, the acceptance criterion is that it serves /health, and
-#     (c) would put a network fetch in the build and a release-hosting story in
-#     a ticket that has neither.
-#   * Everything (a) needs is already in the repo: the raw CSVs are vendored,
-#     and both generators (`src/predictor.py`, `scripts/precompute_sim.py`)
-#     already run fully offline.
-#   * `.dockerignore` excludes `outputs/` and `data/cache/` from the build
-#     context, so a developer machine that happens to have both cannot leak
-#     them in. Every build regenerates them from source, on every machine.
-#
-# THE TRADEOFF, STATED (ace-04-current-state.md §4): `predictor.py` persists
-# whichever of Logistic Regression / Decision Tree / Random Forest / XGBoost
-# wins on TEST_YEAR accuracy, so this stage decides which model the image
-# ships. Measured, so the risk is stated at its true size rather than guessed:
-#
-#   * For a FIXED environment it is deterministic. Three independent builds,
-#     two of them --no-cache, from two different contexts, produced a
-#     byte-identical tennis_model.pkl (sha eca0f9a3…). A rebuild today does not
-#     roll dice.
-#   * It is the ENVIRONMENT that flips it. The same source trained inside this
-#     image selects LogisticRegression where the host venv had persisted a
-#     RandomForestClassifier, and the board moves with it (Sinner 41.3% →
-#     31.2%). requirements.txt pins lower bounds only (`pandas>=2.0`,
-#     `scikit-learn>=1.3`, no lockfile) and the base image moves, so a rebuild
-#     months from now resolves different wheels and may bake a different model.
-#
-# The image is therefore reproducible in behaviour-from-source, reproducible
-# bit-for-bit *while the environment holds*, and **not reproducible across a
-# dependency or base-image drift**. Accepted for this ticket, not papered over,
-# because:
-#
-#   * Which estimator was baked is observable, not hidden: the artefacts stage
-#     prints it during the build, and every /simulate and /storybook response
-#     carries `metadata.estimator_class`.
-#   * Pinning is a modelling decision (seam 3 / §4), not a packaging one, it
-#     means changing what `train_and_evaluate` selects, which is outside a
-#     Docker ticket's scope and would change the CLIs and the API too.
-#   * The operational fix needs no code: build ONCE and deploy the resulting
-#     **image digest**. A digest is exactly reproducible; a rebuild is not.
-#
-# Build cost of (a): the model train dominates. `--build-arg PRECOMPUTE_RUNS=`
-# trims the Monte Carlo for CI.
+# Why the `artefacts` stage regenerates two files rather than copying them, and
+# why that makes the shipped estimator environment-dependent (measured), is in
+# `docs/ace-04-current-state.md` sections 2 (Infra / CI), 4, and 7 seam 9.
+# Per-stage `# why` comments below cover the non-obvious build steps.
 
 
 # --------------------------------------------------------------------------- #

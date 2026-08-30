@@ -47,8 +47,7 @@ def train_and_evaluate(df: pd.DataFrame) -> Any:
     y_train = df.loc[train_mask, 'target']
     X_test  = df.loc[test_mask, config.MODEL_FEATURES]
     y_test  = df.loc[test_mask, 'target']
-    
-    # Define models
+
     models = {
         "Logistic Regression": LogisticRegression(max_iter=5000),
         "Decision Tree": DecisionTreeClassifier(max_depth=5),

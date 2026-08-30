@@ -9,15 +9,13 @@ seaborn>=0.12
 joblib>=1.3
 pytest>=7.4
 
-# API (Phase 3). Upper bounds are deliberate: FastAPI/Starlette move fast
-# and have shipped breaking changes in minor releases, so the API is pinned to a
-# tested range rather than tracking latest. pydantic is held to v2, the schemas
-# in src/api/schemas.py are v2-style and v1 is a different library in practice.
+# API (Phase 3). FastAPI/Starlette are pinned to a tested range rather than
+# latest because they have shipped breaking changes in minor releases. pydantic
+# is held to v2 (the schemas in src/api/schemas.py are v2-style).
 fastapi>=0.115,<0.117
 uvicorn[standard]>=0.34,<0.36
 pydantic>=2.9,<3
 # TestClient's transport; a test-only dependency of fastapi.testclient.
 httpx>=0.27,<0.29
-# NB: rate limiting for /storybook needs no dependency, it is a tiny in-memory
-# sliding window in api/main.py (SlidingWindowRateLimiter). See
-# config.API_STORYBOOK_RATE_LIMIT for its deliberately narrow scope.
+# /storybook rate limiting needs no dependency: it is a small in-memory sliding
+# window in api/main.py (see config.API_STORYBOOK_RATE_LIMIT).

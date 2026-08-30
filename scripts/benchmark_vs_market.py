@@ -1,119 +1,28 @@
 """Benchmark the reconciled model against de-vigged market odds.
 
-Phase 6 is **not required for v1**. This is a one-off, read-only "how good are we,
-really" check: it takes the model's own held-out-season predictions (produced by
-``model/calibrate.py``), joins them to a static snapshot of
-bookmaker prices for the same season, and reports Brier score + a reliability
-curve for **both, over the identical matched set** (evaluation only, never
-folded back into training)::
+Phase 6, evaluation only and permanently so. Takes the model's own
+held-out-season predictions (from ``model/calibrate.py``), joins them to a
+static, hand-committed snapshot of bookmaker prices for the same season, and
+reports Brier score + a reliability curve for both sides over the identical
+matched set. Nothing here is folded back into training::
 
     python scripts/benchmark_vs_market.py
     python scripts/benchmark_vs_market.py --book PS --top-unresolved 40
 
-Outputs ``config.BENCHMARK_PLOT`` (``outputs/calibration_vs_market.png``) next to
-the model's own ``outputs/calibration.png``, plus a text report at
-``config.BENCHMARK_REPORT``.
+Writes ``config.BENCHMARK_PLOT`` and ``config.BENCHMARK_REPORT`` under
+``outputs/``.
 
---------------------------------------------------------------------------------
-The hard boundary: evaluation only, permanently
---------------------------------------------------------------------------------
-``tennis-data.co.uk`` data must never reach ``data/preprocess.py``, ``features/``,
-``sim/``, or any training/fitting code. ``ace-02-data-schema.md`` records why the
-source was rejected for the primary pipeline (no serve/return columns at all, no
-TLS, framed around betting-system development), and folding
-market odds into the model would be self-defeating: any accuracy gain would just
-be the model re-deriving the market's answer rather than an independent one.
+The dependency is strictly one-way: this script imports the pipeline, nothing
+in the pipeline imports this script, and the market frame never leaves this
+module. ``tests/test_benchmark_vs_market.py`` enforces that by AST-walking
+``src/`` and ``scripts/``.
 
-The dependency is therefore strictly one-way. This script imports the pipeline;
-**nothing in the pipeline imports this script**, and the market frame never
-leaves this module, it is read here, joined here, scored here, and the only
-things that escape are a PNG, a text report and a printed summary.
-``tests/test_benchmark_vs_market.py`` proves that by AST-walking every module
-under ``src/`` and ``scripts/`` rather than taking it on trust.
-
---------------------------------------------------------------------------------
-Provenance of the snapshot, a one-time MANUAL download (2026-08-09)
---------------------------------------------------------------------------------
-``data/benchmarks/tennis_data_atp_2025.csv`` is committed, static, and fetched by
-no automated script. Do **not** wire it into ``scripts/refresh_data.py`` or
-``.github/workflows/refresh-and-simulate.yml``; the whole point of the refresh workflow's gates is
-that unattended jobs only touch sources that can be verified in transit.
-
-How it was obtained, and the HTTP/HTTPS decision:
-
-1. The origin serves **no TLS at all**, ``https://www.tennis-data.co.uk/…`` and
-   ``https://tennis-data.co.uk/…`` both fail the handshake outright
-   (``tlsv1 alert internal error``), so there is no secure origin to prefer.
-2. A secure mirror *does* exist: the Wayback Machine serves the same object over
-   HTTPS. The capture at
-   ``https://web.archive.org/web/20260307200645id_/http://www.tennis-data.co.uk/2025/2025.xlsx``
-   was downloaded over TLS (427,318 bytes, sha256
-   ``8acfcf78d18e0024a145009ff382e940d765d6fab6087d696fae2bea2dd217e2``).
-3. The live origin file was **also** fetched, over plain HTTP
-   (``http://www.tennis-data.co.uk/2025/2025.xlsx``, 426,707 bytes, sha256
-   ``941aaa1abc49131f51e1f7f6eee93dac829dd72578ca10b341dfc4c9d41ba013``), and the
-   two were compared cell by cell. They agree on **2,642 of 2,644 rows**. The two
-   that differ are corrections the vendor made after the March 2026 capture:
-   Rome R2 Moutet–Humbert and Roland Garros R1 Quinn–Dimitrov. Both are
-   retirements *in the corrected data*, and in both the older capture has
-   ``Winner``/``Loser``, and their prices, ranks, sets and game scores, the
-   wrong way round. (The stale copy is not merely inverted on the Roland Garros
-   row: it also labels that match ``Completed`` rather than ``Retired``.)
-
-   Which copy is right was settled against a source independent of both: this
-   repo's own vendored ``data/raw/atp_matches_2025.csv`` records
-   ``Corentin Moutet d. Ugo Humbert 6-3 4-0 RET`` and
-   ``Ethan Quinn d. Grigor Dimitrov 2-6 3-6 6-2 RET``, the live-origin values.
-4. **The committed file is the corrected origin copy**, converted ``.xlsx`` →
-   ``.csv``. The archived HTTPS copy is retained as the *integrity control*
-   rather than as the data: agreeing with an independently-delivered,
-   TLS-authenticated archive on 2,642/2,644 rows is a far stronger statement
-   about the HTTP bytes than the transport alone would have been, and choosing
-   the archive instead would have meant knowingly benchmarking against two
-   inverted results. Serving the stale copy was the only thing TLS-purity would
-   have bought here.
-
-Why plain HTTP is acceptable for this step and forbidden in the scheduled
-refresh: this is a
-one-time fetch of a static file that a human downloaded, diffed against a second
-independent source, inspected, and committed, so any tampering had to survive
-review and is frozen in git history. An automated, unattended refresh has none of
-those properties, nobody looks at the bytes, and a bad fetch would silently
-retrain the model.
-
-The ``.xlsx`` → ``.csv`` conversion is deliberate too: reading the vendor's
-workbook needs ``openpyxl``, and Phase 6 is optional, so the conversion was done
-once by hand rather than adding a dependency to ``requirements.txt`` that CI and
-both Docker images would then install forever. The CSV also matches how every
-other vendored table in this repo is stored (``data/raw/*.csv``).
-
---------------------------------------------------------------------------------
-Columns actually present in the file (verified, not assumed)
---------------------------------------------------------------------------------
-The ticket called ``B365W``/``B365L`` illustrative. They are in fact real. The
-snapshot's 38 columns are::
-
-    ATP Location Tournament Date Series Court Surface Round "Best of"
-    Winner Loser WRank LRank WPts LPts W1 L1 W2 L2 W3 L3 W4 L4 W5 L5
-    Wsets Lsets Comment B365W B365L PSW PSL MaxW MaxL AvgW AvgL BFEW BFEL
-
-Odds are **decimal**, and the columns are keyed by *result* (``…W`` = the price on
-the player who went on to win), not by home/away, so a row leaks its own outcome
-and must be re-oriented onto the model's p1/p2 convention before scoring, which
-:func:`market_prob_for_p1` does. Coverage over the 2,644 rows: ``B365`` 2,632,
-``PS`` 2,534, ``Max``/``Avg`` 2,644, ``BFE`` 651.
-
---------------------------------------------------------------------------------
-What "the model's prediction" means here
---------------------------------------------------------------------------------
-The same thing it means in ``model/calibrate.py``, and for the same reason: under
-the default ``config.RECONCILE_MODE = "classifier_anchor"`` the reconciled
-match-win probability *equals* ``P_clf``, so scoring the pinned classifier's
-``predict_proba`` on the held-out season is scoring the reconciled model. Under
-``"blend"`` the authoritative probability shifts by ``(1−w)·(P_point − P_clf)``
-per match and would need the skill table plus per-row name→id resolution to
-reproduce, out of scope here exactly as it was there. The report states which
-mode it ran under so the number is never read as more than it is.
+The odds snapshot (``config.BENCHMARK_ODDS_SNAPSHOT``) is a one-time manual
+download that no automated job may fetch. Its full provenance, the HTTP/HTTPS
+decision, the integrity cross-check, the ``.xlsx`` -> ``.csv`` conversion, the
+verified column list, and what "the model's prediction" means under each
+reconcile mode, is recorded in ``docs/ace-02-data-schema.md`` under
+"Market-odds benchmark snapshot (Phase 6)".
 """
 
 from __future__ import annotations

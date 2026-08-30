@@ -50,35 +50,12 @@ Exit status is non-zero if a **hard-tolerance** metric (the set-count
 distribution or games-per-set) falls outside its documented band. See
 ``tests/test_sim_realism.py`` for the seeded, generous-band CI version.
 
---------------------------------------------------------------------------------
-FINDING (surfaced by this harness; see ``§7``)
---------------------------------------------------------------------------------
-At the current point-probability derivation, the simulated best-of-5 set-count
-distribution does **not** match historical Slam data: the simulator produces too
-few straight-set matches and too many five-setters (≈+10pp of matches go the
-distance). Best-of-3 shows the same, milder, skew. ``§7`` names this exact
-symptom, "if 5-setters are far too rare/common, your ``p`` derivation or
-clamping is off", and attributes it upstream to the point model (the skill
-table and point-win derivation), **not** to this harness. The mechanism is
-*skill-gap compression*: heavy
-empirical-Bayes shrinkage (``config.SERVE_SHRINKAGE_K``) plus the additive
-serve/return model leave the two players' point-win probabilities clustered near
-the surface baseline (observed mean ``|pA − pB| ≈ 0.05``), so matches play out
-more evenly than real ones, more tiebreaks, longer sets, more deciders. Tiebreak
-frequency (elevated) and games-per-set (elevated) point the same way; break rate
-stays plausible. This is **not** a stale-snapshot artifact: the snapshot table
-scores every historical matchup with the *latest* known skills, so an old
-matchup is scored with present-day skills, but restricting the simulated pool to
-recent (``>= CONFOUND_SINCE_YEAR``) matchups, where those skills are ~
-contemporaneous, reproduces essentially the same gap (mean ``|pA − pB| ≈ 0.047``
-vs ``≈0.048`` on the full pool) and the same set-count skew. The ``CONFOUND
-CONTROL`` block runs that filtered re-run alongside the main comparison so the
-harness makes this robustness argument itself. This is reported faithfully
-rather than hidden behind a loosened tolerance; the tolerance below is deliberately generous
-and the discrepancy still exceeds it by an order of magnitude over sampling
-noise. It is expected to narrow once reconciliation widens effective skill gaps
-(anchoring scorelines to the classifier), and/or the point model revisits
-shrinkage/clamping.
+The ``CONFOUND CONTROL`` block re-runs the comparison on a recent-only subset
+(``>= CONFOUND_SINCE_YEAR``) so a snapshot-skill-table artifact can be ruled out.
+This harness originally surfaced the skill-gap compression finding (too few
+straight-set matches, too many deciders); that finding and its resolution
+(``config.POINT_GAP_GAMMA``, ticket T1.9b) are recorded in
+``docs/ace-03-tennis-math.md §7``.
 """
 from __future__ import annotations
 
