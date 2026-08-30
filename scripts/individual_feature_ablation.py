@@ -1,11 +1,11 @@
 """Individual-feature leave-one-out ablation across all 27 MODEL_FEATURES.
 
-Phase 3 of the model-accuracy lineage (after the §9 H2H experiment and the §10
+Phase 3 of the model-accuracy lineage (after the H2H experiment and the
 feature-FAMILY ablation). This asks, at single-feature grain: can any one of the
-27 features be dropped without cost, and, the key cross-check against §10, are
-the individually-neutral features collectively load-bearing?
+27 features be dropped without cost, and, the key cross-check against the family
+ablation, are the individually-neutral features collectively load-bearing?
 
-Discipline (identical to §10, tightened for 27 comparisons):
+Discipline (identical to the family ablation, tightened for 27 comparisons):
   * Validation season is 2024. Train strictly on years < 2024. TEST_YEAR (2025)
     and the market benchmark are NOT touched here, only the final confirmatory
     step (a separate script/run) may touch them, and only if a candidate clears
@@ -38,7 +38,7 @@ import features.engineering as features
 
 VAL_YEAR = 2024
 RF_KWARGS = dict(n_estimators=100, max_depth=10, random_state=42)
-N_BOOT = 20_000          # tail resolution for a 99.8% CI needs more than §10's 5,000
+N_BOOT = 20_000          # tail resolution for a 99.8% CI needs more than the family ablation's 5,000
 BOOT_SEED = 42
 ALPHA = 0.05
 N_COMPARISONS = len(config.MODEL_FEATURES)  # 27
@@ -113,7 +113,7 @@ def main() -> None:
     base_brier = float(base_se.mean())
     print(f"\nBASELINE (all {len(config.MODEL_FEATURES)}): Brier = {base_brier:.6f} "
           f"(n={len(val)})")
-    print(f"  sanity vs §10 family baseline (0.217470): "
+    print(f"  sanity vs family-ablation baseline (0.217470): "
           f"delta = {base_brier - 0.217470:+.6f}\n")
 
     rng = np.random.default_rng(BOOT_SEED)

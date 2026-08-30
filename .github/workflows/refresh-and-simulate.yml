@@ -240,7 +240,7 @@ jobs:
 
           - **Seasons whose vendored CSV changed:** ${YEARS:-none}
           - **Caches regenerated:** ${CACHES:-none}
-          - **Estimator retrained to:** \`${ESTIMATOR}\`, best-of-four on \`TEST_YEAR\`, so the *type* can change with the data (\`ace-04-current-state.md\` §4). The model itself is gitignored and is not in this diff; \`metadata.estimator_class\` in each cache file records it.
+          - **Estimator retrained to:** \`${ESTIMATOR}\`, best-of-four on \`TEST_YEAR\`, so the *type* can change with the data. The model itself is gitignored and is not in this diff; \`metadata.estimator_class\` in each cache file records it.
           - **Not touched:** \`data/draws/\`, entrants are entered by hand.
 
           The suite ran green against the refreshed data before this PR was opened.

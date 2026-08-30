@@ -16,12 +16,12 @@
 # BuildKit only builds the stages its target depends on, so an API build never
 # touches Node and a frontend build never trains a model.
 #
-# Why the `artefacts` stage regenerates two files rather than copying them, and
-# why that makes the shipped estimator environment-dependent (measured), is in
-# `docs/ace-04-current-state.md` sections 2 (Infra / CI), 4, and 7 seam 9; the
-# reasoning for regenerating over a mounted volume or a fetched release artefact
-# is in the T5.1 entry of `docs/tickets/ace-ticket-index.md`.
-# Per-stage `# why` comments below cover the non-obvious build steps.
+# The two runtime-required files (outputs/tennis_model.pkl, data/cache/*.json)
+# are gitignored and both build-context-excluded, so the `artefacts` stage
+# REGENERATES them rather than copying: this makes every build behave like a
+# clean checkout, and no dev machine can leak a stale model or cache in. One
+# consequence: the persisted estimator is the best-of-four on TEST_YEAR, so its
+# type can vary with the build environment. Per-stage `# why` comments below.
 
 
 # --------------------------------------------------------------------------- #
@@ -73,7 +73,7 @@ RUN pip install -r requirements.txt
 # The guard below is the safety net: any of those turning out to be load-bearing
 # fails the build here rather than at container start. It must keep exercising
 # xgboost specifically, since the persisted model may be an XGBClassifier
-# (best-of-four, §4) and xgboost is what the nvidia prune touches.
+# (the best-of-four winner) and xgboost is what the nvidia prune touches.
 # --------------------------------------------------------------------------- #
 FROM deps AS runtime-deps
 
@@ -114,8 +114,8 @@ RUN mkdir -p outputs data/cache
 # `< /dev/null` closes stdin: predictor.py ends in the interactive REPL, which
 # takes an EOF as "input closed" and exits 0 cleanly (cli/interactive.py:86).
 # Training is the expensive half of this build. The second command prints which
-# of the best-of-four was persisted, the §4 reproducibility risk made visible
-# in the build log, and the same value the API reports at runtime as
+# of the best-of-four was persisted (its type can vary with the build
+# environment), the same value the API reports at runtime as
 # metadata.estimator_class.
 RUN python src/predictor.py < /dev/null \
  && test -s outputs/tennis_model.pkl \
@@ -145,7 +145,7 @@ WORKDIR /app
 # VITE_API_BASE_URL IS A BUILD ARG, AND CAN ONLY EVER BE ONE.
 # Vite inlines it into the bundle at build time and the minifier constant-folds
 # the lookup away entirely, `import.meta.env` and the string
-# "VITE_API_BASE_URL" appear NOWHERE in dist/ (ace-04-current-state.md §7 seam 9). So a compose `environment:`
+# "VITE_API_BASE_URL" appear NOWHERE in dist/. So a compose `environment:`
 # entry, a container ENV, or a runtime `-e` flag does nothing at all: the value
 # was decided when the image was built. Repointing the app at a different API
 # is a REBUILD. Unset is not fatal, the build warns and ships a bundle whose
@@ -177,7 +177,7 @@ RUN npm run build
 FROM nginx:1.27-alpine AS frontend
 
 # The artefact is a folder of static files; it needs no Node runtime, so this
-# is NOT a node image running `vite preview` (a dev-facing command; seam 9). nginx's stock config serves /usr/share/nginx/html
+# is NOT a node image running `vite preview` (a dev-facing command). nginx's stock config serves /usr/share/nginx/html
 # on :80, which is all this app needs: no SPA rewrite (every screen is `/` plus
 # a query string, so no deep link ever requests another path, see render.yaml)
 # and no proxying (the browser calls the API directly, cross-origin, which is

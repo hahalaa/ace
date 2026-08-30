@@ -52,9 +52,8 @@ closed:
    *is* implicit, ``features.engineering.add_features`` rebuilds it from the
    frame on every pipeline build, and nothing persists it, but
    ``outputs/tennis_model.pkl`` is persisted and ``predictor.py`` loads it
-   whenever it exists **without any staleness check**
-   (``ace-04-current-state.md`` §4, seam 5). New data plus an old pickle is a
-   silent mismatch, so the pickle is deleted and regenerated.
+   whenever it exists **without any staleness check**. New data plus an old
+   pickle is a silent mismatch, so the pickle is deleted and regenerated.
 5. **Precompute.** Only now, and only via ``precompute_sim.main``, its id
    resolution, its placeholder refusal, its error ladder and its disclosure
    metadata, not a second copy of any of them.
@@ -104,9 +103,9 @@ from data.preprocess import SERVE_STAT_COLUMNS  # noqa: E402
 # --------------------------------------------------------------------------- #
 # What a usable year file looks like.
 # --------------------------------------------------------------------------- #
-# The columns `data/preprocess.py` indexes by name. Not the whole schema (see
-# ace-02-data-schema.md), the subset whose absence is a KeyError rather than a
-# NaN, so a vendor schema change is caught here instead of three phases later.
+# The columns `data/preprocess.py` indexes by name, the subset whose absence is
+# a KeyError rather than a NaN, so a vendor schema change is caught here instead
+# of three phases later. Not the whole vendor schema.
 CORE_COLUMNS = (
     "tourney_date", "surface", "tourney_level", "round", "best_of", "score",
     "winner_id", "winner_name", "winner_rank", "winner_age",
@@ -253,7 +252,7 @@ def verify_year_file(
         problems.append(
             f"{year}: {len(missing)} required column(s) missing: "
             + ", ".join(missing)
-            + " (the vendor's schema may have changed; see ace-02-data-schema.md)"
+            + " (the vendor's schema may have changed)"
         )
 
     if "tourney_date" in frame.columns:
@@ -324,9 +323,9 @@ def train_model(model_path: Path = config.MODEL_PATH) -> str:
 
     The delete is the load-bearing half. ``predictor.py`` loads
     ``outputs/tennis_model.pkl`` whenever the file exists and **never checks
-    whether the data behind it has moved on** (``ace-04-current-state.md`` §4 /
-    seam 5), so simply re-running it after a refresh would reload the old
-    model and publish new-data numbers from an old fit.
+    whether the data behind it has moved on**, so simply re-running it after a
+    refresh would reload the old model and publish new-data numbers from an old
+    fit.
 
     **Destructive on a developer machine, and deliberately not undone.** The
     delete happens *before* training and there is no restore on failure: if the
@@ -346,14 +345,14 @@ def train_model(model_path: Path = config.MODEL_PATH) -> str:
 
     Returns:
         The class name of the persisted estimator, which of the best-of-four
-        won on ``TEST_YEAR`` is data- and environment-dependent (§4), so it is
+        won on ``TEST_YEAR`` is data- and environment-dependent, so it is
         logged here and carried into every cache file's metadata.
 
     Raises:
         OrchestratorError: If training fails or writes no model.
     """
     if model_path.exists():
-        _log(f"   removing stale {model_path} (no staleness check exists, §4)")
+        _log(f"   removing stale {model_path} (no staleness check exists)")
         model_path.unlink()
 
     env = {**os.environ, "MPLBACKEND": "Agg"}  # headless: train.py writes PNGs

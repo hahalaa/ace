@@ -18,11 +18,9 @@ module. ``tests/test_benchmark_vs_market.py`` enforces that by AST-walking
 ``src/`` and ``scripts/``.
 
 The odds snapshot (``config.BENCHMARK_ODDS_SNAPSHOT``) is a one-time manual
-download that no automated job may fetch. Its full provenance, the HTTP/HTTPS
-decision, the integrity cross-check, the ``.xlsx`` -> ``.csv`` conversion, the
-verified column list, and what "the model's prediction" means under each
-reconcile mode, is recorded in ``docs/ace-02-data-schema.md`` under
-"Market-odds benchmark snapshot (Phase 6)".
+download that no automated job may fetch. What "the model's prediction" means
+depends on the reconcile mode: this scores the classifier's probability, which
+equals the reconciled one only under the default ``classifier_anchor``.
 """
 
 from __future__ import annotations

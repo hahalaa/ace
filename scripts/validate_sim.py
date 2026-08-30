@@ -2,8 +2,8 @@
 
 Confirms the point-by-point match simulator (``sim/match.py``, driven by the
 ``sim/points.py`` point model and the ``features/serve.py`` skill table) produces
-realistic *match shapes* before Phase 2 builds tournaments on top of it
-(``ace-03-tennis-math.md §7``). It compares, side by side:
+realistic *match shapes* before Phase 2 builds tournaments on top of it. It
+compares, side by side:
 
 * the **historical** distribution of match shapes computed from the vendored
   ``data/raw`` CSVs (Grand Slam best-of-5, and best-of-3 tour matches), and
@@ -38,8 +38,8 @@ the emergent match break rate, not a separate model.
 Retirements/walkovers (``RET`` / ``W/O`` / ``def.``) are excluded from the
 historical side, matching how the skill table already excludes them, so the
 historical and simulated populations are apples-to-apples. (``parse_match_score``
-over-counts a pre-retirement partial set, ``ace-02-data-schema.md`` data-quality
-note, so this harness parses scores itself and drops those matches outright.)
+over-counts a pre-retirement partial set, so this harness parses scores itself
+and drops those matches outright.)
 
 Run directly to print the full side-by-side report::
 
@@ -53,9 +53,8 @@ distribution or games-per-set) falls outside its documented band. See
 The ``CONFOUND CONTROL`` block re-runs the comparison on a recent-only subset
 (``>= CONFOUND_SINCE_YEAR``) so a snapshot-skill-table artifact can be ruled out.
 This harness originally surfaced the skill-gap compression finding (too few
-straight-set matches, too many deciders); that finding and its resolution
-(``config.POINT_GAP_GAMMA``, ticket T1.9b) are recorded in
-``docs/ace-03-tennis-math.md §7``.
+straight-set matches, too many deciders); the resolution was the point-model
+amplification ``config.POINT_GAP_GAMMA`` (ticket T1.9b).
 """
 from __future__ import annotations
 
@@ -98,9 +97,9 @@ BREAKRATE_GAMES_PER_SERVER = 3
 # contemporaneous, and the mean gap + set-count skew are confirmed unchanged.
 CONFOUND_SINCE_YEAR = 2024
 
-# Deciding-set rules: all four current Slams use a 10-point tiebreak at 6–6
-# (``ace-03-tennis-math.md §4``); modern ATP best-of-3 uses a 7-point tiebreak in
-# every set including the decider.
+# Deciding-set rules: all four current Slams use a 10-point tiebreak at 6–6;
+# modern ATP best-of-3 uses a 7-point tiebreak in every set including the
+# decider.
 BO5_FINAL_SET_RULE = "10pt_at_6_6"
 BO3_FINAL_SET_RULE = "7pt_at_6_6"
 
@@ -264,8 +263,8 @@ def historical_break_rate(raw: pd.DataFrame, mask: pd.Series) -> tuple[float, in
 
     A service game is broken exactly when a faced break point is not saved, and a
     held game saves all it faced, so ``bpFaced − bpSaved`` counts broken service
-    games (``ace-02-data-schema.md``). Summed over both players and normalised by
-    total service games. Only rows with a complete break-point/serve-game line and
+    games. Summed over both players and normalised by total service games. Only
+    rows with a complete break-point/serve-game line and
     non-retirement scores contribute.
 
     Returns:
@@ -628,14 +627,14 @@ def main(argv: list[str] | None = None) -> int:
     hard_fail = [c for c in checks if c.hard and not c.passed]
     if hard_fail:
         print("\n" + "!" * 74)
-        print("FINDING (§7): the point-by-point simulator's match shapes do NOT")
+        print("FINDING: the point-by-point simulator's match shapes do NOT")
         print("match historical data within the (generous) tolerance:")
         for c in hard_fail:
             print(f"  · {c.name}: hist {c.hist:.3f} vs sim {c.sim:.3f} "
                   f"(Δ={c.sim - c.hist:+.3f}, band |Δ|≤{float(c.bound):.3f})")
         print(
             "\nThe simulator produces too few straight-set wins and too many long\n"
-            "matches, §7's warning sign that the point-win probability derivation\n"
+            "matches, a warning sign that the point-win probability derivation\n"
             "or clamping is off (upstream: skill-table shrinkage / point model), NOT this harness.\n"
             "Root cause: skill-gap compression leaves |pA − pB| clustered near the\n"
             "surface baseline, so matches play out more evenly than real ones.\n"

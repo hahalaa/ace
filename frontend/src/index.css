@@ -23,9 +23,10 @@
  * a simulation is shareable, a link must reproduce the same draw and seed for
  * whoever opens it, regardless of their own display preference. Theme is a
  * per-viewer preference, not part of the thing being shared, so it lives in
- * localStorage (see src/theme.ts), defaulting to the OS `prefers-color-scheme`
- * on first visit. An inline script in index.html applies it before first paint
- * so there is no flash of the wrong ground.
+ * localStorage (see src/theme.ts). First visit defaults to dark; the OS
+ * `prefers-color-scheme` is not consulted. An external same-origin script
+ * (public/theme-init.js) applies it before first paint so there is no flash of
+ * the wrong ground.
  *
  * No web fonts, the system stack keeps the bundle self-contained, and weight +
  * scale + tracking carry the editorial feel without a download.

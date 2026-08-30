@@ -28,8 +28,7 @@ one from those materials. This script is such a caller.
 
 The adapter is ``common/classifier_adapter.py``: all 27 ``config.MODEL_FEATURES``
 come from the pipeline's own leakage-safe state, the rolling ones from
-``features.rolling.build_rolling_form_table`` (``ace-04-current-state.md §7``
-seam 7 is closed).
+``features.rolling.build_rolling_form_table``.
 
 Disclosure stays structural, because a caveat remains and because the
 shape has proved useful: ``mode``/``w``, an ``is_forecast`` flag and a
@@ -90,8 +89,7 @@ ADAPTER = "common.classifier_adapter.make_classifier_prob"
 # written here: the live ``/storybook`` publishes probabilities from the same
 # adapter and must say the same thing about them, and ``api/schemas.py`` is the
 # one module both this script and the API can reach. Deliberately plain-language
-# and self-contained, an API consumer will not have read
-# ace-04-current-state.md.
+# and self-contained: an API consumer has not read this project's internal docs.
 
 
 # --------------------------------------------------------------------------- #
@@ -333,7 +331,7 @@ def main(argv: list[str] | None = None) -> int:
             n_runs=args.runs,
             seed=args.seed,
             # Single-process. The adapter is picklable (a module-level class, not a
-            # closure), but exposing workers>1 owns its own re-verification (seam 8),
+            # closure), but exposing workers>1 would need its own re-verification,
             # and the measured 128 × 5,000 job is 29 s single-threaded anyway.
             workers=1,
             mode=args.reconcile_mode,

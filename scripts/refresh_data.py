@@ -5,10 +5,10 @@ data. It is run **manually** (or by the scheduled workflow) to (re)populate
 ``data/raw/`` with one CSV per year. Simulation, training, and API code must
 never fetch at request time, they read the vendored files this script produces.
 
-Source: Tennismylife's ``TML-Database`` (the primary source; see
-``docs/ace-02-data-schema.md``). Match data is served from the website's
-data-files API, not Jeff Sackmann's ``tennis_atp`` (which is currently unreachable
-and remains a documented fallback only, it is deliberately not a fetch target here).
+Source: Tennismylife's ``TML-Database`` (the primary source). Match data is
+served from the website's data-files API, not Jeff Sackmann's ``tennis_atp``
+(which is currently unreachable and remains a documented fallback only, it is
+deliberately not a fetch target here).
 
 Usage::
 
@@ -29,7 +29,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 import config  # noqa: E402  (import after sys.path tweak)
 
-# --- TML-Database endpoints (see docs/ace-02-data-schema.md) ---------------
+# --- TML-Database endpoints ------------------------------------------------
 # The data-files API returns a JSON manifest of every available file with its
 # download URL. Main-tour per-year files are named "YYYY.csv" (NOT
 # "atp_matches_YYYY.csv", that was a Sackmann-derived assumption). We resolve
@@ -116,11 +116,9 @@ def refresh(start_year: int, end_year: int, raw_dir: Path = RAW_DATA_DIR) -> dic
             print(f"   Failed to refresh {year}: {err}")
 
     print(f"\nRefreshed {len(written)}/{end_year - start_year + 1} years into {raw_dir}")
-    # Self-contained on purpose: this is the terms notice, printed to whoever
-    # just downloaded the data, and it must not depend on any file they may not
-    # have. It pointed at `docs/ace-02-data-schema.md` until the 2026-08-09
-    # audit, a path that is not distributed, so the notice resolved to nothing.
-    # The wording below is the operative-terms summary from that research.
+    # Self-contained on purpose: this terms notice is printed to whoever just
+    # downloaded the data, so it must not point at any file they may not have
+    # (docs/ is gitignored and reaches no clone).
     print(
         "Data source: Tennismylife TML-Database (stats.tennismylife.org),\n"
         "   offered in partnership with CanalTenis (canaltenis.com).\n"

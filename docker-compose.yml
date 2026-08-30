@@ -42,8 +42,7 @@ services:
         # value is frozen when the image is built. An `environment:` entry here
         # would be silently ignored, and `docker compose up` cannot repoint an
         # already-built image at a different API, that needs a rebuild
-        # (`docker compose build --no-cache frontend`); ace-04-current-state.md §7
-        # seam 9.
+        # (`docker compose build --no-cache frontend`).
         #
         # The value is the API's address AS THE BROWSER SEES IT. Not
         # `http://api:8000`: that name only resolves inside the compose

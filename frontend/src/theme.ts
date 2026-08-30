@@ -84,22 +84,12 @@ export function setTheme(theme: Theme): void {
 }
 
 /**
- * The theme currently PAINTED on the document, read back from the attribute the
- * pre-paint script set. This is the single source of truth for the toggle's
- * displayed state, and it is deliberately the DOM attribute, not a fresh
- * localStorage read.
- *
- * The distinction is what fixes the inverted-label bug: localStorage feeds the
- * pre-paint script, which decides the attribute; the attribute drives the CSS
- * paint; the toggle reads the attribute. One direction, one source per stage.
- * If the toggle instead re-read localStorage (as `resolveTheme()` does), it
- * could claim "light" while the page painted dark, precisely what happened when
- * the pre-paint script was CSP-blocked and never stamped the attribute.
- *
- * So when the attribute is somehow absent, we return `DEFAULT_THEME`, the theme
- * the CSS actually paints for a bare `:root` (see index.css), not a resolved
- * preference. The label then still matches the pixels, and one click applies the
- * real choice correctly.
+ * The theme currently PAINTED on the document, read back from the `data-theme`
+ * attribute. This is the toggle's source of truth, deliberately the attribute
+ * and not a fresh localStorage read: reading localStorage could claim "light"
+ * while the page painted dark, so the label must follow the pixels. When the
+ * attribute is somehow absent, fall back to `DEFAULT_THEME`, the theme the CSS
+ * paints for a bare `:root`, not a resolved preference.
  */
 export function currentTheme(): Theme {
   const attr = document.documentElement.getAttribute('data-theme');
