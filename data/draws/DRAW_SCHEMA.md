@@ -20,8 +20,6 @@ Validation is **fail-loudly-but-complete**: every problem in a file is collected
 and reported together in a single `DrawValidationError`, not one-at-a-time, so a
 128-draw with ten unresolved names is fixed in one pass, not ten.
 
----
-
 ## Top-level fields
 
 A draw file is a single JSON object. These eight fields are **required**
@@ -47,22 +45,22 @@ A draw file is a single JSON object. These eight fields are **required**
 | `"10pt_at_6_6"` | first to 10 points (win by 2) in a tiebreak at 6–6, current Slam standard | `10` |
 | `"advantage"` | no tiebreak; keep playing until a player leads by two games | `None` |
 
----
-
 ## Slot fields (`bracket[i]`)
 
 Each entry in `bracket` is a JSON object. You author **two** fields; the loader
 **derives** two more onto the in-memory `DrawSlot`; those derived fields are
 **not** written in the file.
 
-**You write:**
+### Fields you author
 
 | Field | Type | Required | Constraint |
 |---|---|:---:|---|
 | `position` | integer | Yes | 1-based slot number. Slots `2k-1` and `2k` meet in round 1 (positions 1 v 2, 3 v 4, …). Across the bracket the set of positions must be exactly `1..draw_size`. |
 | `player` | string | Yes | Non-empty (after trimming). A real player's **display name** (resolved to a skill-table `player_id`) **or** a placeholder token (see below). Unknown keys inside a slot are ignored. |
 
-**The loader derives (read-only, on the `DrawSlot` dataclass, never in JSON):**
+### Fields the loader derives
+
+Read-only, on the `DrawSlot` dataclass, never written in JSON.
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -98,15 +96,13 @@ names in the file are listed together). Skills are built from the vendored
 seasons, so an entrant only resolves if that player appears in the data your
 skill table was built from.
 
----
-
 ## Optional & ignored fields
 
 `parse_draw` **ignores any key it doesn't recognise**, at the top level and
 inside each slot. That is what lets a file carry provenance without breaking
 validation: the shipped draws use `note` and `source` this way.
 
-One ignored-by-`parse_draw` key is meaningful to the **upload path only**:
+One ignored-by-`parse_draw` key is meaningful to the upload path only:
 
 | Field | Type | Read by | Meaning |
 |---|---|---|---|
@@ -114,8 +110,6 @@ One ignored-by-`parse_draw` key is meaningful to the **upload path only**:
 
 Other conventional-but-ignored keys the example files use: `note` (what the draw
 is) and `source` (where it was reconstructed from).
-
----
 
 ## A complete example draw
 
