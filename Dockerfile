@@ -18,7 +18,9 @@
 #
 # Why the `artefacts` stage regenerates two files rather than copying them, and
 # why that makes the shipped estimator environment-dependent (measured), is in
-# `docs/ace-04-current-state.md` sections 2 (Infra / CI), 4, and 7 seam 9.
+# `docs/ace-04-current-state.md` sections 2 (Infra / CI), 4, and 7 seam 9; the
+# reasoning for regenerating over a mounted volume or a fetched release artefact
+# is in the T5.1 entry of `docs/tickets/ace-ticket-index.md`.
 # Per-stage `# why` comments below cover the non-obvious build steps.
 
 
