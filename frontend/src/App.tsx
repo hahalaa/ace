@@ -1,28 +1,4 @@
-/**
- * App shell, a stateless dispatcher over the query string.
- *
- * Both axes come from `window.location.search`, so the shell holds no state,
- * every screen is deep-linkable, and a shared link lands where it says. The URL
- * model is unchanged from earlier phases (`?view=`, `?tournament=`, `?seed=`) and
- * extended for the single-match view, which carries its own players/surface/
- * format/seed params (see `./components/match`).
- *
- *   /                                    → the dashboard (no draw is loaded)
- *   /?view=match&a=…&b=…&surface=…&bo=…   → one simulated matchup
- *   /?tournament=…&view=bracket          → a draw's bracket
- *   /?tournament=…&view=odds             → its title-odds board
- *   /?tournament=…&view=storybook&seed=… → one played-out run, replayable by link
- *
- * **The landing is the dashboard, not a bracket.** The app used to open straight
- * onto the US Open draw; it now opens on a choice, single match, or a full
- * tournament. Single match is the featured path.
- *
- * **The nav is two tiers.** The primary row picks the *branch* (home, single
- * match, tournament); a secondary row appears inside the tournament branch to
- * pick the *view* (bracket, title odds, storybook, upload). Both are a `switch`
- * over the `View` union returning `ReactElement`, so adding a view without a
- * case is a compile error rather than a blank screen.
- */
+// Stateless app shell: both axes come from window.location.search, so every screen is deep-linkable. The view dispatch is a switch over the View union returning ReactElement, so a missing case is a compile error.
 
 import type { ReactElement } from 'react';
 
@@ -66,16 +42,14 @@ function isView(value: string): value is View {
   return (VIEWS as readonly string[]).includes(value);
 }
 
-/** The screen a view names. Exhaustive by construction, see the docstring. */
+/** The screen a view names. Exhaustive by construction. */
 function screenFor(view: View, tournamentId: string): ReactElement {
   switch (view) {
     case 'dashboard':
       return <Dashboard tournamentId={tournamentId} />;
     case 'match':
-      // The one screen that reads no tournament axis: it reads its own params.
       return <MatchSim />;
     case 'rankings':
-      // Also tournament-free: a global Elo leaderboard.
       return <Rankings />;
     case 'bracket':
       return <Bracket tournamentId={tournamentId} />;
@@ -95,8 +69,7 @@ function App() {
   const view: View = isView(requestedView) ? requestedView : 'dashboard';
   const branch = branchOf(view);
 
-  // Primary branch links. Home and single match carry no tournament; the
-  // tournament branch enters at the bracket and keeps the current draw.
+  // Primary branch links; the tournament branch enters at the bracket and keeps the current draw.
   const primary: { key: Branch; label: string; href: string }[] = [
     { key: 'home', label: 'Home', href: '?view=dashboard' },
     { key: 'match', label: 'Single match', href: '?view=match' },
@@ -115,13 +88,7 @@ function App() {
     <main>
       <header className="masthead">
         <div className="brand">
-          {/* The wordmark returns home. A seamed tennis ball stands in for the
-             accent, two seams, one opening to each side, bulging toward the
-             centre but leaving a clear gap between them, the way a real ball's
-             seams read head-on. Endpoints tuck inside the rim so the round caps
-             don't poke past the edge. Fill/seam are theme tokens (see .ballMark
-             in index.css): --ball for the body, --ball-ink for the seam, the one
-             colour guaranteed to contrast on the ball in either theme. */}
+          {/* Wordmark returns home; the ball-mark fill/seam are theme tokens (--ball / --ball-ink). */}
           <a className="wordmark" href="?view=dashboard" aria-label="Ace home">
             Ace
             <svg

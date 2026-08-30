@@ -1,23 +1,4 @@
-/**
- * The "Recent simulations" panel on the dashboard: a short, scannable list of the
- * user's own past results, each a deep link back to the exact reproduced run.
- *
- * **It reads history, it does not make it.** Entries are logged by the match and
- * storybook views as their results complete (see `../history/store`); this only
- * renders what is stored and offers a way to clear it. Every item is a plain link
- * carrying the existing `?view=…&seed=…` URL state, so following one lands on the
- * unchanged view with its own disclosures intact, nothing here is duplicated or
- * altered.
- *
- * **Empty means empty.** With no history there is nothing to render, so a
- * first-time visitor's landing page is not cluttered with an empty-state
- * placeholder: the component returns `null`.
- *
- * **Honest about ephemeral uploads.** An entry flagged `ephemeral` (an
- * uploaded-draw storybook) is labelled as possibly no longer playable, because the
- * server holds uploaded draws in memory only. Clicking through degrades via the
- * storybook view's existing not-found panel; no new error UI lives here.
- */
+// The "Recent simulations" dashboard panel: renders what ../history/store logged as deep links; returns null with no history.
 
 import { useCallback, useId, useState } from 'react';
 
@@ -29,8 +10,7 @@ import styles from './recent.module.css';
 function Item({ entry }: { entry: HistoryEntry }) {
   const when = relativeTime(entry.timestamp);
   const iso = new Date(entry.timestamp).toISOString();
-  // One accessible name that carries everything the eye gets from the row: what
-  // it was, when it ran, and (for an upload) that it may not open any more.
+  // One accessible name carrying what the eye gets from the row.
   const label = entry.ephemeral
     ? `${entry.summary}, ${when}, may no longer be playable`
     : `${entry.summary}, ${when}`;

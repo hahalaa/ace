@@ -1,12 +1,5 @@
 // @vitest-environment jsdom
-/**
- * Rankings tests: the note it must show, the default active-only filter and the
- * inactive toggle (the stale-player fix), track tabs, and the failures that must
- * not read as "no data".
- *
- * `getRankings` is stubbed but the rest of `../api/client` is real, so the error
- * classes here are the ones the component branches on.
- */
+// Rankings tests: the note it must show, the default active-only filter and the inactive toggle, track tabs, and the failures that must not read as "no data".
 
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';

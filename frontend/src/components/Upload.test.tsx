@@ -1,11 +1,5 @@
 // @vitest-environment jsdom
-/**
- * Upload screen tests: a picked file becomes a POST, a success links into the
- * new draw's screens, and a validation failure surfaces the shared error panel.
- *
- * `uploadDraw` is stubbed; the rest of `../api/client` is the real module, so
- * `ApiError` is the class the panel actually branches on.
- */
+// Upload screen tests: a picked file becomes a POST, a success links into the new draw's screens, and a validation failure surfaces the shared error panel.
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -65,8 +59,7 @@ it('POSTs the file text and links into the new draw on success', async () => {
   const bracket = screen.getByRole('link', { name: 'View bracket' });
   expect(bracket.getAttribute('href')).toBe('?tournament=upload-abc123&view=bracket');
 
-  // The server's own content note is shown, not a paraphrase, it already
-  // carries the ephemeral-storage caveat, so the screen adds no second copy.
+  // The server's own content note is shown, not a paraphrase, it already carries the ephemeral-storage caveat, so the screen adds no second copy.
   expect(screen.getByText(OK_RESULT.content_note)).toBeTruthy();
 });
 

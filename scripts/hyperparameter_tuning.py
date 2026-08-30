@@ -1,45 +1,8 @@
-"""RandomForest hyperparameter search on the confirmed 27-feature set.
+"""RandomForest hyperparameter search over the 27-feature set, three-tier validation, primary metric Brier.
 
-Phase 4 of the model-accuracy lineage (after the H2H experiment, the feature-
-FAMILY ablation, and the individual-feature LOO ablation). Those three varied the
-FEATURES with the estimator fixed. This one inverts that: FEATURES are frozen at
-all 27 MODEL_FEATURES, and only the pinned estimator's (RandomForest's) three
-capacity/regularisation knobs move.
-
-Three-tier validation, deliberately not the prior experiments' single 2024 split,
-because scoring ~27 configs against one arbitrary held-out year is the optimizer's
-curse:
-
-  TIER 1 (SEARCH): forward-chaining CV entirely WITHIN the training years
-    (2014-2023). 2024 and 2025 are untouched here. Five expanding-window folds,
-    each validation block a full season:
-        train 2014-2018 -> val 2019
-        train 2014-2019 -> val 2020
-        train 2014-2020 -> val 2021
-        train 2014-2021 -> val 2022
-        train 2014-2022 -> val 2023
-    Time-aware, not random: the deployment regime is strictly train-past ->
-    predict-future, and player skill is non-stationary, so a random fold that
-    trains on 2022 to predict 2015 would both leak temporal structure and
-    mis-estimate forward error. The feature pipeline is already leakage-safe at
-    row grain (rolling stats .shift(1); H2H/surface built in date order), so the
-    only leakage the fold design must still prevent is this cross-time one.
-
-  TIER 2 (CONFIRMATION): the SINGLE CV winner (only that one, not a shortlist) is
-    trained on 2014-2023 and scored once on the untouched 2024 season, with a
-    paired bootstrap CI of the Brier difference vs the baseline config -- the same
-    check every prior experiment used.
-
-  TIER 3 (FINAL): only if tier 2 confirms. Not run here -- a separate step retrains
-    on <TEST_YEAR and touches 2025 + the market benchmark exactly once.
-
-Primary metric is BRIER (a proper scoring rule, and what the whole downstream --
-reconciliation, calibration, the market benchmark -- is judged on, and what
-all three prior experiments decided on). Accuracy is reported alongside because
-train.py's best-of-four actually SELECTS on accuracy; the tension is noted in the
-write-up.
-
-Evaluation only. Writes nothing to config, MODEL_FEATURES, or any artefact.
+Tier 1: forward-chaining CV within the training years. Tier 2: the single CV winner, one shot on
+untouched 2024. Tier 3 (final, not run here): retrain on <TEST_YEAR and touch 2025 + the benchmark.
+Evaluation only: writes nothing to config, MODEL_FEATURES or any artefact.
 """
 
 from __future__ import annotations
@@ -60,15 +23,12 @@ import data.loader as loader
 import data.preprocess as preprocess
 import features.engineering as features
 
-# --- Pre-committed, bounded grid (report before running) -------------------
-# Baseline = (100, 10, 1) is deliberately a grid point, evaluated identically.
+# Pre-committed bounded grid; baseline (100, 10, 1) is itself a grid point.
 GRID_N_ESTIMATORS = [100, 300, 500]
 GRID_MAX_DEPTH = [10, 16, None]        # None = unlimited depth
 GRID_MIN_SAMPLES_LEAF = [1, 5, 20]
 BASELINE = dict(n_estimators=100, max_depth=10, min_samples_leaf=1)
-FIXED = dict(random_state=42, n_jobs=-1)  # max_features='sqrt' default; RF is
-# deterministic under fixed random_state regardless of n_jobs, so parallelism is
-# a pure speedup and does not affect any reported number.
+FIXED = dict(random_state=42, n_jobs=-1)  # RF is deterministic under fixed random_state; n_jobs is a pure speedup
 
 VAL_YEAR = 2024                        # tier-2 confirmation season (untouched in tier 1)
 CV_START = 2014                        # first training year
@@ -210,8 +170,7 @@ def main() -> None:
           f"pooled Brier={winner['pooled_brier']:.6f}  "
           f"(Δ {winner['pooled_brier'] - baseline['pooled_brier']:+.6f})")
 
-    # Paired bootstrap of the CV winner vs baseline on the POOLED cv rows, to see
-    # whether the CV margin itself is inside noise before spending the 2024 bite.
+    # Paired bootstrap of the CV winner vs baseline on pooled CV rows, before spending the 2024 bite.
     if not winner["is_baseline"]:
         rng = np.random.default_rng(BOOT_SEED)
         n = len(baseline["pooled_se"])

@@ -1,26 +1,7 @@
-"""Offline Elo-ratings precompute (elo-ratings branch), fills the rankings cache.
+"""Compute overall + per-surface Elo leaderboards offline into the cache GET /rankings reads.
 
-Elo is a **display feature**: the Rankings screen shows it and nothing else
-consumes it (see ``src/features/elo.py`` and the wall enforced by
-``tests/test_elo_isolation.py``). Like the skill table and the Monte Carlo cache,
-it is computed **offline** on the same weekly cadence as everything else, never
-per request, ``GET /rankings`` only ever reads the file this script writes::
-
-    python scripts/precompute_elo.py
-
-The reasoning about *where* it runs mirrors the API's cache-only principle: rating
-1,400 players over 35,000 matches is cheap (~1 s) but is still work that belongs
-at build/refresh time, so the endpoint stays a pure reader.
-
-**It reads the raw loader frame directly**, not ``ApiContext``. Elo needs
-explicit winner/loser, which ``data.loader.load_atp_data`` carries before
-``data.preprocess`` randomises matches into p1/p2, so this script loads that
-frame and never builds the classifier, the skill table or any simulation state.
-That is the honest shape of a feature that touches none of them.
-
-Output: ``data/cache/elo_ratings.json`` (``features.elo.elo_cache_path``), a
-validated :class:`~api.schemas.RankingsResponse`, so what the endpoint parses
-back is what was validated here.
+Reads the raw loader frame directly (Elo needs explicit winner/loser, pre-p1/p2), never the
+classifier or skill table. Output is a validated api.schemas.RankingsResponse.
 """
 
 from __future__ import annotations
@@ -31,9 +12,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-# scripts/ is not on pyproject's ``pythonpath = ["src"]``; add src/ so this
-# script imports project modules the way the runtime pipeline does. Same
-# bootstrap as scripts/precompute_sim.py.
+# scripts/ is not on pyproject's pythonpath; add src/ so imports resolve like the runtime.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 import config  # noqa: E402
@@ -57,12 +36,7 @@ from features.elo import (  # noqa: E402
 def build_payload(
     result: EloResult, *, generated_at: datetime | None = None
 ) -> RankingsResponse:
-    """Turn a finished Elo run into the cache/wire payload.
-
-    Presentation over already-built data: every number comes from the
-    :class:`~features.elo.EloResult` and its :class:`~features.elo.PlayerRating`\\ s.
-    Nothing is recomputed here.
-    """
+    """Turn a finished Elo run into the cache/wire payload (presentation only, nothing recomputed)."""
     tracks = [
         RankingsTrack(
             track=track_name,

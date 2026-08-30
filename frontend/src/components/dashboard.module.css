@@ -1,9 +1,4 @@
-/*
- * The landing screen. Two cards over an editorial hero. Tokens from
- * src/index.css; the accent (--ball) is an interaction state, it follows the
- * hovered or keyboard-focused card, so both cards are treated identically and
- * neither is pre-highlighted at rest.
- */
+/* The landing screen: two cards over an editorial hero. The accent follows the hovered/focused card. Tokens from src/index.css. */
 
 .dashboard {
   display: flex;
@@ -11,10 +6,7 @@
   gap: clamp(1.75rem, 4vw, 3rem);
 }
 
-/* The screen leads itself in, section by section: the hero, then the two
-   cards, then the demo line. Uses the shared `rise` keyframe via the
-   `--kf-rise` token (see index.css); off entirely for anyone who asked for
-   less motion. */
+/* The screen leads itself in section by section via the shared rise keyframe; off under reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   .hero {
     animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
@@ -76,14 +68,7 @@
     translate var(--dur-2) var(--ease-spring);
 }
 
-/* Both cards are activatable controls in the toolbar, so both get the same
-   rest, hover, press and keyboard-focus treatment. The accent (gold border +
-   tinted ground) is an *interaction* state, not a fixed decoration: it follows
-   whichever card is hovered or keyboard-focused, so a mouse hover and a roving-
-   tabindex arrow move both light up the card the user is actually on. At rest
-   neither card is pre-highlighted. The lift is carried by the tinted shadow as
-   much as the translate, so it still reads on reduced motion where the movement
-   is dropped. */
+/* Both cards get identical rest/hover/press/focus treatment; the accent is an interaction state following the card the user is on. */
 .card:hover,
 .card:focus-visible {
   border-color: var(--ball-line);
@@ -100,23 +85,19 @@
   transition-duration: var(--dur-1);
 }
 
-/* The keyboard-focus state reads as the app's gold/green highlight, the same
-   ball-coloured ring the rest of the app uses for :focus-visible, not a
-   generic browser outline, on top of the shared border/ground accent above. */
+/* Keyboard focus uses the app's ball-coloured :focus-visible ring, on top of the accent above. */
 .card:focus-visible {
   outline: 2px solid var(--ball);
   outline-offset: 3px;
 }
 
-/* The kicker takes the accent ink in step with its card's hover/focus state,
-   so the highlight reads as a whole and never sits on one card at rest. */
+/* The kicker takes the accent ink in step with its card's hover/focus state, so the highlight reads as a whole and never sits on one card at rest. */
 .card:hover .cardKicker,
 .card:focus-visible .cardKicker {
   color: var(--ball);
 }
 
-/* Motion is decorative; honour a reduced-motion preference. The shadow lift
-   stays (it is depth, not movement); only the translate is dropped. */
+/* Motion is decorative; honour a reduced-motion preference. The shadow lift stays (it is depth, not movement); only the translate is dropped. */
 @media (prefers-reduced-motion: reduce) {
   .card {
     transition:

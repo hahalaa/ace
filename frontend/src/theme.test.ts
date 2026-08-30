@@ -1,10 +1,5 @@
 // @vitest-environment jsdom
-/**
- * Theme resolution: the rules that decide which register a visitor lands in,
- * and that a flip persists. These are the pure functions the external pre-paint
- * script (public/theme-init.js) mirrors by hand, so pinning them here also pins
- * the contract that script has to keep.
- */
+// Theme resolution rules, which public/theme-init.js mirrors by hand.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -70,8 +65,7 @@ describe('resolveTheme', () => {
   });
 
   it('a genuine first visit falls back to DEFAULT dark, ignoring an OS light preference', () => {
-    // The policy change: prefers-color-scheme must NOT pull a first-time visitor
-    // to light. Empty storage + a light-preferring OS still resolves to dark.
+    // prefers-color-scheme must not pull a first-time visitor to light.
     stubSystem(true);
     expect(storedTheme()).toBeNull();
     expect(resolveTheme()).toBe(DEFAULT_THEME);
@@ -106,16 +100,9 @@ describe('currentTheme', () => {
   });
 
   it('falls back to the DEFAULT (what the CSS paints), not a preference read', () => {
-    // Regression guard for the inverted-label bug. When the pre-paint script did
-    // not stamp the attribute (it was CSP-blocked on the deployed site), the CSS
-    // paints the bare-:root DARK default regardless of any stored preference. The
-    // toggle's state must match those pixels, so currentTheme() returns DEFAULT
-    // here, it must NOT trust localStorage, or it would claim a theme the page
-    // is not showing. The old code read resolveTheme() here and returned 'light',
-    // producing a label that disagreed with the dark page.
-    stubSystem(true); // OS prefers light...
-    window.localStorage.setItem(THEME_STORAGE_KEY, 'light'); // ...and light is stored
-    // ...but no attribute is painted, so the page is showing dark:
+    // Regression guard for the inverted-label bug: with no painted attribute the page shows dark.
+    stubSystem(true);
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'light');
     expect(currentTheme()).toBe('dark');
   });
 });

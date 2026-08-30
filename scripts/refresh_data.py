@@ -1,19 +1,4 @@
-"""Refresh the vendored raw match data from TML-Database.
-
-This script is the **only** place in the project that hits the network for match
-data. It is run **manually** (or by the scheduled workflow) to (re)populate
-``data/raw/`` with one CSV per year. Simulation, training, and API code must
-never fetch at request time, they read the vendored files this script produces.
-
-Source: Tennismylife's ``TML-Database`` (the primary source). Match data is
-served from the website's data-files API, not Jeff Sackmann's ``tennis_atp``
-(which is currently unreachable and remains a documented fallback only, it is
-deliberately not a fetch target here).
-
-Usage::
-
-    python scripts/refresh_data.py --start 2014 --end 2026
-"""
+"""Refresh the vendored raw match data from TML-Database (the only network fetch in the project)."""
 from __future__ import annotations
 
 import argparse
@@ -24,21 +9,14 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-# --- src on path so we can read shared constants (START_YEAR) --------------
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 import config  # noqa: E402  (import after sys.path tweak)
 
-# --- TML-Database endpoints ------------------------------------------------
-# The data-files API returns a JSON manifest of every available file with its
-# download URL. Main-tour per-year files are named "YYYY.csv" (NOT
-# "atp_matches_YYYY.csv", that was a Sackmann-derived assumption). We resolve
-# each year's URL from the manifest, falling back to the direct data path.
+# The data-files API serves a JSON manifest; main-tour files are named "YYYY.csv".
 MANIFEST_URL = "https://stats.tennismylife.org/api/data-files"
 DATA_BASE_URL = "https://stats.tennismylife.org/data"
 
-# Vendored per-year files are saved here. Kept as an internal local name; the
-# loader reads this same pattern. (config.RAW_DATA_DIR is the shared constant.)
 RAW_DATA_DIR = _REPO_ROOT / "data" / "raw"
 LOCAL_NAME = "atp_matches_{year}.csv"
 
@@ -46,21 +24,14 @@ _USER_AGENT = "ace-tennis-sim/refresh_data (non-commercial research)"
 
 
 def fetch_url(url: str) -> bytes:
-    """Fetch the raw bytes at ``url``. The single network primitive in this module.
-
-    Tests monkeypatch this to avoid real network access.
-    """
+    """Fetch the raw bytes at ``url`` (the single network primitive here; tests monkeypatch it)."""
     req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
     with urllib.request.urlopen(req, timeout=60) as resp:
         return resp.read()
 
 
 def fetch_manifest() -> dict[str, str]:
-    """Fetch the TML data-files manifest and return a ``{name: url}`` map.
-
-    Returns an empty dict if the manifest can't be fetched/parsed, so callers can
-    fall back to the direct data-path URL pattern.
-    """
+    """Fetch the TML data-files manifest as a ``{name: url}`` map (empty if unavailable)."""
     try:
         payload = json.loads(fetch_url(MANIFEST_URL).decode("utf-8"))
         return {entry["name"]: entry["url"] for entry in payload.get("files", [])}
@@ -70,19 +41,7 @@ def fetch_manifest() -> dict[str, str]:
 
 
 def download_year(year: int, raw_dir: Path, manifest: dict[str, str]) -> Path:
-    """Download a single year's main-tour CSV and write it to ``raw_dir``.
-
-    Resolves the download URL from ``manifest`` (self-validating that the year
-    exists), falling back to the direct ``{DATA_BASE_URL}/{year}.csv`` pattern.
-
-    Args:
-        year: Calendar year to fetch.
-        raw_dir: Destination directory for the vendored file.
-        manifest: ``{name: url}`` map from :func:`fetch_manifest` (may be empty).
-
-    Returns:
-        The path the file was written to.
-    """
+    """Download one year's main-tour CSV to ``raw_dir``, resolving the URL via ``manifest`` or the direct pattern."""
     remote_name = f"{year}.csv"
     url = manifest.get(remote_name, f"{DATA_BASE_URL}/{remote_name}")
 
@@ -94,14 +53,7 @@ def download_year(year: int, raw_dir: Path, manifest: dict[str, str]) -> Path:
 
 
 def refresh(start_year: int, end_year: int, raw_dir: Path = RAW_DATA_DIR) -> dict[int, Path]:
-    """Download main-tour CSVs for ``start_year..end_year`` (inclusive) into ``raw_dir``.
-
-    Downloads are sequential and polite. Individual year failures are logged and
-    skipped, one bad year never aborts the whole run.
-
-    Returns:
-        A ``{year: path}`` map of the years that were successfully written.
-    """
+    """Download main-tour CSVs for ``start_year..end_year`` into ``raw_dir``, returning a ``{year: path}`` map of successes (a failed year is logged, skipped, and simply absent from the map)."""
     print(f"Refreshing TML-Database match data for {start_year}–{end_year}...")
     manifest = fetch_manifest()
 
@@ -116,9 +68,7 @@ def refresh(start_year: int, end_year: int, raw_dir: Path = RAW_DATA_DIR) -> dic
             print(f"   Failed to refresh {year}: {err}")
 
     print(f"\nRefreshed {len(written)}/{end_year - start_year + 1} years into {raw_dir}")
-    # Self-contained on purpose: this terms notice is printed to whoever just
-    # downloaded the data, so it must not point at any file they may not have
-    # (docs/ is gitignored and reaches no clone).
+    # Self-contained terms notice: printed to whoever just downloaded the data.
     print(
         "Data source: Tennismylife TML-Database (stats.tennismylife.org),\n"
         "   offered in partnership with CanalTenis (canaltenis.com).\n"

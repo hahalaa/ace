@@ -1,6 +1,4 @@
-/**
- * The relative-time wording used by the recent-simulations list.
- */
+// The relative-time wording used by the recent-simulations list.
 
 import { describe, expect, it } from 'vitest';
 

@@ -1,18 +1,5 @@
 // @vitest-environment jsdom
-/**
- * TitleOdds tests: the columns it derives, the order it ranks in, the caveat it
- * is required to show, and the failures that must not read as "no data".
- *
- * **The 8-draw case is necessarily mocked, and that is not a shortcut.** The
- * shipped draws are all 128-slot, and a draw holding a `Qualifier` is refused by
- * `/simulate` (409 `draw_not_simulatable`) with no cache, so the only cached simulation
- * is the 128 draw. A mocked payload is the only way to exercise the small-draw
- * column derivation at all, which is exactly the regression a hardcoded
- * three-column table would survive.
- *
- * `getSimulate`/`searchPlayers` are stubbed but the rest of `../api/client` is
- * real, so the error classes here are the ones the component branches on.
- */
+// TitleOdds tests: the columns it derives, the order it ranks in, and the failures that must not read as "no data". The 8-draw case is mocked because every shipped cached simulation is 128-slot.
 
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -40,12 +27,9 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
-// --------------------------------------------------------------------------
 // Fixtures, shaped exactly like `data/cache/usopen_2024_atp_full.json`.
-// --------------------------------------------------------------------------
 
-// The one-line summary the reader always sees, and the full account behind the
-// collapsed toggle, the two-field split `api.schemas.ModelDisclosure` ships.
+// The one-line summary the reader always sees, and the full account behind the collapsed toggle, the two-field split `api.schemas.ModelDisclosure` ships.
 const SUMMARY =
   'Not a forecast. This draw already happened, so the model is scoring a result it could have seen.';
 const LIMITATION =
@@ -165,9 +149,7 @@ function headers(): string[] {
     .map((th) => th.textContent?.trim() ?? '');
 }
 
-// --------------------------------------------------------------------------
 // Pure derivation.
-// --------------------------------------------------------------------------
 
 describe('column derivation', () => {
   it('drops the first round, which is 1.0 for every entrant by construction', () => {
@@ -183,10 +165,7 @@ describe('column derivation', () => {
   });
 
   it('yields no columns for a draw with nothing between round one and the title', () => {
-    // No such draw ships today, the smallest is 8, but `slice(1)` is the kind
-    // of expression that turns into an off-by-one at the boundary, and a table
-    // that renders a stray column or throws on a 2-slot payload is worse than
-    // one that renders none.
+    // slice(1) is off-by-one-prone at the boundary; a 2-slot payload must render no columns, not throw.
     expect(survivalColumns(['F'])).toEqual([]);
     expect(survivalColumns([])).toEqual([]);
   });
@@ -212,9 +191,7 @@ describe('column derivation', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // The two payload sizes, the ticket's headline regression.
-// --------------------------------------------------------------------------
 
 describe('rendering a 128-draw payload', () => {
   it('renders six survival columns, derived from round_labels', async () => {
@@ -257,9 +234,7 @@ describe('rendering an 8-draw payload', () => {
 });
 
 describe('rendering a degenerate payload', () => {
-  // Hypothetical, the smallest draw shipped is 8, but the header row, the
-  // body cells and the expanded card's `colSpan` are all derived from the same
-  // column list, so a zero-length one has to be a rendering case, not a crash.
+  // Hypothetical, the smallest draw shipped is 8, but the header row, the body cells and the expanded card's `colSpan` are all derived from the same column list, so a zero-length one has to be a rendering case, not a crash.
   it('renders a single-round draw with no survival columns at all', async () => {
     await renderOdds(
       eightDraw({ tournament_id: 'toy_2', draw_size: 2, round_labels: ['F'], count: 2 }),
@@ -280,10 +255,7 @@ describe('rendering a degenerate payload', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Jannik Sinner' }));
     const card = await screen.findByTestId('player-card');
 
-    // 3 fixed columns + 0 survival + Title + E[W]. The card's own skill table
-    // is a second `table` by now, so scope the count to the odds table's head.
-    // `:scope >` matters: the card's table is nested inside this one's tbody,
-    // so a plain descendant selector would count its headers too.
+    // 3 fixed columns + 0 survival + Title + E[W]. `:scope >` scopes the count to the odds table's own head.
     expect(card.closest('td')?.getAttribute('colspan')).toBe('5');
     const oddsHead = document.querySelector('table')!.querySelectorAll(':scope > thead > tr > th');
     expect([...oddsHead].map((th) => th.textContent)).toEqual([
@@ -296,12 +268,7 @@ describe('rendering a degenerate payload', () => {
   });
 });
 
-// --------------------------------------------------------------------------
-// The disclosure and the bottom stats strip: dropped from this screen. The
-// wire fields (`SimulationMetadata`'s `ModelDisclosure` base) still travel
-// in the response for any non-browser consumer, only the browser's
-// rendering of them is gone, which is what these tests pin.
-// --------------------------------------------------------------------------
+// The disclosure and bottom stats strip are dropped from this screen; the wire fields still travel in the response.
 
 describe('disclosure', () => {
   it('does not render the model disclosure or the bottom stats strip', async () => {
@@ -316,15 +283,12 @@ describe('disclosure', () => {
   it('moves the table up with no leftover divider or spacing artifact', async () => {
     await renderOdds(eightDraw());
     const table = screen.getByRole('table');
-    // The heading is the only thing above the table now, nothing sits
-    // between them, so the table wrap is the header's very next sibling.
+    // The heading is the only thing above the table now, nothing sits between them, so the table wrap is the header's very next sibling.
     expect(table.closest('div')?.previousElementSibling?.tagName).toBe('HEADER');
   });
 });
 
-// --------------------------------------------------------------------------
 // The table caption.
-// --------------------------------------------------------------------------
 
 describe('caption', () => {
   it('reads the plain, reworded caption rather than the old corporate copy', async () => {
@@ -335,9 +299,7 @@ describe('caption', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // PlayerCard, expanded from a row.
-// --------------------------------------------------------------------------
 
 describe('player card', () => {
   it('expands a row on demand and shows skill plus this run’s probabilities', async () => {
@@ -383,9 +345,7 @@ describe('player card', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // Failures, "not simulated yet" must not read like "no data".
-// --------------------------------------------------------------------------
 
 describe('loading and error states', () => {
   it('shows a status message while the request is in flight', async () => {

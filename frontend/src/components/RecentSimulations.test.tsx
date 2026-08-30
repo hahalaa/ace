@@ -1,9 +1,5 @@
 // @vitest-environment jsdom
-/**
- * The "Recent simulations" dashboard panel: empty renders nothing, a populated
- * history renders scannable links back to the reproduced runs, the ephemeral
- * upload label shows for that case, and clearing empties the panel.
- */
+// The "Recent simulations" panel: empty renders nothing, a populated history renders scannable links, the ephemeral upload label shows for that case, and clearing empties the panel.
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';

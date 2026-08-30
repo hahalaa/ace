@@ -1,25 +1,9 @@
-"""Benchmark the reconciled model against de-vigged market odds.
+"""Benchmark the model's held-out-season predictions against de-vigged market odds, evaluation only.
 
-Phase 6, evaluation only and permanently so. Takes the model's own
-held-out-season predictions (from ``model/calibrate.py``), joins them to a
-static, hand-committed snapshot of bookmaker prices for the same season, and
-reports Brier score + a reliability curve for both sides over the identical
-matched set. Nothing here is folded back into training::
-
-    python scripts/benchmark_vs_market.py
-    python scripts/benchmark_vs_market.py --book PS --top-unresolved 40
-
-Writes ``config.BENCHMARK_PLOT`` and ``config.BENCHMARK_REPORT`` under
-``outputs/``.
-
-The dependency is strictly one-way: this script imports the pipeline, nothing
-in the pipeline imports this script, and the market frame never leaves this
-module. ``tests/test_benchmark_vs_market.py`` enforces that by AST-walking
-``src/`` and ``scripts/``.
-
-The odds snapshot (``config.BENCHMARK_ODDS_SNAPSHOT``) is a one-time manual
-download that no automated job may fetch. What "the model's prediction" means
-depends on the reconcile mode: this scores the classifier's probability, which
+Joins the model's own ``TEST_YEAR`` rows to a static, hand-committed bookmaker-price snapshot and
+reports Brier + a reliability curve for both sides over the identical matched set. The dependency
+is strictly one-way (enforced by ``tests/test_benchmark_vs_market.py``); the odds snapshot is a
+manual download no automated job may fetch. The probability scored is the classifier's, which
 equals the reconciled one only under the default ``classifier_anchor``.
 """
 
@@ -30,8 +14,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Running this as a script puts scripts/ on sys.path[0], not src/, the same
-# bootstrap cli/simulate_match.py and scripts/validate_sim.py carry.
+# Running as a script puts scripts/ on sys.path[0], not src/; add src/.
 _SRC = Path(__file__).resolve().parent.parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
@@ -44,8 +27,7 @@ import model.calibrate as calibrate  # noqa: E402
 import sim.reconcile as reconcile  # noqa: E402
 from common.names import NameIndex, resolve_name  # noqa: E402
 
-# Bookmaker prefix -> (winner-price column, loser-price column). A property of
-# the vendor's file layout, so it lives with the reader rather than in config.
+# Bookmaker prefix -> (winner-price column, loser-price column), a property of the vendor's layout.
 BOOK_COLUMNS: dict[str, tuple[str, str]] = {
     "B365": ("B365W", "B365L"),
     "PS": ("PSW", "PSL"),
@@ -54,44 +36,12 @@ BOOK_COLUMNS: dict[str, tuple[str, str]] = {
     "BFE": ("BFEW", "BFEL"),
 }
 
-# Columns the join needs; a snapshot missing any of them is rejected up front
-# rather than producing a mysteriously empty report.
+# Columns the join needs; a snapshot missing any is rejected up front.
 REQUIRED_COLUMNS = ("Date", "Winner", "Loser", "Comment")
 
 
-# ==========================================================================
-# De-vigging (pure)
-# ==========================================================================
-
 def devig(odds_winner: float, odds_loser: float) -> float:
-    """Remove the overround from a two-way decimal-odds market.
-
-    Implied probabilities are the reciprocals ``1/oW`` and ``1/oL``; because the
-    book prices in its margin they sum to more than 1 (the overround, or vig).
-    Normalising by that sum, proportional, a.k.a. multiplicative de-vigging,
-    gives ``p_winner = (1/oW) / (1/oW + 1/oL)``.
-
-    Worked example from the ticket: ``1.50`` / ``2.80`` implies ``0.6667`` and
-    ``0.3571``, summing to ``1.0238`` (a 2.38% overround); the de-vigged winner
-    probability is ``0.6667 / 1.0238 = 28/43 = 0.651163``, and the loser takes
-    ``15/43 = 0.348837``.
-
-    Note the expression simplifies to ``oL / (oW + oL)``, but it is written in
-    reciprocal form because that is the form the definition takes and the form
-    that generalises past two outcomes.
-
-    Args:
-        odds_winner: Decimal odds offered on the player who won.
-        odds_loser: Decimal odds offered on the player who lost.
-
-    Returns:
-        The de-vigged implied probability that the winner wins, in ``(0, 1)``.
-
-    Raises:
-        ValueError: If either price is not a finite number strictly above 1.0.
-            Decimal odds of 1.0 imply a certainty (and a zero-profit bet); at or
-            below that the quote is not a real price.
-    """
+    """Proportional de-vig of a two-way decimal-odds market: ``(1/oW) / (1/oW + 1/oL)``; raises ValueError on a price <= 1.0."""
     for label, value in (("odds_winner", odds_winner), ("odds_loser", odds_loser)):
         v = float(value)
         if not np.isfinite(v):
@@ -109,20 +59,9 @@ def overround(odds_winner: float, odds_loser: float) -> float:
     return 1.0 / float(odds_winner) + 1.0 / float(odds_loser) - 1.0
 
 
-# ==========================================================================
-# Name resolution (reuses common/names.py, no second matcher)
-# ==========================================================================
-
 @dataclass(frozen=True)
 class NameResolution:
-    """Outcome of resolving one vendor-format name against the model's names.
-
-    Attributes:
-        raw: The vendor string, verbatim.
-        name: The canonical model name, or ``None`` when unresolved.
-        reason: ``None`` on success; otherwise ``"no_match"`` or ``"ambiguous"``.
-        candidates: The ambiguous candidates, when ``reason == "ambiguous"``.
-    """
+    """Outcome of resolving one vendor-format name; ``reason`` is None, ``"no_match"`` or ``"ambiguous"``."""
 
     raw: str
     name: str | None
@@ -131,31 +70,7 @@ class NameResolution:
 
 
 def market_name_query_forms(raw: str) -> list[str]:
-    """Rewrite a vendor name into query forms ``common.names`` already understands.
-
-    This is **formatting, not matching**, every candidate string produced here is
-    handed to :func:`common.names.resolve_name`, which owns all four matching
-    strategies. tennis-data.co.uk writes ``"Surname F."`` (and ``"Surname F.C."``
-    for compound given names) whereas the model carries full names like
-    ``"Carlos Alcaraz"``, so the surname-last form is transposed to the
-    ``"F Surname"`` shape the resolver's *initials* strategy was written for.
-
-    The forms are tried in order, most specific first:
-
-    1. ``"F Surname"``, first initial + surname, feeding the initials strategy.
-    2. ``"Surname"``, surname alone, feeding the substring strategy. This is what
-       rescues compound given names (``"Struff J.L."`` → ``"Jan-Lennard Struff"``)
-       and compound surnames the initial cannot reach. It is safe precisely
-       because the resolver reports ambiguity as *data*: two Cerundolos or two
-       Gomezes come back as candidates and are logged, never guessed.
-    3. The raw string, so an already-canonical name still resolves.
-
-    Args:
-        raw: The vendor's name string.
-
-    Returns:
-        Query strings in priority order, de-duplicated.
-    """
+    """Rewrite a vendor ``"Surname F."`` name into query forms ``common.names.resolve_name`` handles, most specific first (formatting, not matching)."""
     text = str(raw).strip()
     forms: list[str] = []
 
@@ -180,21 +95,7 @@ def market_name_query_forms(raw: str) -> list[str]:
 def resolve_market_name(
     raw: str, index: NameIndex, cache: dict[str, NameResolution] | None = None
 ) -> NameResolution:
-    """Resolve one vendor name to a canonical model name, or explain why not.
-
-    Walks :func:`market_name_query_forms` and returns the first **unambiguous**
-    match. An ambiguous form does not end the walk, a later, more specific form
-    may still resolve, but if nothing resolves, the most informative failure is
-    kept (ambiguity beats no-match, since it names candidates a human can act on).
-
-    Args:
-        raw: The vendor's name string.
-        index: Names to resolve against (built from the model's own frame).
-        cache: Optional memo; the same few hundred names recur across ~2,600 rows.
-
-    Returns:
-        A :class:`NameResolution`. Never raises, never prints, callers log.
-    """
+    """Resolve one vendor name to a canonical model name via the first unambiguous query form, else the most informative failure (ambiguity beats no-match). Never raises or prints."""
     if cache is not None and raw in cache:
         return cache[raw]
 
@@ -222,18 +123,9 @@ def resolve_market_name(
     return result
 
 
-# ==========================================================================
-# The join
-# ==========================================================================
-
 @dataclass
 class JoinReport:
-    """Everything the join produced, including every row it could not use.
-
-    ``skipped`` is the point of this type: a benchmark whose join rate is low is
-    not a benchmark, so nothing is dropped silently, every unusable market row
-    carries its date, players and reason.
-    """
+    """Everything the join produced; ``skipped`` carries every unusable market row with its date, players and reason."""
 
     matched: pd.DataFrame = field(default_factory=pd.DataFrame)
     skipped: list[dict] = field(default_factory=list)
@@ -258,19 +150,7 @@ class JoinReport:
 
 
 def load_market_snapshot(path=config.BENCHMARK_ODDS_SNAPSHOT) -> pd.DataFrame:
-    """Read the committed odds snapshot. Offline, never fetches.
-
-    Args:
-        path: CSV path; defaults to the committed snapshot.
-
-    Returns:
-        The frame with ``Date`` parsed to datetime.
-
-    Raises:
-        FileNotFoundError: With the manual-download instructions, since no
-            automated path will produce this file.
-        ValueError: If a column the join needs is missing.
-    """
+    """Read the committed odds snapshot offline, ``Date`` parsed to datetime; raises if missing or short a required column."""
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(
@@ -292,24 +172,7 @@ def load_market_snapshot(path=config.BENCHMARK_ODDS_SNAPSHOT) -> pd.DataFrame:
 
 
 def market_prob_for_p1(row: pd.Series, p1_name: str, p1_is_winner: bool, book: str) -> float | None:
-    """De-vigged market probability that **p1** wins, or ``None`` if unpriced.
-
-    The vendor keys its price columns by result, so the de-vigged number always
-    describes the actual winner; it is flipped onto p1 when p1 lost. That
-    re-orientation is why the outcome leaking through the column names does not
-    leak into the comparison: both sides are scored on p1, and p1 was chosen by
-    ``preprocess.py``'s coin flip, not by who won.
-
-    Args:
-        row: One market row.
-        p1_name: Unused except for readability at call sites.
-        p1_is_winner: Whether the model's p1 is this row's ``Winner``.
-        book: Key into :data:`BOOK_COLUMNS`.
-
-    Returns:
-        ``P(p1 wins)`` in ``(0, 1)``, or ``None`` when either price is absent or
-        not a usable decimal quote.
-    """
+    """De-vigged ``P(p1 wins)``, flipped onto p1 when p1 lost, or ``None`` if either price is absent or unusable."""
     col_w, col_l = BOOK_COLUMNS[book]
     odds_w, odds_l = row.get(col_w), row.get(col_l)
     if pd.isna(odds_w) or pd.isna(odds_l):
@@ -328,29 +191,7 @@ def join_market_to_model(
     min_days: int = config.BENCHMARK_JOIN_MIN_DAYS,
     max_days: int = config.BENCHMARK_JOIN_MAX_DAYS,
 ) -> JoinReport:
-    """Join market rows onto the model's held-out-season rows.
-
-    The key is the **unordered pair of resolved player names plus a date window**,
-    not an exact date: the model's ``tourney_date`` is the tournament's *start*
-    date while the vendor records the day the match was played, so an exact join
-    would match almost nothing. Each model row is consumed at most once (a pair
-    can meet twice in a season), nearest date first.
-
-    Args:
-        market: Frame from :func:`load_market_snapshot`.
-        model_rows: Engineered held-out-season rows carrying ``p1_name``,
-            ``p2_name``, ``tourney_date`` and ``target``.
-        book: Bookmaker prefix; see :data:`BOOK_COLUMNS`.
-        min_days: Most negative allowed ``market_date − tourney_date``.
-        max_days: Most positive allowed ``market_date − tourney_date``.
-
-    Returns:
-        A :class:`JoinReport`; ``matched`` carries ``p_market``, ``outcome`` and
-        the model index so probabilities can be attached per row.
-
-    Raises:
-        KeyError: If ``book`` is not a known bookmaker prefix.
-    """
+    """Join market rows onto the model's held-out-season rows, keyed on the unordered name pair plus a date window (each model row consumed once, nearest date first)."""
     if book not in BOOK_COLUMNS:
         raise KeyError(f"Unknown book {book!r}; known: {sorted(BOOK_COLUMNS)}")
     for col in BOOK_COLUMNS[book]:
@@ -363,8 +204,7 @@ def join_market_to_model(
     index = NameIndex.from_names(names)
     cache: dict[str, NameResolution] = {}
 
-    # Candidate model rows per unordered name pair, so the scan is a dict lookup
-    # rather than a full pass per market row.
+    # Candidate model rows per unordered name pair, so the scan is a dict lookup.
     dates = pd.to_datetime(model_rows["tourney_date"])
     pairs: dict[frozenset, list[tuple[pd.Timestamp, object]]] = {}
     for idx, p1, p2, when in zip(
@@ -442,10 +282,6 @@ def join_market_to_model(
     return report
 
 
-# ==========================================================================
-# Reporting
-# ==========================================================================
-
 def plot_comparison(
     model_result: calibrate.CalibrationResult,
     market_result: calibrate.CalibrationResult,
@@ -455,18 +291,12 @@ def plot_comparison(
     book: str,
     save_path=config.BENCHMARK_PLOT,
 ) -> None:
-    """Save one reliability chart carrying both curves.
-
-    Deliberately a *second* plot rather than an edit of
-    ``outputs/calibration.png``: that one is the model's calibration over the whole
-    held-out season, this one is over the matched subset, and overwriting it would
-    quietly change what the older artefact means.
-    """
+    """Save one reliability chart carrying both curves (a second plot, not an edit of outputs/calibration.png)."""
     import os
 
     import matplotlib
 
-    matplotlib.use("Agg")  # headless, same as model/calibrate.py
+    matplotlib.use("Agg")  # headless
     import matplotlib.pyplot as plt
 
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
@@ -583,10 +413,6 @@ def format_report(
     return "\n".join(lines)
 
 
-# ==========================================================================
-# Orchestration
-# ==========================================================================
-
 def run_benchmark(
     snapshot_path=config.BENCHMARK_ODDS_SNAPSHOT,
     book: str = config.BENCHMARK_DEFAULT_BOOK,
@@ -595,26 +421,11 @@ def run_benchmark(
     top_unresolved: int = 20,
     save_plot: bool = True,
 ):
-    """Run the whole comparison and write the plot + report.
-
-    Args:
-        snapshot_path: The static odds CSV.
-        book: Bookmaker prefix to de-vig.
-        classifier: Estimator exposing ``predict_proba``; the pinned model is
-            loaded when ``None``.
-        model_rows: Engineered held-out-season rows; built from the pipeline when
-            ``None`` (~2 s). Injectable so tests never touch the vendored data.
-        top_unresolved: How many unresolved names to list in the report.
-        save_plot: Write the PNG (off in tests).
-
-    Returns:
-        ``(join_report, model_brier, market_brier, report_text)``.
-    """
+    """Run the whole comparison, write the plot + report, and return ``(join_report, model_brier, market_brier, report_text)``."""
     market = load_market_snapshot(snapshot_path)
 
     if model_rows is None:
-        # The model's own held-out-season selection, reused rather than re-derived, so
-        # this benchmark scores exactly the rows outputs/calibration.png scores.
+        # Reuse the model's own held-out-season selection, so this scores the same rows as calibration.png.
         model_rows = calibrate._load_test_year_frame()
 
     join = join_market_to_model(market, model_rows, book=book)
@@ -638,10 +449,7 @@ def run_benchmark(
     p_market = join.matched["p_market"].to_numpy(dtype=float)
     outcomes = join.matched["outcome"].to_numpy(dtype=float)
 
-    # The comparison's whole premise: both probabilities and the outcomes describe
-    # ONE identical set of matches. Checked explicitly rather than left to
-    # brier_score's length check, which only catches a mismatch when the sizes
-    # happen to differ and says nothing about the rows being the *same* ones.
+    # Both probabilities and the outcomes must describe one identical match set.
     if not (len(p_model) == len(p_market) == len(outcomes) == join.n_matched):
         raise RuntimeError(
             "Refusing to report: the model and market probabilities are not over "

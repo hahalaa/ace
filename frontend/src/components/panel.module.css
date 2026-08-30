@@ -1,11 +1,4 @@
-/*
- * Panel styles, shared by every full-width message the app renders: the
- * loading status, the typed error panels, and the "cannot lay this out"
- * refusal. One stylesheet, so a message looks the same wherever it appears.
- *
- * Tokens come from src/index.css. Panels stay monochrome: an error is not the
- * place to spend the accent.
- */
+/* Panel styles shared by every full-width message (loading, errors, refusals). Tokens from src/index.css. */
 
 .panel {
   text-align: left;
@@ -40,8 +33,7 @@
   color: var(--ink-mid);
 }
 
-/* A runnable command the API handed us (425 cache_missing). Selectable, and
-   wide enough to read: an operator is meant to copy this verbatim. */
+/* A runnable command the API handed us (425 cache_missing). Selectable, and wide enough to read: an operator is meant to copy this verbatim. */
 .command {
   display: block;
   margin: 0.75rem 0 0;

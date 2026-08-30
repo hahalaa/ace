@@ -1,8 +1,5 @@
 // @vitest-environment jsdom
-/**
- * The recent-simulations storage module: add, cap/eviction, de-dup, clear, and
- * the promise that a broken localStorage never breaks the app.
- */
+// The recent-simulations store: add, cap/eviction, de-dup, clear, and graceful storage failure.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

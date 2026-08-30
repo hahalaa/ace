@@ -1,13 +1,4 @@
-/**
- * The single-match view's URL state, no React, on the `seed.ts`/`rounds.ts`
- * precedent that component files export only components.
- *
- * A single-match result is deep-linkable and reproducible the same way a
- * storybook run is: `/match/simulate` returns a byte-identical body for the same
- * players, surface, format and seed, so everything that decides *what runs* lives
- * in the URL (`?view=match&a=…&b=…&surface=…&bo=…&seed=…`) and is read here, not
- * in a `useState` initialiser that could roll a fresh number on a render.
- */
+// The single-match view's URL state, pure, no React. /match/simulate returns a byte-identical body for the same players/surface/format/seed, so the full state lives in the URL.
 
 import type { BestOf, Surface } from '../api/types';
 
@@ -38,13 +29,7 @@ function isSurface(value: string): value is Surface {
   return (SURFACES as string[]).includes(value);
 }
 
-/**
- * The form a URL pre-fills, with defaults for anything absent or invalid.
- *
- * Always returns a usable form (never null): a bare `?view=match` opens the
- * picker with Hard / best-of-5 selected and both names blank, rather than an
- * empty screen.
- */
+/** The form a URL pre-fills, with defaults for anything absent or invalid; always returns a usable form. */
 export function readMatchForm(search: string): MatchForm {
   const params = new URLSearchParams(search);
   const surfaceRaw = params.get('surface') ?? '';
@@ -57,14 +42,7 @@ export function readMatchForm(search: string): MatchForm {
   };
 }
 
-/**
- * A complete, runnable query the URL carries, or `null` for "not enough to run".
- *
- * A shared result replays only when every part is present, the seed included,
- * both names, a valid surface and format, and a whole seed in range. A URL
- * missing any of them pre-fills the form (via {@link readMatchForm}) and waits
- * for the user to run it, rather than firing a request that would 422.
- */
+/** A complete runnable query the URL carries, or `null`; missing any part pre-fills the form instead of firing a 422. */
 export function readMatchQuery(search: string): MatchQuery | null {
   const params = new URLSearchParams(search);
   const form = readMatchForm(search);
@@ -80,12 +58,7 @@ export function readMatchQuery(search: string): MatchQuery | null {
   return { ...form, seed };
 }
 
-/**
- * A fresh seed in the server's range, never equal to `previous`.
- *
- * "Simulate again" should give a different sample, so re-drawing the current
- * seed (which would return the identical aggregate) is excluded.
- */
+/** A fresh seed in the server's range, never equal to `previous` (so "simulate again" gives a different sample). */
 export function nextMatchSeed(previous: number | null): number {
   for (;;) {
     const seed = Math.floor(Math.random() * (MATCH_SEED_MAX + 1));

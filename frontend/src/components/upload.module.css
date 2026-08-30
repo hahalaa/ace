@@ -1,12 +1,4 @@
-/*
- * Upload screen styles.
- *
- * A single-column form: a drop zone that doubles as the file-picker label, and
- * the result panel. The ephemerality caveat lives in the server's own
- * `content_note`, not a separate frontend box. Tokens come from src/index.css;
- * the drop zone borrows the same line/raise surface every other panel uses so
- * an upload does not look like a different app.
- */
+/* Upload screen styles: a drop zone that doubles as the file-picker label, plus the result panel. Tokens from src/index.css. */
 
 .upload {
   display: flex;
@@ -17,8 +9,7 @@
   min-width: 0;
 }
 
-/* Lead the screen in: intro, then the drop zone. Shared `rise` via
-   `--kf-rise`, off under reduced motion. */
+/* Lead the screen in: intro, then the drop zone. Shared `rise` via `--kf-rise`, off under reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   .intro {
     animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
@@ -38,8 +29,7 @@
   font-size: 0.95rem;
 }
 
-/* The drop zone is a <label> tied to a visually-hidden file input, so a click
-   or a keyboard focus on the input opens the picker, and a drag-drop works too. */
+/* The drop zone is a <label> tied to a visually-hidden file input, so a click or a keyboard focus on the input opens the picker, and a drag-drop works too. */
 .dropzone {
   display: flex;
   flex-direction: column;
@@ -98,8 +88,7 @@
   border: 0;
 }
 
-/* A one-line pointer to the format: the real draw file on GitHub and the
-   field-by-field reference, for anyone who wants to check the shape first. */
+/* A one-line pointer to the format: the real draw file on GitHub and the field-by-field reference, for anyone who wants to check the shape first. */
 .schemaLink {
   margin: 0;
   font-size: 0.85rem;

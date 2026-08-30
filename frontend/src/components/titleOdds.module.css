@@ -1,14 +1,4 @@
-/*
- * TitleOdds + PlayerCard styles.
- *
- * The odds board is treated as an editorial index: a monospace, tabular table
- * with hairline rules, wide-tracked column labels, and the champion sitting at
- * the top where the eye lands. The table is the widest thing here at 128
- * (seven survival columns plus Title and E[W]), so `.tableWrap` scrolls
- * horizontally and the header row sticks. The accent lands on exactly one
- * thing: the leading row, the projected champion. Tokens come from
- * src/index.css.
- */
+/* TitleOdds + PlayerCard styles: an editorial index table; `.tableWrap` scrolls horizontally with a sticky header. The accent lands on the leading row. Tokens from src/index.css. */
 
 .odds {
   display: flex;
@@ -18,8 +8,7 @@
   min-width: 0;
 }
 
-/* Lead the board in: the heading, then the table. Shared `rise` via
-   `--kf-rise`, off under reduced motion. */
+/* Lead the board in: the heading, then the table. Shared `rise` via `--kf-rise`, off under reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   .head {
     animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
@@ -56,9 +45,7 @@
   margin: 0;
 }
 
-/* -------------------------------------------------------------------------
- * The table.
- * ------------------------------------------------------------------------- */
+/* The table. */
 
 .tableWrap {
   overflow-x: auto;
@@ -144,8 +131,7 @@
   text-align: right;
 }
 
-/* The player name doubles as the expand control. Styled as text, not a button,
-   so the table still reads as a table. */
+/* The player name doubles as the expand control. Styled as text, not a button, so the table still reads as a table. */
 .rowButton {
   font: inherit;
   padding: 0;
@@ -179,9 +165,7 @@
   background: var(--bg-sink);
 }
 
-/* -------------------------------------------------------------------------
- * PlayerCard, inline under its row.
- * ------------------------------------------------------------------------- */
+/* PlayerCard, inline under its row. */
 
 .card {
   display: flex;

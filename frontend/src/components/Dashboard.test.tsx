@@ -1,11 +1,5 @@
 // @vitest-environment jsdom
-/**
- * The dashboard landing.
- *
- * It fetches nothing (that is the point of the restructure), so these are pure
- * render assertions: the two branches are present as links, the single-match
- * card is the featured one, and every link carries URL state the shell can read.
- */
+// The dashboard landing: it fetches nothing, so these are pure render assertions that the two branches are links carrying URL state the shell can read.
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -91,21 +85,14 @@ describe('Dashboard', () => {
     expect(tournamentCard().tabIndex).toBe(-1);
   });
 
-  // Regression guard for the "arrows do nothing" report: drive the toolbar with a
-  // genuine bubbling KeyboardEvent dispatched at the *focused element*, the exact
-  // path a physical keypress takes (target = document.activeElement, bubbling up to
-  // the toolbar's listener), never a direct call of the handler. document.activeElement
-  // must actually move, not just an internal state flag. Verified live with real
-  // OS-level key events too; this locks the behaviour into the suite.
+  // Regression guard for "arrows do nothing": drive the toolbar with a genuine bubbling KeyboardEvent at document.activeElement and assert focus actually moves.
   it('moves real focus on a dispatched (not hand-called) arrow keydown', () => {
     render(<Dashboard tournamentId="ausopen_2026_atp_full" />);
 
     matchCard().focus();
     expect(document.activeElement).toBe(matchCard());
 
-    // Each dispatch is wrapped in act() so React flushes the roving-index state
-    // between keypresses, the same task boundary a browser gives two physical
-    // key presses. The events themselves are genuine bubbling KeyboardEvents.
+    // Each dispatch is wrapped in act() so React flushes the roving-index state between keypresses.
     act(() => {
       document.activeElement!.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
@@ -122,10 +109,7 @@ describe('Dashboard', () => {
   });
 
   it('pins the accent to no card at rest, both share identical styling', () => {
-    // Bug: the gold accent used to be statically class-applied to the featured
-    // card, so keyboard focus moving to the other card was invisible. Neither
-    // card may carry a distinguishing accent class now; the accent is a :hover /
-    // :focus-visible state in CSS, applied to whichever card holds it.
+    // Regression guard: neither card may carry a distinguishing accent class; the accent is a CSS :hover/:focus-visible state.
     render(<Dashboard tournamentId="ausopen_2026_atp_full" />);
     expect(matchCard().className).toBe(tournamentCard().className);
   });
@@ -133,8 +117,7 @@ describe('Dashboard', () => {
   it('keeps the tournament card its own inner links, independently addressable', () => {
     render(<Dashboard tournamentId="ausopen_2026_atp_full" />);
 
-    // The card's primary action is the example bracket; its two inner links stay
-    // reachable and carry their own destinations.
+    // The card's primary action is the example bracket; its two inner links stay reachable and carry their own destinations.
     expect(document.querySelector('[data-link="example"]')?.getAttribute('href')).toBe(
       '?tournament=ausopen_2026_atp_full&view=bracket',
     );

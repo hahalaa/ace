@@ -1,27 +1,4 @@
-/**
- * Upload a tournament draw, then jump straight into playing it out.
- *
- * The one write path in the app. A visitor drops (or picks) a `.json` file, the
- * client POSTs its text verbatim to `/tournaments/upload`, and the server runs
- * the same validation a curated draw goes through. On success the draw gets a
- * generated `upload-…` id, and this screen links to that id's bracket and
- * storybook, normal deep links, so the rest of the app needs no upload-aware
- * code.
- *
- * **Honest about ephemerality, without saying it twice.** Uploaded draws live
- * in the server's memory only (there is no persistent disk on the free tier),
- * so they do not survive a restart and a shared link to one can stop working.
- * `result.content_note` (`CONTENT_NOTE_UPLOAD`, `api/schemas.py`) already says
- * so on the result, in the same breath as "not checked against any official
- * record", the one place that caveat needs to live. It used to be repeated in
- * a second, frontend-authored box; that box is gone, not because the caveat
- * stopped mattering but because duplicating it back-to-back with the server's
- * own copy was the over-explaining this file otherwise tries to avoid.
- *
- * **Errors reuse the shared {@link ErrorPanel}.** A malformed draw comes back as
- * the validator's accumulated problem list, surfaced the same way every other
- * draw-loading failure in the app is.
- */
+// The one write path: POST a .json draw verbatim to /tournaments/upload (server-side validation). On success the draw gets an `upload-...` id linked as normal deep links; errors reuse the shared ErrorPanel.
 
 import { useCallback, useRef, useState } from 'react';
 
@@ -69,8 +46,8 @@ export default function Upload() {
 
   const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    // Let the same file be re-picked after a reset by clearing the input value.
-    event.target.value = '';
+    event.target.value = ''; // let the same file be re-picked after a reset
+
     if (file) void submit(file);
   };
 

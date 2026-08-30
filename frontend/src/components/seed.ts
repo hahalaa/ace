@@ -1,26 +1,9 @@
-/**
- * The storybook seed and the URL that carries it, no React, on the
- * `rounds.ts`/`errors.ts`/`overlay.ts` precedent that component files export
- * only components.
- *
- * `/storybook` returns a byte-identical body for the same id and seed,
- * which is the entire basis of a shareable link. Everything that decides *which*
- * seed runs therefore lives here, in four lines that can be read at once and
- * tested without mounting anything, rather than scattered through an effect
- * where a stray `Math.random()` on a render path would be invisible.
- */
+// The storybook seed and the shareable URL that carries it, pure, no React. /storybook returns a byte-identical body for the same id and seed, which is the basis of a shareable link.
 
 /** `config.API_STORYBOOK_SEED_MAX`, the server rejects anything above it. */
 export const SEED_MAX = 2 ** 32 - 1;
 
-/**
- * The seed a URL asks for, or `null` for "none asked".
- *
- * `0` is a legal seed, so this tests for absence rather than falsiness. A value
- * that is not a whole number in `[0, SEED_MAX]` is treated as absent: the run
- * then has to be started deliberately, instead of sending the server a seed it
- * will reject and rendering the 422 as if it were the draw's fault.
- */
+/** The seed a URL asks for, or `null`; `0` is legal, and an out-of-range value is treated as absent. */
 export function readSeed(search: string): number | null {
   const raw = new URLSearchParams(search).get('seed');
   if (raw === null || raw.trim() === '') return null;
@@ -29,13 +12,7 @@ export function readSeed(search: string): number | null {
   return seed;
 }
 
-/**
- * A fresh seed in the server's range, never equal to `previous`.
- *
- * "Re-run" must produce a *different* story, so re-drawing the current seed,
- * which would re-fetch the identical bracket, is excluded rather than left to
- * chance.
- */
+/** A fresh seed in the server's range, never equal to `previous` (so "re-run" produces a different story). */
 export function nextSeed(previous: number | null): number {
   for (;;) {
     const seed = Math.floor(Math.random() * (SEED_MAX + 1));
@@ -43,13 +20,7 @@ export function nextSeed(previous: number | null): number {
   }
 }
 
-/**
- * The full shareable address for one run: tournament, view and seed.
- *
- * Built from the *current* query string so nothing else in the URL is dropped,
- * and absolute so it can be pasted anywhere. `view=storybook` is set explicitly:
- * a link is only reproducible if it lands on the screen that reads the seed.
- */
+/** The full shareable address for one run, built from the current query string with `view=storybook` set explicitly. */
 export function buildShareUrl(tournamentId: string, seed: number): string {
   const params = new URLSearchParams(window.location.search);
   params.set('tournament', tournamentId);

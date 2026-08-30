@@ -1,53 +1,9 @@
-"""Offline Monte Carlo precompute, fills the cache the API serves.
+"""Run a tournament Monte Carlo offline into the cache GET /tournaments/{id}/simulate reads.
 
-A full 128 × 5,000 job takes ~29 s, and Phase 3's global rules forbid running
-one inside a request handler. So the expensive half happens here, offline, and
-``GET /tournaments/{id}/simulate`` only ever reads the file this script writes::
-
-    python scripts/precompute_sim.py --draw usopen_2024_atp_full --runs 5000 --seed 0
-
-``--draw`` takes a **tournament id**, the same id ``GET /tournaments`` lists and
-``/tournaments/{id}/bracket`` accepts, resolved through ``api/registry.py``, the
-module kept free of FastAPI imports precisely so an offline script could use it
-without importing the web app. The output goes to
-``data/cache/<tournament_id>.json`` (``api.registry.cache_path_for``, the one
-definition of that mapping).
-
-**Everything expensive is paid once**, in the same order the CLIs and the API pay
-it: ``api.deps.build_api_context`` runs the offline pipeline (load → preprocess →
-engineer features → skill table) and pins the classifier (~2 s), then the draw
-registry is built from the skill table that produced. Nothing inside the run loop
-reloads anything; ``sim.tournament.monte_carlo`` owns the per-job ``prob_cache``.
-
---------------------------------------------------------------------------------
-The classifier adapter
---------------------------------------------------------------------------------
-``api/deps.py`` deliberately builds **no** ``ClassifierProb`` adapter, it loads
-the estimator and both histories and stops, so whoever runs a simulation builds
-one from those materials. This script is such a caller.
-
-The adapter is ``common/classifier_adapter.py``: all 27 ``config.MODEL_FEATURES``
-come from the pipeline's own leakage-safe state, the rolling ones from
-``features.rolling.build_rolling_form_table``.
-
-Disclosure stays structural, because a caveat remains and because the
-shape has proved useful: ``mode``/``w``, an ``is_forecast`` flag and a
-plain-language ``classifier_limitation`` are **required** fields of
-``api.schemas.SimulationMetadata``, written into every cache file and served in
-every API response, so a file lacking them fails validation rather than
-publishing bare probabilities. What the text now says is that the model state is
-an *as-of-now* snapshot: simulating an already-played draw (such as the shipped
-2024 US Open bracket) uses skills and form the event's participants did not have
-at the time, which makes the output retrospective rather than a forecast.
-
-The mode is ``config.SIM_CLI_RECONCILE_MODE`` (``"blend"``), the same value both
-CLIs use, a modelling choice (the point model keeps half the say).
-``--reconcile-mode`` overrides it, and whatever is used is recorded in the file.
-
-**Placeholder draws are refused, by the simulator's own check.** ``monte_carlo`` rejects a
-draw containing ``Qualifier``/``Bye`` slots and names every offending slot; this
-script prints that message and exits non-zero rather than writing a cache file.
-The API's matching behaviour is a 409, see ``api/main.py``.
+``--draw`` takes a tournament id, resolved through ``api/registry.py``. The pipeline and
+classifier are built once via ``api.deps``; the adapter is ``common/classifier_adapter.py``.
+Disclosure fields (``mode``/``w``/``is_forecast``/``classifier_limitation``) are required
+metadata. A placeholder-slot draw is refused by ``monte_carlo`` and no cache file is written.
 """
 
 from __future__ import annotations
@@ -58,9 +14,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-# scripts/ is not on pyproject's ``pythonpath = ["src"]``; add src/ so this
-# script imports project modules the way the runtime pipeline does. Same
-# bootstrap as scripts/validate_sim.py and the two src/cli/ entry points.
+# scripts/ is not on pyproject's pythonpath; add src/ so imports resolve like the runtime.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 import config  # noqa: E402
@@ -77,24 +31,13 @@ from api.schemas import (  # noqa: E402
 from common.classifier_adapter import make_classifier_prob  # noqa: E402
 from sim.tournament import MonteCarloResult, monte_carlo  # noqa: E402
 
-# The adapter this script builds, named in every cache file's metadata so a
-# consumer can tell which model produced the numbers (see the module docstring).
-# It must stay equal to what api/main.adapter_name() derives from
-# config.API_CLASSIFIER_ADAPTER, so /simulate and /storybook cannot publish
-# different models while claiming the same one, pinned by
-# tests/test_api_storybook.py.
+# Must stay equal to api/main.adapter_name()'s value; pinned by tests/test_api_storybook.py.
 ADAPTER = "common.classifier_adapter.make_classifier_prob"
 
-# The disclosure text and honesty flag are imported from ``api.schemas``, not
-# written here: the live ``/storybook`` publishes probabilities from the same
-# adapter and must say the same thing about them, and ``api/schemas.py`` is the
-# one module both this script and the API can reach. Deliberately plain-language
-# and self-contained: an API consumer has not read this project's internal docs.
+# Disclosure text and honesty flag come from api.schemas so /storybook says the same thing.
 
 
-# --------------------------------------------------------------------------- #
-# Cache payload, the schema in api/schemas.py is the format.
-# --------------------------------------------------------------------------- #
+# Cache payload; the schema in api/schemas.py is the format.
 def build_payload(
     result: MonteCarloResult,
     *,
@@ -107,33 +50,7 @@ def build_payload(
     classifier_limitation_detail: str = CLASSIFIER_LIMITATION_DETAIL,
     is_forecast: bool = IS_FORECAST,
 ) -> SimulationResponse:
-    """Turn a finished Monte Carlo run into the cache/wire payload.
-
-    Presentation over already-built data: every number comes from
-    :class:`~sim.tournament.MonteCarloResult` and its
-    :class:`~sim.tournament.PlayerOutcome`\\ s (counts, ``p_title``,
-    ``p_reach``, ``expected_rounds_won``, the draw's own ``round_labels``), the
-    same renderer/data separation the storybook and tournament CLIs keep.
-    Nothing is recomputed and no new statistic is invented here.
-
-    Args:
-        result: The completed aggregate, players already sorted by title
-            probability.
-        data_through_year: Latest season in the data behind the model.
-        estimator_class: Class name of the pinned classifier, for provenance.
-        source: Draw file basename the run was against.
-        generated_at: Write timestamp; defaults to now (UTC).
-        adapter: Which ``ClassifierProb`` adapter produced ``P_clf``.
-        classifier_limitation: The one-line disclosure summary (see the module
-            docstring: the model state is an as-of-now snapshot).
-        classifier_limitation_detail: The full technical account behind that
-            summary, so the cache file carries the complete disclosure.
-        is_forecast: Whether these numbers may be presented as a prediction.
-            ``False`` while the shipped draws are historical.
-
-    Returns:
-        A validated :class:`~api.schemas.SimulationResponse`.
-    """
+    """Turn a finished Monte Carlo run into a validated ``SimulationResponse`` (presentation only, nothing recomputed)."""
     return SimulationResponse(
         tournament_id=result.tournament_id,
         name=result.name,
@@ -181,15 +98,7 @@ def build_payload(
 def write_cache(
     payload: SimulationResponse, cache_dir: Path | str = config.CACHE_DIR
 ) -> Path:
-    """Write ``payload`` to its cache file, creating the directory if needed.
-
-    The file is exactly ``payload.model_dump_json()``, so what the endpoint parses
-    back is what was validated here.
-
-    Raises:
-        ValueError: If the payload's ``tournament_id`` cannot be a filename (see
-            :func:`api.registry.cache_path_for`).
-    """
+    """Write ``payload`` (exactly ``model_dump_json()``) to its cache file; raises ValueError if the id cannot be a filename."""
     path = cache_path_for(payload.tournament_id, cache_dir)
     if path is None:
         raise ValueError(
@@ -201,18 +110,8 @@ def write_cache(
     return path
 
 
-# --------------------------------------------------------------------------- #
-# Id resolution, the registry's own catalogue, rendered for a terminal.
-# --------------------------------------------------------------------------- #
 def _known_ids_message(registry: TournamentRegistry) -> str:
-    """List what *is* addressable, grouped by what can actually be simulated.
-
-    The groups are kept apart on purpose, and by the same rule the API's 404
-    uses (``TournamentEntry.is_simulatable``). Lumping a draw that failed
-    validation, or one still holding ``Qualifier`` slots, in with the working
-    ones reads as though this script could run it, when in fact nothing but
-    editing the file will make it so.
-    """
+    """List addressable draws, grouped by ``TournamentEntry.is_simulatable`` (the rule the API's 404 uses)."""
     groups = [
         ("Available draws", [e.tournament_id for e in registry.valid if e.is_simulatable]),
         (
@@ -231,13 +130,7 @@ def _known_ids_message(registry: TournamentRegistry) -> str:
 
 
 def _build_classifier(context: ApiContext):
-    """The ``ClassifierProb`` adapter, built once from the startup context.
-
-    ``api/deps.py`` loads the estimator and both name-keyed histories but stops
-    short of building an adapter, so the last step happens here. Still free: the as-of-now rolling-form table (0.08 s over the full frame,
-    ``features.rolling.build_rolling_form_table``) and every ``predict_proba``
-    are both deferred to first use, the latter memoised per matchup.
-    """
+    """The ``ClassifierProb`` adapter, built once from the startup context (form table and predict_proba deferred to first use)."""
     return make_classifier_prob(
         context.estimator,
         context.data,
@@ -246,9 +139,6 @@ def _build_classifier(context: ApiContext):
     )
 
 
-# --------------------------------------------------------------------------- #
-# Entry point.
-# --------------------------------------------------------------------------- #
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="precompute_sim",
@@ -330,9 +220,7 @@ def main(argv: list[str] | None = None) -> int:
             classifier,
             n_runs=args.runs,
             seed=args.seed,
-            # Single-process. The adapter is picklable (a module-level class, not a
-            # closure), but exposing workers>1 would need its own re-verification,
-            # and the measured 128 × 5,000 job is 29 s single-threaded anyway.
+            # workers>1 would need its own re-verification; 128 x 5,000 is 29 s single-threaded.
             workers=1,
             mode=args.reconcile_mode,
         )

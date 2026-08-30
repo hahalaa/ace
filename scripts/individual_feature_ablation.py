@@ -1,22 +1,6 @@
-"""Individual-feature leave-one-out ablation across all 27 MODEL_FEATURES.
+"""Leave-one-out ablation across the 27 MODEL_FEATURES, Bonferroni-corrected at alpha=0.05/27.
 
-Phase 3 of the model-accuracy lineage (after the H2H experiment and the
-feature-FAMILY ablation). This asks, at single-feature grain: can any one of the
-27 features be dropped without cost, and, the key cross-check against the family
-ablation, are the individually-neutral features collectively load-bearing?
-
-Discipline (identical to the family ablation, tightened for 27 comparisons):
-  * Validation season is 2024. Train strictly on years < 2024. TEST_YEAR (2025)
-    and the market benchmark are NOT touched here, only the final confirmatory
-    step (a separate script/run) may touch them, and only if a candidate clears
-    the corrected bar.
-  * Estimator FIXED to RandomForestClassifier(n_estimators=100, max_depth=10,
-    random_state=42) for every ablation run, isolating the feature variable.
-  * Paired bootstrap of the Brier difference vs baseline. Report BOTH the raw
-    95% CI and the Bonferroni-corrected CI (alpha = 0.05/27), the corrected
-    verdict being the decision rule.
-
-Evaluation only. Writes nothing to config, MODEL_FEATURES, or any artefact.
+Evaluation only: trains on years < 2024, validates on 2024, touches no config, MODEL_FEATURES or artefact.
 """
 
 from __future__ import annotations
@@ -38,7 +22,7 @@ import features.engineering as features
 
 VAL_YEAR = 2024
 RF_KWARGS = dict(n_estimators=100, max_depth=10, random_state=42)
-N_BOOT = 20_000          # tail resolution for a 99.8% CI needs more than the family ablation's 5,000
+N_BOOT = 20_000          # a 99.8% CI reads far-tail percentiles that need this many resamples to be stable
 BOOT_SEED = 42
 ALPHA = 0.05
 N_COMPARISONS = len(config.MODEL_FEATURES)  # 27
@@ -79,12 +63,7 @@ def sq_err(feature_list, train, val) -> np.ndarray:
 
 
 def boot_ci(delta_se: np.ndarray, boot_idx: np.ndarray):
-    """Paired bootstrap CIs of mean per-row Brier difference (candidate - base).
-
-    delta_se: per-row (candidate_sq_err - baseline_sq_err), length n_val.
-    boot_idx: (N_BOOT, n_val) shared resample indices.
-    Returns (point_delta, raw95_lo, raw95_hi, corr_lo, corr_hi).
-    """
+    """Paired bootstrap of the mean per-row Brier difference; returns (point, raw95_lo, raw95_hi, corr_lo, corr_hi)."""
     point = float(delta_se.mean())
     boot_means = delta_se[boot_idx].mean(axis=1)
     raw_lo, raw_hi = np.percentile(boot_means, [2.5, 97.5])
@@ -134,8 +113,7 @@ def main() -> None:
               f"raw95[{rlo:+.5f},{rhi:+.5f}]={raw_v:<6} "
               f"corr[{clo:+.5f},{chi:+.5f}]={corr_v}")
 
-    # Compounding-effect candidate: drop every feature that is neutral-or-better
-    # under the CORRECTED bar, all at once.
+    # Compounding candidate: drop every corrected-neutral-or-better feature at once.
     neutral_or_better = [r["feature"] for r in rows if r["corr"] in ("noise", "BETTER")]
     print(f"\nCompounding candidate: drop all {len(neutral_or_better)} "
           f"corrected-neutral-or-better features at once")

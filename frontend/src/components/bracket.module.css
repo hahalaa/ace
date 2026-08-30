@@ -1,21 +1,4 @@
-/*
- * Bracket + MatchCard styles.
- *
- * Two layout facts carry the whole thing, unchanged from the first build:
- *
- *   * `.board` is the horizontal scroll container. Columns keep their natural
- *     width (`min-width` on `.round`) rather than shrinking, so a 128 draw's
- *     seven columns scroll instead of compressing into illegibility.
- *   * `.matches` uses `justify-content: space-around` inside a stretched
- *     column, so each later card sits at the midpoint of the pair feeding it,
- *     no per-card offsets, no draw-size arithmetic.
- *
- * The look is editorial: hairline cards on near-black, monospace for every
- * number, wide-tracked labels for the round columns. The accent is spent in
- * exactly one place here, the entrant a storybook run marks as the winner,
- * so a bracket with no run attached is entirely monochrome. Tokens come from
- * src/index.css.
- */
+/* Bracket + MatchCard styles. `.board` is the horizontal scroll container; columns keep their natural width. Tokens from src/index.css. */
 
 .bracket {
   display: flex;
@@ -25,10 +8,7 @@
   min-width: 0;
 }
 
-/* -------------------------------------------------------------------------
- * Toolbar: title + round selector. Sticky, because at 128 the board is
- * thousands of pixels tall and the selector is how you get out of round one.
- * ------------------------------------------------------------------------- */
+/* Toolbar: title + round selector. Sticky, because at 128 the board is thousands of pixels tall and the selector is how you get out of round one. */
 
 .toolbar {
   position: sticky;
@@ -113,9 +93,7 @@
   outline-offset: 2px;
 }
 
-/* -------------------------------------------------------------------------
- * The board.
- * ------------------------------------------------------------------------- */
+/* The board. */
 
 .board {
   display: flex;
@@ -133,9 +111,7 @@
   min-width: 234px;
 }
 
-/* The columns arrive left to right, the way a draw is read. A transform-only
-   fade, so it never touches the board's scroll width; off under reduced
-   motion. Capped at the seven columns a 128 draw has. */
+/* The columns arrive left to right, the way a draw is read. A transform-only fade, so it never touches the board's scroll width; off under reduced motion. Capped at the seven columns a 128 draw has. */
 @media (prefers-reduced-motion: no-preference) {
   .round {
     animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
@@ -196,9 +172,7 @@
   padding: 0;
 }
 
-/* -------------------------------------------------------------------------
- * MatchCard.
- * ------------------------------------------------------------------------- */
+/* MatchCard. */
 
 .card {
   display: flex;
@@ -220,8 +194,7 @@
 
 .entrant {
   display: grid;
-  /* seed · name · the reserved probability column. Fixed outer tracks mean a
-     later number appears without moving a single name. */
+  /* seed · name · the reserved probability column. Fixed outer tracks mean a later number appears without moving a single name. */
   grid-template-columns: 22px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 0.6rem;
@@ -249,8 +222,7 @@
   text-overflow: ellipsis;
 }
 
-/* An entrant the draw file has not filled (Qualifier / Lucky Loser): a real
-   slot with no player behind it. */
+/* An entrant the draw file has not filled (Qualifier / Lucky Loser): a real slot with no player behind it. */
 .entrant[data-state='placeholder'] .name {
   color: var(--ink-mid);
   font-style: italic;
@@ -261,8 +233,7 @@
   color: var(--ink-dim);
 }
 
-/* Reserved for the win-probability overlay. Sized and aligned now, empty
-   until a screen has a number to put in it. */
+/* Reserved for the win-probability overlay. Sized and aligned now, empty until a screen has a number to put in it. */
 .prob {
   font-family: var(--mono);
   font-size: 0.75rem;
@@ -271,12 +242,7 @@
   color: var(--ink-mid);
 }
 
-/* -------------------------------------------------------------------------
- * Storybook results. Every rule below is gated on an attribute or class that
- * only a played match carries, so a bracket with no run attached picks up
- * none of it. This is the one place the accent lands in the bracket: the side
- * that actually won.
- * ------------------------------------------------------------------------- */
+/* Storybook results. Every rule below is gated on an attribute or class that only a played match carries, so a bracket with no run attached picks up none of it. This is the one place the accent lands in the bracket: the side that actually won. */
 
 .entrant[data-result='won'] {
   position: relative;
@@ -315,8 +281,7 @@
   font-weight: 600;
 }
 
-/* The loser stays legible rather than greyed out of the story: who lost the
-   semi-final is half of what a bracket is for. */
+/* The loser stays legible rather than greyed out of the story: who lost the semi-final is half of what a bracket is for. */
 .entrant[data-result='lost'] .name {
   color: var(--ink-mid);
 }
@@ -339,5 +304,4 @@
   text-overflow: ellipsis;
 }
 
-/* Loading and error panels live in panel.module.css, shared with the odds
-   screen so a message looks the same wherever the app shows one. */
+/* Loading and error panels live in panel.module.css, shared with the odds screen so a message looks the same wherever the app shows one. */

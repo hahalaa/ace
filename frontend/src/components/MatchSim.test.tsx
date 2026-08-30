@@ -1,14 +1,5 @@
 // @vitest-environment jsdom
-/**
- * The single-match view.
- *
- * The client is stubbed so no network is touched. The tests cover the three
- * things the screen must get right: it reads a complete matchup off the URL and
- * simulates it, it renders the three distributions the server returns without
- * re-deriving them, and it writes a reproducible seed into the address bar so a
- * shared link replays. The player picker's resolution failures are the server's
- * job; here we prove the screen fires one request with the right body.
- */
+// The single-match view, client stubbed: it reads a complete matchup off the URL and simulates it, renders the server's distributions without re-deriving them, and writes a reproducible seed into the address bar.
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -87,9 +78,7 @@ function mountAt(url: string) {
   return render(<MatchSim />);
 }
 
-// --------------------------------------------------------------------------
 // Deep-link replay
-// --------------------------------------------------------------------------
 describe('deep-link replay', () => {
   it('simulates the matchup a complete URL carries, once', async () => {
     simulateMatchMock.mockResolvedValue(RESULT);
@@ -118,9 +107,7 @@ describe('deep-link replay', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // Rendering the server's distributions
-// --------------------------------------------------------------------------
 describe('results', () => {
   it('renders win probability, set scores and total games from the response', async () => {
     simulateMatchMock.mockResolvedValue(RESULT);
@@ -148,8 +135,7 @@ describe('results', () => {
       'Disclaimer: this is a model estimate for a hypothetical matchup, not a betting tip.',
     );
     expect(caveat).toBeTruthy();
-    // The override changes only what the browser renders, the field this
-    // page reads off `result.metadata` is untouched.
+    // The override changes only what the browser renders, the field this page reads off `result.metadata` is untouched.
     expect(RESULT.metadata.classifier_limitation).toBe(
       'A model estimate for a hypothetical matchup, not a betting tip.',
     );
@@ -164,9 +150,7 @@ describe('results', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // Loading state
-// --------------------------------------------------------------------------
 describe('loading state', () => {
   it('shows a plain "Simulating…" status with no infrastructure explanation, however long the request takes', async () => {
     vi.useFakeTimers();
@@ -195,39 +179,29 @@ describe('loading state', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // Player picker keeps a stable height (no layout shift on "Searching…")
-// --------------------------------------------------------------------------
 describe('player picker layout', () => {
   it('always renders a status slot under each input so its height never jumps', () => {
-    // A bare match URL: no simulation runs and no search is in flight, so the
-    // pickers sit in their resting state (no "Searching…", no loading panel).
+    // A bare match URL: no simulation runs and no search is in flight, so the pickers sit in their resting state (no "Searching…", no loading panel).
     searchPlayersMock.mockReturnValue(new Promise(() => {}));
     simulateMatchMock.mockReturnValue(new Promise(() => {}));
     window.history.replaceState({}, '', '/?view=match');
     render(<MatchSim />);
 
-    // Each picker keeps a reserved status line even at rest (aria-hidden while
-    // empty). Before the fix this element only appeared while searching, which
-    // is exactly what grew one input taller than the other. `hidden: true` is
-    // required because the resting slots are aria-hidden.
+    // Each picker keeps a reserved status line at rest (aria-hidden while empty), so the two inputs stay the same height.
     const reserved = screen.getAllByRole('status', { hidden: true });
     expect(reserved).toHaveLength(2);
     for (const slot of reserved) {
-      // The slot holds non-breaking whitespace at rest, never collapsing to
-      // zero height.
+      // The slot holds non-breaking whitespace at rest, never collapsing to zero height.
       expect(slot.textContent?.trim()).toBe('');
     }
 
-    // And both player inputs are present and label-associated, so the two
-    // reserved slots belong to the two side-by-side pickers.
+    // And both player inputs are present and label-associated, so the two reserved slots belong to the two side-by-side pickers.
     expect(screen.getAllByLabelText(/Player [AB]/, { selector: 'input' })).toHaveLength(2);
   });
 });
 
-// --------------------------------------------------------------------------
 // Reproducible-by-seed
-// --------------------------------------------------------------------------
 describe('reproducibility', () => {
   it('writes players, surface, format and a seed into the address bar on run', async () => {
     simulateMatchMock.mockResolvedValue(RESULT);

@@ -1,30 +1,4 @@
-/**
- * The recent-simulations log, a localStorage history of the user's own results,
- * scoped to this one browser. No React, no network, no backend: a result that
- * completes is recorded here the way a browser records a page you visited, and
- * the dashboard reads it back to offer a quick way in again.
- *
- * **What gets logged, and why only two things.** Single-match runs and storybook
- * runs (curated draws and uploads alike), because each is a specific result a
- * user might want to revisit: a match outcome, a tournament champion. Bracket and
- * title-odds screens are browsing views, not a memorable result, so they are not
- * logged, see the RecentSimulations component and the task report.
- *
- * **Reproduction reuses the app's URL-state model exactly.** Each entry stores the
- * relative `?view=…&seed=…` search string the existing views already read, built
- * by the same {@link buildMatchUrl}/{@link buildShareUrl} helpers the share
- * buttons use. There is no parallel scheme: a logged entry is just a deep link.
- *
- * **Honest about ephemeral uploads.** An uploaded-draw storybook links to
- * server-side in-memory state that may be gone after a restart. Such an entry is
- * flagged `ephemeral` so the panel can label it as possibly no longer playable;
- * clicking through degrades via the views' existing not-found handling, no new
- * error UI.
- *
- * **Every storage touch is guarded.** Private-mode browsers, a disabled store, or
- * a full quota all throw on access. Reads fall back to an empty history and writes
- * silently do nothing, so the app never breaks just because history cannot persist.
- */
+// Recent-simulations log in localStorage, scoped to this browser. Each entry is a relative deep link; only match and storybook runs are logged. Every storage touch is guarded (read falls back to empty, write silently does nothing).
 
 import type { MatchSimulateResponse, StorybookResponse } from '../api/types';
 import { buildMatchUrl } from '../components/match';
@@ -43,10 +17,7 @@ export interface HistoryEntry {
   summary: string;
   /** Epoch millis the result completed. */
   timestamp: number;
-  /**
-   * True only for uploaded-draw storybook runs: the draw lives in the server's
-   * memory and may already be gone, so the panel labels the entry accordingly.
-   */
+  /** True only for uploaded-draw storybook runs, whose draw may already be gone from server memory. */
   ephemeral: boolean;
 }
 
@@ -60,14 +31,7 @@ export interface NewEntry {
 
 const STORAGE_KEY = 'ace.recent-simulations.v1';
 
-/**
- * How many entries we keep, newest first, oldest evicted past the cap.
- *
- * 25 covers a browsing session's worth of results with room to spare while
- * staying short enough to scan at a glance, and each entry is a few hundred bytes
- * against a multi-megabyte store, so the cap is about legibility rather than
- * space. It mirrors the order of magnitude of the backend's own upload store.
- */
+/** Entries kept, newest first; the cap is about legibility, not space. */
 export const HISTORY_CAP = 25;
 
 /** True if `value` is a well-formed entry, guards against corrupt or foreign data. */
@@ -84,17 +48,14 @@ function isEntry(value: unknown): value is HistoryEntry {
   );
 }
 
-/**
- * The stored history, newest first, or an empty list if nothing is stored, the
- * store is unreadable, or the payload is not what we wrote.
- */
+/** The stored history, newest first, or an empty list if unreadable or malformed. */
 export function readHistory(): HistoryEntry[] {
   let raw: string | null;
   try {
     raw = window.localStorage.getItem(STORAGE_KEY);
   } catch {
-    // Storage disabled or blocked (some private-browsing modes throw on access).
-    return [];
+    return []; // storage disabled or blocked
+
   }
   if (raw === null) return [];
   try {
@@ -110,8 +71,7 @@ function writeHistory(entries: HistoryEntry[]): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
   } catch {
-    // Quota exceeded, disabled storage, private mode: persistence is a comfort,
-    // not a requirement, so a failed write is swallowed rather than surfaced.
+    // Persistence is a comfort, not a requirement: a failed write is swallowed.
   }
 }
 
@@ -120,14 +80,7 @@ function makeId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/**
- * Record one completed result at the front of the history.
- *
- * Re-logging the same result (identical `url`) moves the existing entry to the
- * front with a fresh timestamp rather than duplicating it, matching a browser
- * history's "most recent visit wins" behaviour. Past the cap, the oldest entry
- * is dropped. Never throws: a storage failure just means nothing persists.
- */
+/** Record one result at the front; re-logging an identical `url` moves it to the front rather than duplicating. Never throws. */
 export function logSimulation(entry: NewEntry): void {
   const existing = readHistory().filter((e) => e.url !== entry.url);
   const next: HistoryEntry[] = [
@@ -142,14 +95,11 @@ export function clearHistory(): void {
   try {
     window.localStorage.removeItem(STORAGE_KEY);
   } catch {
-    // Nothing to do: if the store cannot be touched, there is nothing persisted.
+    // If the store cannot be touched, there is nothing persisted.
   }
 }
 
-// --------------------------------------------------------------------------
-// Recording completed results, the two call sites' one-liners live here so the
-// URL and summary shapes stay in one place and are tested without a component.
-// --------------------------------------------------------------------------
+// The two call sites' recording helpers, kept here so URL/summary shapes stay in one place.
 
 /** The relative search part of a builder's absolute URL, so entries are origin-free. */
 function toSearch(absolute: string): string {

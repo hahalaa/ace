@@ -1,27 +1,4 @@
-/**
- * Theme preference: the one piece of app state that is deliberately NOT in the
- * URL.
- *
- * `?view=/?tournament=/?seed=` (App.tsx) exist so a *simulation* is shareable,
- * a link must reproduce the same draw and the same seed for whoever opens it,
- * whatever display they prefer. Theme is a property of the viewer, not of the
- * thing being shared: baking it into the link would mean a colleague opening
- * your bracket inherits your light/dark choice along with your seed, which is
- * not what the link is for. So it lives in localStorage instead, and the URL
- * stays purely about the tournament.
- *
- * First visit with nothing stored lands on the dark `DEFAULT_THEME` identity;
- * the OS `prefers-color-scheme` is deliberately NOT consulted, so a light-
- * preferring OS does not pull a first-time visitor off dark. Only an explicit
- * toggle choice, stored in localStorage, moves a visitor off the default.
- *
- * These functions are intentionally free of React: the same resolution runs in
- * the external same-origin pre-paint script (public/theme-init.js, referenced
- * by index.html, a classic script cannot import a module, and it must stay
- * external rather than inline to survive the deployed CSP), so the logic is kept
- * small enough to mirror there by hand, and unit-testable on its own. The React
- * seam is `useTheme` in components/ThemeToggle.tsx.
- */
+// Theme preference: stored in localStorage, deliberately not in the URL (it is a viewer property). React-free so public/theme-init.js can mirror resolveTheme() by hand. The OS prefers-color-scheme is not consulted.
 
 export type Theme = 'light' | 'dark';
 
@@ -35,10 +12,7 @@ function isTheme(value: unknown): value is Theme {
   return value === 'light' || value === 'dark';
 }
 
-/**
- * The stored preference, or `null` if none is stored (or storage is
- * unavailable, e.g. private mode with cookies blocked, never throw over it).
- */
+/** The stored preference, or `null` if none is stored or storage is unavailable (never throws). */
 export function storedTheme(): Theme | null {
   try {
     const value = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -48,17 +22,7 @@ export function storedTheme(): Theme | null {
   }
 }
 
-/**
- * Stored preference wins; otherwise the shipped `DEFAULT_THEME`.
- *
- * A genuine first visit (empty storage) lands on the dark identity regardless of
- * the OS `prefers-color-scheme`: the dark theme is the brand default, and a
- * light-preferring OS must not override it. Only an explicit choice, stored by
- * the toggle, moves a visitor off dark. (This is deliberately the ONLY policy
- * knob here, the resolution pipeline the toggle depends on is unchanged:
- * localStorage feeds this, this feeds the painted attribute, the attribute feeds
- * the toggle's state.)
- */
+/** Stored preference wins; otherwise the shipped `DEFAULT_THEME` (the OS preference is not consulted). */
 export function resolveTheme(): Theme {
   return storedTheme() ?? DEFAULT_THEME;
 }
@@ -83,14 +47,7 @@ export function setTheme(theme: Theme): void {
   persistTheme(theme);
 }
 
-/**
- * The theme currently PAINTED on the document, read back from the `data-theme`
- * attribute. This is the toggle's source of truth, deliberately the attribute
- * and not a fresh localStorage read: reading localStorage could claim "light"
- * while the page painted dark, so the label must follow the pixels. When the
- * attribute is somehow absent, fall back to `DEFAULT_THEME`, the theme the CSS
- * paints for a bare `:root`, not a resolved preference.
- */
+/** The theme currently painted on the document, read from `data-theme` (not localStorage) so the toggle label follows the pixels. */
 export function currentTheme(): Theme {
   const attr = document.documentElement.getAttribute('data-theme');
   return isTheme(attr) ? attr : DEFAULT_THEME;

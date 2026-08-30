@@ -1,11 +1,4 @@
-/**
- * Client tests: the request that goes out, and the value that comes back.
- *
- * Both halves matter and only one of them is a type-check. `tsc` proves the
- * declared return type is consistent; only a test proves the client asked for
- * `?query=` rather than `?q=`, dropped an omitted parameter instead of sending
- * `top=undefined`, and handed back the body unmangled.
- */
+// Client tests: the request that goes out (?query= not ?q=, omitted params dropped) and the value that comes back, unmangled.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -62,10 +55,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// --------------------------------------------------------------------------
-// getHealth, the simplest round trip, and the one a UI polls to decide
-// whether the API is up at all.
-// --------------------------------------------------------------------------
+// getHealth, the simplest round trip, and the one a UI polls to decide whether the API is up at all.
 
 describe('getHealth', () => {
   it('GETs /health with no query string and parses the provenance fields', async () => {
@@ -82,15 +72,12 @@ describe('getHealth', () => {
     expect(url.pathname).toBe('/health');
     expect(url.search).toBe('');
     expect(result).toEqual(health);
-    // data_through_year is the observed max season, not config.END_YEAR, a
-    // client deciding whether a probability is current reads this one.
+    // data_through_year is the observed max season, not config.END_YEAR, a client deciding whether a probability is current reads this one.
     expect(result.data_through_year).toBe(2026);
   });
 });
 
-// --------------------------------------------------------------------------
 // searchPlayers, request shape and parsed response
-// --------------------------------------------------------------------------
 
 const ALCARAZ_SEARCH: PlayerSearchResponse = {
   query: 'alcaraz',
@@ -148,9 +135,7 @@ describe('searchPlayers', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // The other endpoints' request shapes
-// --------------------------------------------------------------------------
 
 describe('request shapes', () => {
   it('omits ?top= entirely when no limit is given', async () => {
@@ -199,9 +184,7 @@ describe('request shapes', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // Typed structure of the simulate/storybook payloads
-// --------------------------------------------------------------------------
 
 const DISCLOSURE = {
   mode: 'blend' as const,
@@ -337,9 +320,7 @@ describe('getStorybook', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // Errors carry structure, not prose
-// --------------------------------------------------------------------------
 
 describe('error handling', () => {
   it('throws an ApiError carrying the 425 cache_missing reason and command', async () => {
@@ -399,9 +380,7 @@ describe('error handling', () => {
   });
 
   it('throws ApiNetworkError, not ApiError, when the request never lands', async () => {
-    // A rejected fetch is what offline / DNS failure / a refused connection /
-    // a blocked CORS preflight all look like: there is no response at all, so
-    // there is no status to branch on. A UI has to tell that apart from a 4xx.
+    // A rejected fetch is what offline / DNS failure / a refused connection / a blocked CORS preflight all look like: there is no response at all, so there is no status to branch on. A UI has to tell that apart from a 4xx.
     const cause = new TypeError('fetch failed');
     vi.stubEnv('VITE_API_BASE_URL', BASE);
     vi.stubGlobal(

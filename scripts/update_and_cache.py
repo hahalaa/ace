@@ -1,73 +1,8 @@
-"""Scheduled data refresh + simulation precompute, the orchestrator.
+"""Sequence a scheduled data refresh into retrain and simulation precompute, aborting at the first failed gate.
 
-``.github/workflows/refresh-and-simulate.yml`` runs this; a human can run it by
-hand identically::
-
-    python scripts/update_and_cache.py                          # everything
-    python scripts/update_and_cache.py --draw usopen_2026_atp   # one draw
-    python scripts/update_and_cache.py --no-refresh --force     # re-sim only
-
-It wraps two existing scripts and adds nothing to what either of them does:
-``scripts/refresh_data.py`` (the project's only network call) and
-``scripts/precompute_sim.py`` (the Monte Carlo the API serves from
-``data/cache/``). What lives *here* is the **sequencing and the aborts**, the
-part that is wrong by default if written inline in YAML.
-
---------------------------------------------------------------------------------
-The safety property this file exists for
---------------------------------------------------------------------------------
-A cache file states, in its own metadata, when it was generated and what it was
-generated from. Publishing one that was computed against half-downloaded data
-would be a *false* claim of freshness, not merely a stale one, and nothing
-downstream could tell. So the phases are hard-gated, and every gate fails
-closed:
-
-0. **Coverage.** ``--end`` defaults to the calendar year, and the pipeline loads
-   only through ``config.END_YEAR``. Refreshing past it would regenerate, date
-   and commit a cache that ignores the new season entirely, so the run aborts
-   before it touches the network. This is the one gate guaranteed to fire on its
-   own: on 1 January it stops every run until ``END_YEAR`` is bumped, and says
-   so in the message.
-1. **Refresh.** ``refresh_data.refresh`` deliberately logs and skips a failing
-   year, "one bad year never aborts the whole run", and its ``main()``
-   returns ``None``, so **the script exits 0 after downloading nothing at all.**
-   That is right for an interactive refresh and catastrophic for an unattended
-   one. This orchestrator therefore ignores the exit code and reads the
-   ``{year: path}`` map it returns: **every requested year must be in it**, or
-   the run aborts here.
-2. **Verify.** A 200 response is not data. Each year's file is re-read and
-   checked for the columns the pipeline needs, for dates that actually parse
-   (``loader`` parses with ``errors="coerce"``, so a vendor date-format change
-   would silently produce an all-``NaT`` column), and for a row count that has
-   not *shrunk* against the file it replaced. ``pd.read_csv(...,
-   on_bad_lines="skip")`` in the loader means a truncated file is otherwise
-   read without complaint.
-3. **Change detection.** sha256 per file, before and after. Unchanged bytes ⇒
-   nothing downstream can have changed either, so the run stops with exit 0 and
-   ``data_changed: false``, and the workflow opens no pull request. This is the
-   "don't create empty commits" guard, made at the only place that can tell:
-   the cache file's ``generated_at`` moves on every single run, so a git diff of
-   ``data/cache/`` can never answer the question.
-4. **Retrain.** Not optional after a refresh, and not implicit. The skill table
-   *is* implicit, ``features.engineering.add_features`` rebuilds it from the
-   frame on every pipeline build, and nothing persists it, but
-   ``outputs/tennis_model.pkl`` is persisted and ``predictor.py`` loads it
-   whenever it exists **without any staleness check**. New data plus an old
-   pickle is a silent mismatch, so the pickle is deleted and regenerated.
-5. **Precompute.** Only now, and only via ``precompute_sim.main``, its id
-   resolution, its placeholder refusal, its error ladder and its disclosure
-   metadata, not a second copy of any of them.
-
-**Draw files are never touched.** ``data/draws/*.json`` is hand-entered, there
-is no scraper anywhere in this project, and this script only ever *reads* the
-registry to decide what to simulate. Refreshing match data and regenerating
-simulations is the whole of its remit. A draw whose entrants are still
-placeholders (``Qualifier``/``Bye``) is skipped with a log line and is picked up
-automatically by the next run once a human fills it in.
-
-Exit code is 0 only if every phase attempted succeeded; any failure is 1, with
-the reason named on stdout and in the ``--summary-json`` file the workflow
-reads.
+Gates fail closed so a cache is never published against half-downloaded data: coverage, refresh
+completeness, file verification, sha256 change detection, forced retrain, then precompute via
+``precompute_sim.main``. ``data/draws/`` is never touched; exit 0 only if every attempted phase succeeded.
 """
 
 from __future__ import annotations
@@ -82,9 +17,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-# scripts/ is not on pyproject's ``pythonpath = ["src"]``, and this module
-# imports from both trees: src/ for config and the pipeline, scripts/ for the
-# two scripts it orchestrates. Same bootstrap precompute_sim.py uses.
+# Add both src/ and scripts/ to the path: this module imports from each tree.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 for _path in (_REPO_ROOT / "src", _REPO_ROOT / "scripts"):
     if str(_path) not in sys.path:
@@ -100,12 +33,7 @@ from api.deps import build_api_context  # noqa: E402
 from api.registry import build_registry  # noqa: E402
 from data.preprocess import SERVE_STAT_COLUMNS  # noqa: E402
 
-# --------------------------------------------------------------------------- #
-# What a usable year file looks like.
-# --------------------------------------------------------------------------- #
-# The columns `data/preprocess.py` indexes by name, the subset whose absence is
-# a KeyError rather than a NaN, so a vendor schema change is caught here instead
-# of three phases later. Not the whole vendor schema.
+# The columns data/preprocess.py indexes by name; their absence is a KeyError, so catch it here.
 CORE_COLUMNS = (
     "tourney_date", "surface", "tourney_level", "round", "best_of", "score",
     "winner_id", "winner_name", "winner_rank", "winner_age",
@@ -115,11 +43,7 @@ REQUIRED_COLUMNS = frozenset(CORE_COLUMNS) | {
     f"{side}_{stat}" for side in ("w", "l") for stat in SERVE_STAT_COLUMNS
 }
 
-# `data/loader.py` parses tourney_date with `format="%Y%m%d", errors="coerce"`,
-# so a vendor switch to ISO dates yields a silently all-NaT column and a frame
-# that engineers features in arbitrary order. Rounded down from the observed
-# 100% on every vendored file, a handful of bad rows is data, a wholesale
-# failure to parse is a format change.
+# loader.py coerces unparseable tourney_date to NaT; a wholesale parse failure is a format change, not bad rows.
 MIN_DATE_PARSE_RATIO = 0.99
 
 
@@ -127,17 +51,9 @@ class OrchestratorError(RuntimeError):
     """A phase failed. The message is the operator-facing explanation."""
 
 
-# --------------------------------------------------------------------------- #
-# Run summary, the machine-readable half of "clear logs".
-# --------------------------------------------------------------------------- #
 @dataclass
 class RunSummary:
-    """What happened, in the shape the workflow branches on.
-
-    ``data_changed`` is the commit gate and ``ok`` is the publish gate: the
-    workflow opens a pull request only when both are true, so neither a failed
-    run nor a no-op run can put anything in front of a reviewer.
-    """
+    """Machine-readable run outcome; the workflow opens a PR only when ``data_changed`` and ``ok`` are both true."""
 
     ok: bool = False
     refreshed: bool = False
@@ -169,9 +85,6 @@ def _log(message: str) -> None:
     print(message, flush=True)
 
 
-# --------------------------------------------------------------------------- #
-# Phase 1, refresh.
-# --------------------------------------------------------------------------- #
 def file_digest(path: Path) -> str | None:
     """sha256 of ``path``, or ``None`` if it does not exist yet."""
     if not path.exists():
@@ -188,16 +101,7 @@ def snapshot_digests(raw_dir: Path, years: list[int]) -> dict[int, str | None]:
 
 
 def run_refresh(years: list[int], raw_dir: Path) -> None:
-    """Download every year in ``years``, or raise naming the ones that failed.
-
-    ``refresh_data.refresh`` reports success by *omission*, a year it could not
-    download is logged, skipped, and simply absent from the returned map, and
-    the process still exits 0. Treating a short map as fatal is the entire point
-    of this wrapper.
-
-    Raises:
-        OrchestratorError: If any requested year is missing from the result.
-    """
+    """Download every year in ``years``, or raise naming the ones missing from ``refresh_data.refresh``'s returned map."""
     written = refresh_data.refresh(years[0], years[-1], raw_dir)
     missing = [year for year in years if year not in written]
     if missing:
@@ -211,27 +115,10 @@ def run_refresh(years: list[int], raw_dir: Path) -> None:
         )
 
 
-# --------------------------------------------------------------------------- #
-# Phase 2, verify.
-# --------------------------------------------------------------------------- #
 def verify_year_file(
     path: Path, year: int, previous_rows: int | None = None, allow_shrink: bool = False
 ) -> list[str]:
-    """Check one refreshed CSV is usable. Returns a list of problems (empty = ok).
-
-    Fail-loudly-but-complete, the same convention ``sim/draw.py`` uses: every
-    problem with a file is collected so one run reports the whole picture.
-
-    Args:
-        path: The refreshed file.
-        year: Its season, for the messages.
-        previous_rows: Row count of the file this one replaced, if there was
-            one. Historical results only ever accumulate, so a drop is the
-            signature of a truncated or partial download.
-        allow_shrink: Waive the row-count check (a vendor may legitimately
-            *remove* rows in a correction; that should be a deliberate,
-            human-taken decision, not a silent one).
-    """
+    """Check one refreshed CSV is usable, returning every problem found (empty = ok); ``allow_shrink`` waives the row-count check."""
     problems: list[str] = []
     if not path.exists():
         return [f"{year}: {path} was not written"]
@@ -280,11 +167,7 @@ def verify_year_file(
 def verify_raw_data(
     years: list[int], raw_dir: Path, previous_rows: dict[int, int], allow_shrink: bool
 ) -> None:
-    """Verify every refreshed year, or raise with all problems at once.
-
-    Raises:
-        OrchestratorError: If any year's file fails a check.
-    """
+    """Verify every refreshed year, or raise with all problems at once."""
     problems: list[str] = []
     for year in years:
         path = raw_dir / refresh_data.LOCAL_NAME.format(year=year)
@@ -315,42 +198,8 @@ def count_rows(raw_dir: Path, years: list[int]) -> dict[int, int]:
     return counts
 
 
-# --------------------------------------------------------------------------- #
-# Phase 4, retrain.
-# --------------------------------------------------------------------------- #
 def train_model(model_path: Path = config.MODEL_PATH) -> str:
-    """Delete the persisted classifier and retrain it from the refreshed data.
-
-    The delete is the load-bearing half. ``predictor.py`` loads
-    ``outputs/tennis_model.pkl`` whenever the file exists and **never checks
-    whether the data behind it has moved on**, so simply re-running it after a
-    refresh would reload the old model and publish new-data numbers from an old
-    fit.
-
-    **Destructive on a developer machine, and deliberately not undone.** The
-    delete happens *before* training and there is no restore on failure: if the
-    training run then fails, the machine is left with no model at all rather
-    than with a stale one. On a runner that is free (the checkout never had a
-    pickle, ``outputs/`` is gitignored). Locally it costs a ~1 min
-    ``python src/predictor.py`` to regenerate. Keeping a backup and rolling it
-    back on failure was rejected on purpose: restoring the stale pickle would
-    hand the next caller exactly the silent new-data/old-fit mismatch this
-    function exists to prevent, and a *missing* model fails loudly everywhere
-    (``precompute_sim`` refuses to run without one) whereas a stale one does
-    not. Pass ``--retrain never`` if you need the persisted model left alone.
-
-    Run as a subprocess with stdin closed, exactly as the Dockerfile's
-    ``artefacts`` stage does: ``predictor.py`` ends in the interactive REPL,
-    which takes EOF as "input closed" and exits 0 cleanly.
-
-    Returns:
-        The class name of the persisted estimator, which of the best-of-four
-        won on ``TEST_YEAR`` is data- and environment-dependent, so it is
-        logged here and carried into every cache file's metadata.
-
-    Raises:
-        OrchestratorError: If training fails or writes no model.
-    """
+    """Delete the persisted classifier (no restore on failure) and retrain it, returning the estimator class name; the delete is load-bearing because ``predictor.py`` reloads a stale pickle with no staleness check."""
     if model_path.exists():
         _log(f"   removing stale {model_path} (no staleness check exists)")
         model_path.unlink()
@@ -378,25 +227,8 @@ def train_model(model_path: Path = config.MODEL_PATH) -> str:
     return type(joblib.load(model_path)).__name__
 
 
-# --------------------------------------------------------------------------- #
-# Phase 5a, Elo rankings (a display feature; regenerated on the same cadence).
-# --------------------------------------------------------------------------- #
 def regenerate_elo(start: int, end: int, cache_dir: str) -> None:
-    """Recompute the Elo rankings cache from the refreshed data, or raise.
-
-    Elo is a standalone *display* feature (``src/features/elo.py``): it feeds no
-    model and no simulation, so it needs neither the trained pickle nor the skill
-    table, only the raw winner/loser match frame, which by this point is the
-    freshly refreshed data. It regenerates here so the Rankings screen stays on
-    the same weekly cadence as the tournament caches rather than drifting behind.
-
-    Fatal on failure like a draw precompute: the workflow commits ``data/cache/``
-    as one unit, so a broken rankings file must stop the whole run rather than be
-    published beside fresh tournament caches.
-
-    Raises:
-        OrchestratorError: If the precompute exits non-zero or raises.
-    """
+    """Recompute the Elo rankings cache from the refreshed data, or raise (fatal like a draw precompute)."""
     argv = ["--start", str(start), "--end", str(end), "--cache-dir", cache_dir]
     try:
         code = precompute_elo.main(argv)
@@ -411,27 +243,8 @@ def regenerate_elo(start: int, end: int, cache_dir: str) -> None:
         )
 
 
-# --------------------------------------------------------------------------- #
-# Phase 5, precompute.
-# --------------------------------------------------------------------------- #
 def discover_targets(draws_dir: str | Path) -> tuple[list[str], list[str]]:
-    """Every draw that can actually be simulated, and every one that cannot.
-
-    Reads the same registry the API serves from, so "what is simulatable" has
-    one definition (``TournamentEntry.is_simulatable``) rather than a second
-    copy here. Building it needs a skill table, hence the pipeline, which by
-    this point is loading the freshly refreshed data and the freshly trained
-    model, so it doubles as a load-bearing smoke test of both.
-
-    ``precompute_sim.main`` then builds its own context per draw, so this
-    pipeline build is paid twice (~2 s each, measured in ``api/deps.py``). That
-    is deliberate: the alternative is re-implementing that script's id
-    resolution, placeholder refusal, error ladder and disclosure metadata here,
-    against a phase that already costs ~30 s per draw.
-
-    Returns:
-        ``(simulatable_ids, skipped_descriptions)``.
-    """
+    """Return ``(simulatable_ids, skipped_descriptions)`` from the same registry the API serves, keying on ``is_simulatable``."""
     context = build_api_context()
     registry = build_registry(context.skill_table, draws_dir)
 
@@ -448,22 +261,7 @@ def discover_targets(draws_dir: str | Path) -> tuple[list[str], list[str]]:
 def precompute_draws(
     targets: list[str], runs: int, seed: int, draws_dir: str, cache_dir: str
 ) -> tuple[list[str], list[str]]:
-    """Regenerate the cache for each target draw. Returns ``(succeeded, failed)``.
-
-    **Every target is attempted even after one fails**, deliberately: a run that
-    stops at the first failure reports one broken draw per run, and a human
-    fixing them one round-trip at a time is exactly the wrong shape for a weekly
-    unattended job. The failures are still fatal, the caller exits non-zero and
-    the workflow commits *nothing*, so the repository never holds a mix of fresh
-    and stale caches. Continuing buys diagnostics, not partial publication.
-
-    That non-zero exit is also what makes a half-written cache unpublishable.
-    ``precompute_sim`` writes its file with a single ``write_text``, not a
-    tmp-and-rename, so a crash mid-write can leave truncated JSON on disk. It
-    cannot reach the repository: the workflow's staging and commit steps are
-    skipped the moment this function reports a failure. The atomicity lives in
-    the exit code rather than in the write.
-    """
+    """Regenerate the cache for every target draw (all attempted even after one fails), returning ``(succeeded, failed)``."""
     succeeded: list[str] = []
     failed: list[str] = []
 
@@ -491,9 +289,6 @@ def precompute_draws(
     return succeeded, failed
 
 
-# --------------------------------------------------------------------------- #
-# The run.
-# --------------------------------------------------------------------------- #
 def orchestrate(args: argparse.Namespace) -> RunSummary:
     """Run the phases in order, stopping at the first gate that fails."""
     summary = RunSummary(started_at=_now())
@@ -501,11 +296,7 @@ def orchestrate(args: argparse.Namespace) -> RunSummary:
     years = list(range(args.start, args.end + 1))
     summary.years = years
 
-    # A season the refresh fetches but the pipeline never loads is the same
-    # falsely-fresh failure this script exists to prevent, just slower: the
-    # cache would be regenerated, committed and dated today while ignoring the
-    # new year entirely. `--end` defaults to the calendar year, so this fires on
-    # the first run of a new season and names its own fix.
+    # Refreshing past config.END_YEAR would date a cache today while ignoring the new season.
     if args.end > config.END_YEAR:
         summary.stopped_after = "config-check"
         summary.message = (
@@ -519,7 +310,7 @@ def orchestrate(args: argparse.Namespace) -> RunSummary:
     before = snapshot_digests(raw_dir, years)
     previous_rows = count_rows(raw_dir, years) if args.refresh else {}
 
-    # ---- Phase 1 + 2: refresh and verify. The only network in this script. ---
+    # Refresh and verify (the only network in this script).
     if args.refresh:
         _log(f"\n═══ Phase 1/4: refreshing data/raw/ for {args.start}–{args.end}")
         try:
@@ -553,8 +344,7 @@ def orchestrate(args: argparse.Namespace) -> RunSummary:
     else:
         _log("   vendored data is byte-identical to what was already on disk")
 
-    # Nothing new upstream ⇒ retraining and re-simulating would burn ~5 minutes
-    # to produce numbers that differ only in `generated_at`. Stop, successfully.
+    # Unchanged bytes: retraining would only move `generated_at`. Stop, successfully.
     if args.refresh and not summary.data_changed and not args.force:
         summary.ok = True
         summary.stopped_after = "no-change"
@@ -565,7 +355,7 @@ def orchestrate(args: argparse.Namespace) -> RunSummary:
         summary.finished_at = _now()
         return summary
 
-    # ---- Phase 3: retrain. ---------------------------------------------------
+    # Retrain.
     _log("\n═══ Phase 3/4: retraining the classifier")
     if args.retrain == "never":
         if not config.MODEL_PATH.exists():
@@ -589,10 +379,7 @@ def orchestrate(args: argparse.Namespace) -> RunSummary:
         summary.retrained = True
         _log(f"   persisted estimator: {summary.estimator_class}")
 
-    # ---- Phase 3b: Elo rankings (display feature, same cadence). -------------
-    # Independent of the draws and the trained model, it only needs the raw
-    # match frame, so it runs before the tournament precompute and its failure
-    # stops the run the same way (data/cache/ is committed as one unit).
+    # Elo rankings (display feature, needs only the raw frame; failure stops the run).
     _log("\n═══ Phase 3b/4: regenerating the Elo rankings cache")
     try:
         regenerate_elo(args.start, args.end, args.cache_dir)
@@ -602,7 +389,7 @@ def orchestrate(args: argparse.Namespace) -> RunSummary:
         return summary
     summary.elo_regenerated = True
 
-    # ---- Phase 4: precompute. ------------------------------------------------
+    # Precompute.
     _log("\n═══ Phase 4/4: precomputing the simulation cache")
     if args.draw:
         targets, skipped = list(args.draw), []

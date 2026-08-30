@@ -1,15 +1,4 @@
-/**
- * Narrowing a thrown client error into the panel that should render it, pure,
- * no React, so the branch table is testable without mounting anything.
- *
- * Split out of `ErrorPanel.tsx` on the `rounds.ts` precedent: component files
- * export only components. **The branches are the API's, not invented here.**
- * `ApiConfigError` (misconfigured, no request attempted), `ApiNetworkError`
- * (the request never landed), and `ApiError` split by `status` and by the
- * machine-readable `detail.reason` the server attaches precisely so a client
- * need not parse prose. Anything unrecognised still renders, with its status
- * and message, rather than collapsing to "something went wrong".
- */
+// Narrows a thrown client error into the panel that should render it, pure, no React. The branches follow the API's own `status`/`detail.reason`; anything unrecognised still renders with its status and message.
 
 import { ApiConfigError, ApiNetworkError, hasReason, isApiError } from '../api/client';
 
@@ -23,11 +12,7 @@ export interface PanelContent {
   command?: string;
 }
 
-/** Narrow `error` to the panel it should render.
- *
- * `tournamentId` names the thing that 404'd when a tournament view is loading; it
- * is optional so tournament-free views (the rankings board) can reuse the same
- * panel without inventing an id. */
+/** Narrow `error` to the panel it should render; `tournamentId` (optional) names the thing that 404'd. */
 export function describeError(error: unknown, tournamentId?: string): PanelContent {
   const fallbackMessage = error instanceof Error ? error.message : String(error);
 
@@ -57,9 +42,7 @@ export function describeError(error: unknown, tournamentId?: string): PanelConte
     };
   }
 
-  // The rankings cache has not been generated yet. The server hands back the
-  // exact precompute command, shown to be copied, the same shape as a missing
-  // simulation cache.
+  // Rankings cache not generated: the server hands back the exact precompute command.
   if (hasReason(error, 'rankings_missing')) {
     return {
       kind: 'rankings-missing',
@@ -77,8 +60,7 @@ export function describeError(error: unknown, tournamentId?: string): PanelConte
     };
   }
 
-  // Nothing has been simulated yet. The server hands back the exact precompute
-  // command, so the panel shows that rather than describing it.
+  // Nothing simulated yet: the server hands back the exact precompute command.
   if (hasReason(error, 'cache_missing')) {
     return {
       kind: 'cache-missing',
@@ -99,8 +81,7 @@ export function describeError(error: unknown, tournamentId?: string): PanelConte
     };
   }
 
-  // An uploaded draw that is no longer held: evicted, or the server restarted.
-  // Uploaded draws live in memory only, so a shared link can stop working.
+  // An uploaded draw no longer held (evicted or restarted): uploads live in memory only.
   if (hasReason(error, 'upload_not_found')) {
     return {
       kind: 'upload-not-found',
@@ -109,8 +90,7 @@ export function describeError(error: unknown, tournamentId?: string): PanelConte
     };
   }
 
-  // The aggregate title-odds board is cache-only and uploads have no cache, so
-  // an uploaded draw can only be played out as a live storybook.
+  // The title-odds board is cache-only; an uploaded draw can only be played out as a live storybook.
   if (hasReason(error, 'monte_carlo_unavailable_for_upload')) {
     return {
       kind: 'upload-no-odds',
@@ -119,8 +99,7 @@ export function describeError(error: unknown, tournamentId?: string): PanelConte
     };
   }
 
-  // An uploaded draw that failed validation: show the accumulated problem list,
-  // same as a curated draw file's 422, so a hand-entered draw is fixable at once.
+  // An uploaded draw that failed validation: show the accumulated problem list.
   if (hasReason(error, 'draw_invalid')) {
     return {
       kind: 'draw-invalid',
@@ -130,8 +109,7 @@ export function describeError(error: unknown, tournamentId?: string): PanelConte
     };
   }
 
-  // The other structured upload failures all carry a plain message from the
-  // server; show it verbatim rather than paraphrasing.
+  // The other structured upload failures carry a plain server message; show it verbatim.
   if (
     hasReason(error, 'invalid_json') ||
     hasReason(error, 'invalid_event_date') ||

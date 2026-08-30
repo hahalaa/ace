@@ -1,18 +1,10 @@
-/**
- * Relative timestamps for the recent-simulations list ("2 hours ago"), kept out
- * of the component so the wording is testable without a render. Pure: pass `now`
- * to pin it in a test.
- */
+// Relative timestamps for the recent-simulations list, kept pure so the wording is testable.
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-/**
- * A short, plain relative time such as "just now", "5 minutes ago" or "3 days
- * ago". Anything older than a week reads as a plain date, since "51 days ago" is
- * harder to place than the date itself.
- */
+/** A short relative time ("just now", "5 minutes ago"); anything older than a week reads as a plain date. */
 export function relativeTime(then: number, now: number = Date.now()): string {
   const delta = now - then;
   if (delta < MINUTE) return 'just now';

@@ -1,27 +1,4 @@
-/**
- * Wire types for the ace API, a direct mirror of `src/api/schemas.py`.
- *
- * Every interface here corresponds one-to-one to a Pydantic model in that file,
- * field for field and name for name. Three rules kept it honest, and keeping
- * them is how it stays honest:
- *
- *   * **Mirror the schema, not the docs.** These were written against
- *     `api/schemas.py` and `api/main.py`, which are the contract; prose
- *     elsewhere paraphrases it and drifts.
- *   * **Every schema model sets `extra="forbid"`,** so a response body carries
- *     exactly the declared keys, no optional-unknown escape hatch is needed,
- *     and an extra field on the wire is a server bug rather than something a
- *     client should tolerate.
- *   * **Open string fields stay open; closed ones close.** `surface`,
- *     `best_of`, `final_set_tiebreak`, `mode` and `strategy` are typed as
- *     unions because a validator on the server enumerates their values. Round
- *     labels are *not*: they are a function of the draw size, so anything keyed
- *     by them is `Record<string, …>`.
- */
-
-// --------------------------------------------------------------------------
-// Value domains, closed on the server, so closed here.
-// --------------------------------------------------------------------------
+// Wire types for the ace API, a field-for-field mirror of src/api/schemas.py (every model sets extra="forbid"). Closed value domains are typed as unions; round labels are `string` because they depend on the draw size.
 
 /** `config.VALID_SURFACES`. `Carpet`/unknown never reach the wire. */
 export type Surface = 'Hard' | 'Clay' | 'Grass';
@@ -38,18 +15,8 @@ export type ReconcileMode = 'blend' | 'classifier_anchor';
 /** `common.names.MatchStrategy` values, as echoed by `/players`. */
 export type MatchStrategy = 'exact' | 'initials' | 'substring' | 'fuzzy';
 
-/**
- * A round label, `QF`/`SF`/`F` for an 8 draw, `R128 … F` for a 128 draw.
- *
- * An alias for `string` on purpose: labels are derived from the draw size
- * (`sim.tournament.round_labels`), so hardcoding a union would be wrong for
- * every draw size but one. Read them off `SimulationResponse.round_labels`.
- */
+/** A round label (`QF`/`SF`/`F` for an 8 draw); `string` because it depends on the draw size. */
 export type RoundLabel = string;
-
-// --------------------------------------------------------------------------
-// /health, /players
-// --------------------------------------------------------------------------
 
 /** `api.schemas.HealthResponse`. */
 export interface HealthResponse {
@@ -81,14 +48,7 @@ export interface PlayerSummary {
   skills: Record<Surface, SurfaceSkill>;
 }
 
-/**
- * `api.schemas.PlayerSearchResponse`.
- *
- * All three resolver outcomes arrive as a 200 with this one shape: a unique
- * match is one entry, an ambiguous one is *every* candidate, and no match is
- * `players: []` / `count: 0` / `strategy: null`. Only a missing, blank or
- * whitespace-only query fails, with a 422.
- */
+/** `api.schemas.PlayerSearchResponse`: one 200 shape for unique/ambiguous/no-match; only a blank query is a 422. */
 export interface PlayerSearchResponse {
   /** The query as searched, whitespace-stripped by validation, echoed back. */
   query: string;
@@ -97,10 +57,6 @@ export interface PlayerSearchResponse {
   strategy: MatchStrategy | null;
   players: PlayerSummary[];
 }
-
-// --------------------------------------------------------------------------
-// /tournaments, /tournaments/{id}/bracket
-// --------------------------------------------------------------------------
 
 /** `api.schemas.TournamentSummary`, note it carries no `final_set_tiebreak`. */
 export interface TournamentSummary {
@@ -154,17 +110,7 @@ export interface BracketResponse {
   slots: BracketSlot[];
 }
 
-// --------------------------------------------------------------------------
-// The shared disclosure
-// --------------------------------------------------------------------------
-
-/**
- * `api.schemas.ModelDisclosure`, the base of both metadata blocks.
- *
- * Every field is required on the server precisely so probabilities cannot be
- * published without their caveat. The screens must render `is_forecast` and
- * `classifier_limitation`, not merely receive them.
- */
+/** `api.schemas.ModelDisclosure`, the base of both metadata blocks; every field is required so a probability cannot be published without its caveat. */
 export interface ModelDisclosure {
   /** How `P_clf` and the point model were fused. */
   mode: ReconcileMode;
@@ -200,18 +146,11 @@ export interface SimulationMetadata extends ModelDisclosure {
 export interface StorybookMetadata extends ModelDisclosure {
   /** The **RNG** seed that ran (the caller's, or the server default). */
   seed: number;
-  /**
-   * Where the *draw* came from: `curated` for a verified example, `user_upload`
-   * for a submitted one. Distinct from `is_forecast`, which is about the model.
-   */
+  /** Where the draw came from (distinct from `is_forecast`, which is about the model). */
   content_source: 'curated' | 'user_upload';
   /** Plain-language provenance note, for an upload, that it is unverified and temporary. */
   content_note: string;
 }
-
-// --------------------------------------------------------------------------
-// /tournaments/{id}/simulate
-// --------------------------------------------------------------------------
 
 /** `api.schemas.SimulationPlayer`. */
 export interface SimulationPlayer {
@@ -226,12 +165,7 @@ export interface SimulationPlayer {
   p_title: number;
   /** `matches_won / runs`. */
   expected_rounds_won: number;
-  /**
-   * Round label → runs in which the entrant contested that round.
-   *
-   * Keyed by **the draw's own labels** (`SimulationResponse.round_labels`), so
-   * an 8 draw and a 128 draw return different key sets.
-   */
+  /** Round label -> runs in which the entrant contested that round, keyed by the draw's own labels. */
   reached: Record<RoundLabel, number>;
   /** Round label → P(contests that round). Same keying as `reached`. */
   p_reach: Record<RoundLabel, number>;
@@ -254,10 +188,6 @@ export interface SimulationResponse {
   players: SimulationPlayer[];
   metadata: SimulationMetadata;
 }
-
-// --------------------------------------------------------------------------
-// /tournaments/{id}/storybook
-// --------------------------------------------------------------------------
 
 /** `api.schemas.StorybookMatch`. */
 export interface StorybookMatch {
@@ -324,18 +254,7 @@ export interface StorybookResponse {
   metadata: StorybookMetadata;
 }
 
-// --------------------------------------------------------------------------
-// POST /tournaments/upload (draw upload feature)
-// --------------------------------------------------------------------------
-
-/**
- * `api.schemas.UploadResponse`, acknowledgement that a draw was accepted.
- *
- * `tournament_id` is a generated `upload-…` id in a namespace separate from the
- * curated draws; use it for `/bracket` and `/storybook`. Uploaded draws are
- * **ephemeral** (`ephemeral: true`), held in memory only, cleared on a server
- * restart, so a shared link may stop working, which the UI discloses.
- */
+/** `api.schemas.UploadResponse`: `tournament_id` is a generated `upload-...` id; uploaded draws are ephemeral (cleared on restart). */
 export interface UploadResponse {
   /** The `upload-…` id to address this draw by. */
   tournament_id: string;
@@ -354,10 +273,6 @@ export interface UploadResponse {
   /** Note that this draw is user-submitted, unverified and temporary. */
   content_note: string;
 }
-
-// --------------------------------------------------------------------------
-// POST /match/simulate (single-match live simulation)
-// --------------------------------------------------------------------------
 
 /** `api.schemas.MatchSimulateRequest`, the body POSTed to `/match/simulate`. */
 export interface MatchSimulateRequest {
@@ -421,15 +336,7 @@ export interface MatchSimulateResponse {
   metadata: MatchMetadata;
 }
 
-// --------------------------------------------------------------------------
-// Error bodies
-// --------------------------------------------------------------------------
-// These are not Pydantic response models, they are what FastAPI serialises
-// `HTTPException.detail` into. They are typed anyway because a later UI ticket
-// has to render them, and the alternative (parsing prose out of a message) is
-// what `detail.reason` exists to avoid. Note the asymmetry, faithfully mirrored
-// below: the 404 detail is a bare string, the invalid-draw-file 422 carries no
-// `reason`, and every other structured body does.
+// Error bodies: what FastAPI serialises HTTPException.detail into. The 404 detail is a bare string and the invalid-draw 422 carries no `reason`; every other structured body does.
 
 /** One entry of FastAPI's own request-validation 422 body (blank `?query=`, `?top=0`). */
 export interface RequestValidationProblem {
@@ -505,12 +412,7 @@ export interface UploadDrawInvalidDetail {
   problems: string[];
 }
 
-/**
- * The other structured upload failures, all sharing `{reason, message}`:
- * `unsupported_media_type` (415), `payload_too_large` (413), `invalid_json`
- * (422), `invalid_event_date` (422), `monte_carlo_unavailable_for_upload` (409)
- * and `rate_limited` (429).
- */
+/** The other structured upload failures, all sharing `{reason, message}` (415/413/422/409/429). */
 export interface UploadProblemDetail {
   reason:
     | 'unsupported_media_type'
@@ -523,22 +425,7 @@ export interface UploadProblemDetail {
   tournament_id?: string;
 }
 
-/**
- * Every `detail` **this API** can send: the bare-string 404, the
- * request-validation list, and the four structured bodies.
- *
- * Closed on purpose, so a `switch` over it is exhaustive and a new server-side
- * error shape is a compile error here rather than a silent `default` branch.
- * It deliberately does **not** include `unknown`, a union containing `unknown`
- * collapses to `unknown`, which would make every member above decorative and
- * every exhaustiveness check vacuous.
- *
- * The price is that it does not describe what a *proxy* or a crashed server
- * sends, which is why {@link ApiError.detail} is typed `unknown` rather than
- * this: what arrived on the wire is genuinely not known until it is narrowed.
- * Use `hasReason()` for the `reason`-bearing bodies, and this type to annotate
- * anything that has already been narrowed.
- */
+/** Every `detail` this API can send. Closed (no `unknown`), so a `switch` over it is exhaustive; annotate only already-narrowed values, since a proxy or crash page is none of these. */
 export type ApiErrorDetail =
   | string
   | RequestValidationProblem[]
@@ -553,12 +440,7 @@ export type ApiErrorDetail =
   | UploadProblemDetail
   | MatchPlayerProblemDetail;
 
-/**
- * 422, a single-match player query that did not resolve to one player.
- *
- * `player_not_found` carries no candidates; `player_ambiguous` carries the list
- * so the UI can offer them. `seed_out_of_range` is the seed cap.
- */
+/** 422, a single-match player query that did not resolve to one player (`player_ambiguous` carries `candidates`). */
 export interface MatchPlayerProblemDetail {
   reason: 'player_not_found' | 'player_ambiguous' | 'player_not_simulatable';
   message: string;
@@ -588,10 +470,6 @@ export type ApiErrorReason =
   | 'rankings_missing'
   | 'rankings_unreadable';
 
-// --------------------------------------------------------------------------
-// Rankings (Elo), a display-only feature (`GET /rankings`).
-// --------------------------------------------------------------------------
-
 /** `api.schemas.RankedPlayer`, one player's standing in one Elo track. */
 export interface RankedPlayer {
   /** 1-based position within this track. */
@@ -604,10 +482,7 @@ export interface RankedPlayer {
   matches: number;
   /** `YYYY-MM-DD` of the player's last match on this track. */
   last_played: string;
-  /**
-   * Whether the player has played recently tour-wide. A long-retired player can
-   * hold a high frozen rating; this flag separates them from current form.
-   */
+  /** Whether the player has played recently tour-wide (separates current form from a retired player's frozen peak). */
   is_active: boolean;
 }
 

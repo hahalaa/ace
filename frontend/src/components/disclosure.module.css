@@ -1,15 +1,4 @@
-/*
- * Disclosure, the model caveat that has to travel with anything this app
- * publishes, treated as a considered typographic moment rather than a banner.
- *
- * The weight is in type and space, not colour: a rule-lined standfirst set off
- * from the numbers above and below it, a monospace kicker, and a confident
- * opening line in full-strength ink. No icons, no accent fill, no apology. It
- * reads as a deliberate editorial note, and it stays at full size, this is the
- * one thing on the screen you are meant to read before the numbers.
- *
- * Tokens come from src/index.css.
- */
+/* Disclosure: the model caveat, set as a rule-lined standfirst at full size. Tokens from src/index.css. */
 
 .disclosure {
   border-top: 1px solid var(--line);

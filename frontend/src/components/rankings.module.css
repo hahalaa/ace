@@ -1,8 +1,4 @@
-/*
- * Rankings board styles, the same editorial-index treatment as the odds table
- * (monospace tabular figures, hairline rules, a lit leading row), plus a tab row
- * for the track and a toggle for inactive players. Tokens come from src/index.css.
- */
+/* Rankings board: the same editorial-index treatment as the odds table, plus a track tab row and an inactive-players toggle. Tokens from src/index.css. */
 
 .rankings {
   display: flex;
@@ -47,9 +43,7 @@
   margin: 0;
 }
 
-/* -------------------------------------------------------------------------
- * Controls: track tabs + the inactive toggle.
- * ------------------------------------------------------------------------- */
+/* Controls: track tabs + the inactive toggle. */
 
 .controls {
   display: flex;
@@ -111,9 +105,7 @@
   accent-color: var(--ball);
 }
 
-/* -------------------------------------------------------------------------
- * The table.
- * ------------------------------------------------------------------------- */
+/* The table. */
 
 .tableWrap {
   overflow-x: auto;

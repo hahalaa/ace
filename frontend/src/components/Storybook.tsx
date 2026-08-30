@@ -1,35 +1,4 @@
-/**
- * One tournament, played out: a seeded storybook run drawn onto the bracket,
- * with a champion at the end and a URL that reproduces it exactly.
- *
- * **The seed is the feature, not a parameter.** `/storybook` is the one endpoint
- * that simulates live, and the same id + the same seed returns a
- * byte-identical body, that is what makes a link shareable. So the seed lives
- * in the **URL** (`./seed` reads and writes it), never in a `useState`
- * initialiser that rolls a fresh number, and every run goes through `runSeed`:
- * pick a seed, write it to the address bar, fetch it. Reloading the page
- * re-reads the same seed and replays the same tournament; **re-run** picks a
- * *different* one (and says so in the URL); **share** copies the address bar.
- * Nothing here re-rolls on a render, so a React re-render cannot silently change
- * the story on screen.
- *
- * **The bracket is not reimplemented.** { Bracket} fetches and lays
- * out the draw exactly as it does on its own screen; this passes it the run to
- * draw over, and `./storybook` does the keying. Before a run, and while one is
- * in flight, the same component renders the same empty draw, no second layout,
- * no storybook-only bracket.
- *
- * **What is shown comes from the response, not from re-derivation.** The
- * champion is `StorybookResponse.champion` (never "whoever won the last match"),
- * and scorelines are copied strings. `StorybookMetadata` still carries the
- * required `ModelDisclosure` fields on the wire for any non-browser consumer,
- * this screen simply stopped rendering them; the backend contract is
- * unchanged.
- *
- * **No staggered reveal.** The ticket offers it as optional; it would mean a
- * timer-driven round cursor, an interruption path for re-run, and a class of
- * test flake, for no acceptance criterion. The run appears when it arrives.
- */
+// One tournament played out: a seeded /storybook run drawn onto the bracket (Bracket lays it out, this passes it the run). The seed lives in the URL, never a useState initialiser, so a re-render cannot change the story.
 
 import { useCallback, useEffect, useState } from 'react';
 
@@ -55,14 +24,8 @@ type LoadState =
 
 type CopyState = 'idle' | 'copied' | 'failed';
 
-// --------------------------------------------------------------------------
-// Champion.
-// --------------------------------------------------------------------------
-
 function Champion({ story }: { story: StorybookResponse }) {
-  // Identity is the response's own `champion` field. The run row is looked up
-  // for the *summary* numbers only, and the final's line for its scoreline,
-  // neither decides who won.
+  // Identity is the response's own `champion` field; the run row and final's line are for display only.
   const { champion } = story;
   const run = story.runs.find((entrant) => entrant.is_champion) ?? null;
   const final = story.rounds[story.rounds.length - 1]?.matches[0] ?? null;
@@ -85,10 +48,6 @@ function Champion({ story }: { story: StorybookResponse }) {
   );
 }
 
-// --------------------------------------------------------------------------
-// The screen.
-// --------------------------------------------------------------------------
-
 export default function Storybook({ tournamentId }: StorybookProps) {
   // Read once, from the URL a page load actually arrived with.
   const [seed, setSeed] = useState<number | null>(() => readSeed(window.location.search));
@@ -108,14 +67,11 @@ export default function Storybook({ tournamentId }: StorybookProps) {
       (story) => {
         if (!controller.signal.aborted) {
           setState({ status: 'ready', story });
-          // Log the completed run to the browser-local history the dashboard
-          // reads back. Uploaded draws are flagged ephemeral inside recordStorybook.
-          recordStorybook(story);
+          recordStorybook(story); // log to browser-local history the dashboard reads back
         }
       },
       (error: unknown) => {
-        // An abort surfaces as an ApiNetworkError; it is this effect tearing
-        // down, not a failure worth showing.
+        // An abort surfaces as an ApiNetworkError; it is this effect tearing down.
         if (!controller.signal.aborted) setState({ status: 'error', error });
       },
     );
@@ -123,14 +79,7 @@ export default function Storybook({ tournamentId }: StorybookProps) {
     return () => controller.abort();
   }, [tournamentId, seed]);
 
-  /**
-   * Run one seed: address bar first, then state.
-   *
-   * `replaceState`, not `pushState`: this component reads the seed at mount and
-   * does not listen for `popstate`, so stacking history entries would give the
-   * back button a URL the screen ignores. One entry, always matching what is on
-   * screen.
-   */
+  // Run one seed: address bar first (replaceState, not pushState), then state.
   const runSeed = useCallback(
     (value: number) => {
       window.history.replaceState({}, '', buildShareUrl(tournamentId, value));
@@ -147,8 +96,7 @@ export default function Storybook({ tournamentId }: StorybookProps) {
       await navigator.clipboard.writeText(url);
       setCopied('copied');
     } catch {
-      // No clipboard permission, or no clipboard at all (http, older browsers).
-      // The URL is shown instead, so sharing still works by hand.
+      // No clipboard: the URL is shown instead so sharing still works by hand.
       setCopied('failed');
     }
   }, [seed, tournamentId]);
@@ -179,8 +127,7 @@ export default function Storybook({ tournamentId }: StorybookProps) {
             Share this run
           </button>
         </div>
-        {/* The seed the address bar carries, i.e. the one a link shared right
-            now would replay. */}
+        {/* The seed the address bar carries: what a link shared now would replay. */}
         {hasRun && (
           <p className={styles.seed} data-meta="url_seed">
             seed {seed}
@@ -212,13 +159,7 @@ export default function Storybook({ tournamentId }: StorybookProps) {
       {story !== null && (
         <>
           <Champion story={story} />
-          {/* Provenance of the draw itself, distinct from the model disclosure
-              (no longer rendered on this screen, the backend contract is
-              unchanged). An uploaded draw is user-submitted, unverified and
-              held in memory only, the uploader saw this on the upload form,
-              and anyone who opens a shared link to this run needs to see it
-              too, not just at upload time. Curated draws
-              (`content_source === 'curated'`) carry no such note. */}
+          {/* Provenance of the draw itself: an uploaded draw is user-submitted and unverified. */}
           {story.metadata.content_source === 'user_upload' && (
             <p className={styles.contentNote} data-content-source="user_upload">
               {story.metadata.content_note}

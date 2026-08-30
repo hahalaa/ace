@@ -1,28 +1,4 @@
-/**
- * The landing screen: two ways in, and nothing loaded until the user picks one.
- *
- * The app used to open straight onto a 128-player bracket. It now opens here, so
- * the first choice is the user's, simulate a single match (the featured path),
- * or work with a full tournament (an example draw, or upload your own). No data
- * is fetched on this screen; each card is a link that carries the URL state the
- * destination reads (`./App` dispatches on `?view=`).
- *
- * **The two cards are a toolbar, keyboard-operable as a unit.** Both cards are
- * activatable, not just the featured one: each is a single navigational control
- * with one primary destination. `role="toolbar"` (not `tablist`/`radiogroup`) is
- * the right container role because activating a card *navigates away* rather than
- * selecting a persistent option or switching a same-page panel, and a toolbar is
- * exactly a set of controls a user arrows between. Roving tabindex: one card is
- * tabbable at a time, Left/Right (and Home/End) move focus between them, and
- * Enter/Space activates the focused card's primary action, mirroring a click.
- *
- * **"Run a full draw" activates to the Australian Open example.** That card holds
- * two inner links (the example bracket and the upload flow), so its own primary
- * action is the example bracket, the same destination its most prominent inner
- * link carries, treated as the card's headline choice. The two inner links stay
- * independently clickable and focusable; a click or Enter on one of them does its
- * own thing and does not also trigger the card.
- */
+// The landing screen: two link cards, nothing fetched. The cards are a toolbar with roving tabindex (arrows move focus, Enter/Space activates the focused card); the "Run a full draw" card's inner links stay independently clickable.
 
 import { useRef, useState, type KeyboardEvent } from 'react';
 
@@ -61,9 +37,7 @@ export default function Dashboard({ tournamentId }: DashboardProps) {
   const tournamentHref = `?tournament=${encodeURIComponent(tournamentId)}&view=bracket`;
   const matchHref = '?view=match';
 
-  // Roving tabindex: exactly one card is in the tab order at a time; arrow keys
-  // move focus (and the tabbable index) between the two. `active` starts on the
-  // featured card so Tab lands there first.
+  // Roving tabindex: one card in the tab order at a time, `active` starts on the featured card.
   const cardRefs = useRef<Array<HTMLElement | null>>([]);
   const [active, setActive] = useState(0);
 
@@ -77,8 +51,7 @@ export default function Dashboard({ tournamentId }: DashboardProps) {
     cardRefs.current[next]?.focus();
   };
 
-  // Arrow/Home/End move between cards. Only act when focus is on a card itself,
-  // so arrowing while focus sits on an inner link is left alone.
+  // Arrow/Home/End move between cards; only when focus is on a card itself, not an inner link.
   const onToolbarKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!cardRefs.current.includes(event.target as HTMLElement)) return;
     switch (event.key) {
@@ -101,8 +74,7 @@ export default function Dashboard({ tournamentId }: DashboardProps) {
     }
   };
 
-  // Enter/Space on a focused card activates its primary destination, but only
-  // when the key event originates on the card, not on a bubbled-up inner link.
+  // Enter/Space activates a focused card's primary destination, but only when the event originates on the card.
   const activateOn = (href: string) => (event: KeyboardEvent<HTMLElement>) => {
     if (event.target !== event.currentTarget) return;
     if (event.key === 'Enter' || event.key === ' ') {

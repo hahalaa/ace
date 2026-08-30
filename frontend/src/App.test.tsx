@@ -1,23 +1,5 @@
 // @vitest-environment jsdom
-/**
- * The shell's dispatch, both axes read from the query string.
- *
- * **These are deep-link tests, not navigation tests.** `App` reads
- * `window.location.search` during render and holds no state, so the thing worth
- * pinning is that a *fresh load* of a URL lands on the right screen, which is
- * what a shared link does. Each case rewrites the URL with `history.replaceState`
- * and mounts the component from scratch, exactly as a page load would.
- *
- * The restructure this suite guards: the app now lands on a **dashboard**, not a
- * bracket, and the nav is two tiers, a primary branch row (home / single match /
- * tournament) plus a secondary view row that appears only inside the tournament
- * branch. Which screen mounted is asserted from the screen's own markup, not only
- * from the nav, so a mutation that styled the nav right while rendering the wrong
- * screen still fails.
- *
- * The client is fully stubbed with promises that never settle: the mounted
- * screen is identifiable without any of them resolving.
- */
+// Deep-link tests: each case loads a URL from scratch and asserts which screen mounted (from its own markup).
 
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -104,9 +86,6 @@ function currentPrimary(): string {
 
 const tournamentNav = () => document.querySelector('nav[aria-label="Tournament view"]');
 
-// --------------------------------------------------------------------------
-// The landing is the dashboard, not a bracket.
-// --------------------------------------------------------------------------
 describe('landing', () => {
   it('opens on the dashboard when the URL names no view, loading no draw', () => {
     loadUrl('/');
@@ -132,9 +111,6 @@ describe('landing', () => {
   });
 });
 
-// --------------------------------------------------------------------------
-// The single-match view, the featured branch.
-// --------------------------------------------------------------------------
 describe('single match', () => {
   it('loads the single-match view from ?view=match without fetching', () => {
     loadUrl('/?view=match');
@@ -161,9 +137,6 @@ describe('single match', () => {
   });
 });
 
-// --------------------------------------------------------------------------
-// The tournament branch, every existing view stays reachable.
-// --------------------------------------------------------------------------
 describe('tournament branch', () => {
   it('loads the bracket from ?view=bracket and shows the sub-nav', () => {
     loadUrl('/?view=bracket');
@@ -226,9 +199,6 @@ describe('tournament branch', () => {
   });
 });
 
-// --------------------------------------------------------------------------
-// The rankings view, a tournament-free branch.
-// --------------------------------------------------------------------------
 describe('rankings', () => {
   it('loads the rankings view from ?view=rankings without a tournament', () => {
     loadUrl('/?view=rankings');
@@ -242,9 +212,6 @@ describe('rankings', () => {
   });
 });
 
-// --------------------------------------------------------------------------
-// The primary nav.
-// --------------------------------------------------------------------------
 describe('primary nav', () => {
   it('offers exactly the four branches, and the wordmark home link', () => {
     loadUrl('/');

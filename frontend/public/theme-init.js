@@ -1,11 +1,5 @@
-/*
- * Stamp <html data-theme> before first paint so there is no flash of the wrong
- * ground on each navigation. Must stay an external same-origin file, never an
- * inline <script>: the deployed CSP is `script-src 'self'` with no
- * 'unsafe-inline', which blocks inline scripts outright. A classic script cannot
- * import a module, so this mirrors resolveTheme() in src/theme.ts by hand:
- * stored choice wins, else dark; the OS prefers-color-scheme is not consulted.
- */
+// Stamp <html data-theme> before first paint. Must stay an external file: the deployed CSP blocks inline scripts.
+// Mirrors resolveTheme() in src/theme.ts by hand (a classic script cannot import a module): stored choice wins, else dark.
 (function () {
   try {
     var stored = window.localStorage.getItem('ace-theme');

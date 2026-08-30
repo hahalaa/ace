@@ -1,16 +1,5 @@
 // @vitest-environment jsdom
-/**
- * Bracket tests: the shape it derives, the states it renders, and the two cases
- * that would ship broken if only the happy path were covered.
- *
- * `getBracket` is stubbed but the rest of `../api/client` is the real module,
- * so `ApiError`/`ApiNetworkError` here are the classes the component actually
- * branches on, a hand-rolled lookalike would pass every `instanceof` check
- * that matters by accident, or fail one for the wrong reason.
- *
- * jsdom is requested per file rather than globally: `vite.config.ts` sets
- * `environment: 'node'` for the client tests, which touch no DOM.
- */
+// Bracket tests: the shape it derives, the states it renders, and the two cases that would ship broken if only the happy path were covered. getBracket is stubbed; the rest of ../api/client is real.
 
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -32,9 +21,7 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
-// --------------------------------------------------------------------------
 // Fixtures.
-// --------------------------------------------------------------------------
 
 function slot(position: number, player: string, seed: number | null = null): BracketSlot {
   return { position, player, is_placeholder: false, player_id: `p${position}`, seed };
@@ -84,9 +71,7 @@ async function renderBracket(response: BracketResponse) {
   return result;
 }
 
-// --------------------------------------------------------------------------
 // Structure, derived from the response rather than assumed.
-// --------------------------------------------------------------------------
 
 describe('round derivation', () => {
   it('labels rounds by field size, so an 8 draw starts at the QF', () => {
@@ -116,9 +101,7 @@ describe('round derivation', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // The ticket's headline case.
-// --------------------------------------------------------------------------
 
 describe('rendering a toy 8 draw', () => {
   it('shows 3 rounds and 4 first-round matches', async () => {
@@ -176,9 +159,7 @@ describe('rendering a toy 8 draw', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // The other extreme, and the navigation that makes it usable.
-// --------------------------------------------------------------------------
 
 describe('rendering a 128 draw', () => {
   it('derives 7 rounds and 64 first-round matches from the same code path', async () => {
@@ -222,9 +203,7 @@ describe('rendering a 128 draw', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // Placeholder entrants, real, documented API behaviour (placeholder draws).
-// --------------------------------------------------------------------------
 
 describe('placeholder slots', () => {
   const withPlaceholders = () =>
@@ -266,9 +245,7 @@ describe('placeholder slots', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // Loading and the typed failures.
-// --------------------------------------------------------------------------
 
 describe('loading and error states', () => {
   it('shows a status message while the request is in flight', async () => {
@@ -352,9 +329,7 @@ describe('loading and error states', () => {
   });
 
   it('renders a missing base URL as its own panel, before any request is made', async () => {
-    // Not a hand-written message: this is the error `apiBaseUrl()` actually
-    // throws when the env var is unset, so the panel stays pinned to the prose
-    // an operator really sees rather than to a copy of it that can drift.
+    // The real error `apiBaseUrl()` throws when the env var is unset, so the panel stays pinned to what an operator sees.
     vi.stubEnv('VITE_API_BASE_URL', '');
     let configError: unknown;
     try {
@@ -372,9 +347,7 @@ describe('loading and error states', () => {
 
     expect(panel.dataset.errorKind).toBe('config');
     expect(panel.textContent).toContain('The API base URL is not configured');
-    // The actionable half: which file to fix. A misconfigured client and an
-    // unreachable server are the two failures easiest to confuse, so this
-    // panel must not read like the network one.
+    // The actionable half: which file to fix. A misconfigured client and an unreachable server are the two failures easiest to confuse, so this panel must not read like the network one.
     expect(panel.textContent).toContain('.env');
     expect(panel.textContent).not.toContain('Could not reach the ace API');
     expect(screen.queryByRole('status')).toBeNull();
@@ -392,25 +365,7 @@ describe('loading and error states', () => {
   });
 });
 
-// --------------------------------------------------------------------------
-// Byte-for-byte markup differential: non-storybook rendering must not move.
-// --------------------------------------------------------------------------
-/**
- * **These snapshots were captured before the storybook overlay was added to**
- * `Bracket.tsx`/`MatchCard.tsx`, and committed unchanged. That is
- * what makes them a genuine old-vs-new differential rather than a restatement of
- * whatever the current code happens to emit: every non-storybook rendering path
- * the two draw sizes, the placeholder draw, the round-filtered board, the
- * loading status and all five error branches, must produce the *same markup*
- * after the storybook overlay exists as it did before.
- *
- * They cover markup the behavioural tests above deliberately do not assert on
- * (class names, attribute order, the empty probability cell), so a regression
- * that keeps every `getByRole` passing while quietly changing the DOM still
- * fails here. **Never re-record them with `-u` to make a failure go away**: a
- * diff means the storybook-off rendering moved, which is the one thing the overlay
- * promised it would not do.
- */
+// Byte-for-byte markup differential: these snapshots were captured before the storybook overlay existed and committed unchanged, so a diff means the storybook-off rendering moved. Never re-record with -u.
 describe('non-storybook rendering is unchanged', () => {
   const cases: [name: string, response: BracketResponse][] = [
     ['8 draw, all rounds', toyEightDraw()],
@@ -526,8 +481,7 @@ describe('non-storybook rendering is unchanged', () => {
   });
 
   it('emits no storybook markup at all without a run', async () => {
-    // The snapshots above already pin this byte for byte; this names the
-    // property they enforce, so a future reader knows what a diff would mean.
+    // The snapshots above already pin this byte for byte; this names the property they enforce, so a future reader knows what a diff would mean.
     const { container } = await renderBracket(toyEightDraw());
     expect(container.querySelectorAll('[data-result]')).toHaveLength(0);
     expect(container.querySelectorAll('[data-cell="scoreline"]')).toHaveLength(0);
@@ -546,8 +500,7 @@ describe('non-storybook rendering is unchanged', () => {
   });
 
   it('ignores a run that is not about this draw rather than mis-keying it', async () => {
-    // Two endpoints, two responses: a body still in flight for another
-    // tournament must not paint results onto these players.
+    // Two endpoints, two responses: a body still in flight for another tournament must not paint results onto these players.
     const foreign: StorybookResponse = {
       tournament_id: 'some_other_draw',
       name: 'Elsewhere Open',

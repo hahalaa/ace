@@ -1,9 +1,6 @@
-# Build-context exclusions. One context (the repo root) feeds both the
-# API and the frontend stages of Dockerfile, so this file covers both.
-#
-# Two entries below are load-bearing rather than cosmetic; see the flagged blocks.
+# Build-context exclusions for both the API and frontend Dockerfile stages.
 
-# ---- VCS, tooling, editor ---------------------------------------------------
+# ---- VCS, tooling, editor ----
 .git
 .github
 .gitignore
@@ -15,38 +12,25 @@
 **/__pycache__
 **/*.py[cod]
 
-# ---- Virtualenvs (hundreds of MB, and Linux images cannot use a macOS one) ---
+# ---- Virtualenvs (Linux images cannot use a macOS venv) ----
 venv/
 .venv/
 env/
 
-# ---- Node ------------------------------------------------------------------
-# node_modules is reinstalled from package-lock.json by `npm ci` in the builder
-# stage; a host copy is both huge and possibly the wrong platform.
+# ---- Node ----
+# node_modules is reinstalled by `npm ci`; a host copy may be the wrong platform.
 frontend/node_modules/
 frontend/dist/
 
-# frontend/.env: THE ENTRY MOST WORTH KEEPING.
-# It is gitignored, so it is in no checkout, but it is on every developer
-# machine and holds http://localhost:8000. `vite build` reads .env files, not
-# only `vite dev`, so a `COPY frontend/ .` that picked this up would bake a
-# stale localhost URL into a shipped image
-# regardless of the VITE_API_BASE_URL build ARG. Excluded by name, not merely
-# by excluding node_modules. .env.example stays out too; it is documentation
-# and Vite would not read it anyway.
+# frontend/.env: gitignored but on every dev machine; `vite build` reads it and would bake in a stale localhost URL.
 frontend/.env
 frontend/.env.*
 
-# ---- Generated artefacts the build REGENERATES, and must not inherit --------
-# outputs/ and data/cache/ are the two runtime-required, gitignored files
-# (see the Dockerfile header). Excluding them is what makes every build behave
-# like a clean checkout: a developer machine holding a trained model and a
-# precomputed cache cannot leak them into the image and hide the fact that the
-# builder stage is what actually produces them.
+# ---- Artefacts the build regenerates; excluding them keeps every build like a clean checkout ----
 outputs/
 data/cache/
 
-# ---- Not needed by any image ------------------------------------------------
+# ---- Not needed by any image ----
 tests/
 docs/
 README.md

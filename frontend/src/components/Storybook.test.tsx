@@ -1,19 +1,5 @@
 // @vitest-environment jsdom
-/**
- * Storybook tests: the run drawn onto the bracket, the champion, and the URL
- * contract that makes a link replay the same tournament.
- *
- * **The seed tests are the load-bearing ones.** The API already guarantees that
- * one id plus one seed is one deterministic bracket; this ticket's only way to
- * break that guarantee is to lose the seed, by rolling a fresh one on a render,
- * by not writing it to the URL, or by not reading it back on load. Each of those
- * has a test, and they assert on `window.location.search` and on the argument
- * `getStorybook` actually received, not on anything the component says about
- * itself.
- *
- * `getBracket`/`getStorybook` are stubbed but the rest of `../api/client` is the
- * real module, so `ApiError` here is the class the panels really branch on.
- */
+// Storybook tests: the run drawn onto the bracket, the champion, and the URL contract that makes a link replay the same tournament. The seed tests are the load-bearing ones.
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -44,9 +30,7 @@ afterEach(() => {
   window.history.replaceState({}, '', '/');
 });
 
-// --------------------------------------------------------------------------
 // Fixtures, an 8 draw whose winners are deliberately not all on one side.
-// --------------------------------------------------------------------------
 
 const PLAYERS = [
   'Jannik Sinner',
@@ -110,14 +94,7 @@ function match(
   };
 }
 
-/**
- * A full 8-draw run: 7 matches over 3 rounds.
- *
- * Round one is won by the **bottom** side in three of four matches, so a
- * component that always credited the top slot, or that keyed results by array
- * order, cannot pass. The winners then meet in the order the simulator
- * preserves: SF match 0 is the winners of QF 0 and QF 1.
- */
+// A full 8-draw run: round one is won by the bottom side in 3 of 4 matches, so a component that always credits the top slot cannot pass.
 function toyEightStory(overrides: Partial<StorybookResponse> = {}): StorybookResponse {
   return {
     tournament_id: 'toy_8',
@@ -223,9 +200,7 @@ function sides(card: HTMLElement): [string, string | null][] {
   ]);
 }
 
-// --------------------------------------------------------------------------
 // The headline: results on the bracket.
-// --------------------------------------------------------------------------
 
 describe('a run populates the bracket', () => {
   it('marks the winner of every first-round match, on whichever side won', async () => {
@@ -275,8 +250,7 @@ describe('a run populates the bracket', () => {
     mountAt('/?seed=7');
     await waitFor(() => expect(screen.queryAllByText('TBD')).toHaveLength(0));
 
-    // SF 0 is the winners of QF 0 and QF 1, in that order, the ordering
-    // `sim.tournament.simulate_bracket` preserves round to round.
+    // SF 0 is the winners of QF 0 and QF 1, in that order, the ordering `sim.tournament.simulate_bracket` preserves round to round.
     expect(cardsIn('SF').map(sides)).toEqual([
       [
         ['Alex de Minaur', 'lost'],
@@ -306,9 +280,7 @@ describe('a run populates the bracket', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // Champion.
-// --------------------------------------------------------------------------
 
 describe('champion', () => {
   it('names the response’s own champion, prominently and at the end', async () => {
@@ -332,8 +304,7 @@ describe('champion', () => {
   });
 
   it('trusts `champion` rather than re-deriving it from the last match', async () => {
-    // A body whose `champion` disagrees with the final is a server bug, but it
-    // pins *which* field this component reads.
+    // A body whose `champion` disagrees with the final is a server bug, but it pins *which* field this component reads.
     mountAt(
       '/?seed=7',
       toyEightStory({
@@ -346,9 +317,7 @@ describe('champion', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // The seed: the whole point of the screen.
-// --------------------------------------------------------------------------
 
 describe('the seed round-trips through the URL', () => {
   it('runs the seed the URL asked for, not one of its own', async () => {
@@ -487,9 +456,7 @@ describe('share', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // Failures, the same panels the rest of the app renders.
-// --------------------------------------------------------------------------
 
 describe('loading and error states', () => {
   it('says it is simulating while the request is in flight', async () => {
@@ -558,12 +525,7 @@ describe('loading and error states', () => {
   });
 });
 
-// --------------------------------------------------------------------------
-// The disclosure and the bottom stats strip: dropped from this screen. The
-// wire fields (`StorybookMetadata`'s `ModelDisclosure` base) still travel in
-// the response for any non-browser consumer, only the browser's rendering
-// of them is gone, which is what these tests pin.
-// --------------------------------------------------------------------------
+// The disclosure and bottom stats strip are dropped from this screen; the wire fields still travel in the response.
 
 describe('disclosure', () => {
   it('does not render the model disclosure or the bottom stats strip', async () => {
@@ -577,11 +539,7 @@ describe('disclosure', () => {
   });
 });
 
-// --------------------------------------------------------------------------
-// Content provenance, an uploaded draw's "user-submitted, unverified,
-// ephemeral" note must reach a shared-link viewer here, not only the uploader
-// at upload time. Distinct from the model disclosure above (is_forecast).
-// --------------------------------------------------------------------------
+// An uploaded draw's provenance note must reach a shared-link viewer here, not only the uploader at upload time.
 
 const UPLOAD_NOTE =
   'User-submitted draw, unverified. This may stop working later. Save anything you want to keep.';
@@ -612,9 +570,7 @@ describe('content provenance', () => {
   });
 });
 
-// --------------------------------------------------------------------------
 // The join itself, without React.
-// --------------------------------------------------------------------------
 
 describe('overlay keying', () => {
   const rounds = () => buildRounds(8, toyEightBracket().slots);
@@ -637,8 +593,7 @@ describe('overlay keying', () => {
   });
 
   it('claims no winner, and stops propagating, when a name matches neither side', () => {
-    // A body disagreeing with its own draw. The scoreline still shows; the side
-    // does not, and the round above stays unknown rather than being guessed.
+    // A body disagreeing with its own draw. The scoreline still shows; the side does not, and the round above stays unknown rather than being guessed.
     const story = toyEightStory();
     const broken: StorybookResponse = {
       ...story,

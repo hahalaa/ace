@@ -1,13 +1,4 @@
-/*
- * Theme toggle, an icon button that sits at the end of the view nav.
- *
- * Styled to the same restraint as the nav links: dim ink at rest, full ink on
- * hover, the accent only on the focus ring. A hairline square keeps it reading
- * as a control without shouting. No fill, no colour of its own, the glyph is
- * currentColor, so it re-inks itself in whichever theme is live.
- *
- * Tokens come from src/index.css.
- */
+/* Theme toggle: an icon button styled to the nav links' restraint; the glyph is currentColor so it re-inks per theme. Tokens from src/index.css. */
 
 .toggle {
   display: inline-flex;
@@ -35,8 +26,7 @@
     translate: 0 1px;
   }
 
-  /* The glyph gives a small turn when reached, a wink toward the day/night
-     switch it stands for. */
+  /* The glyph gives a small turn when reached, a wink toward the day/night switch it stands for. */
   .toggle svg {
     transition: transform var(--dur-3) var(--ease-spring);
   }

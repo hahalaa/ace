@@ -1,8 +1,4 @@
-/*
- * The single-match view. Tokens from src/index.css. The accent (--ball) marks
- * the win-probability fill and the primary action; everything else stays
- * monochrome so the one number that matters carries the colour.
- */
+/* The single-match view. The accent marks the win-probability fill and the primary action. Tokens from src/index.css. */
 
 .matchSim {
   display: flex;
@@ -10,10 +6,7 @@
   gap: clamp(1.25rem, 3vw, 1.75rem);
 }
 
-/* Lead the screen in: the intro, then the controls. The results block stages
-   itself when it arrives (below), so it is not delayed against a load it was
-   not part of. Shared `rise` keyframe via `--kf-rise`; off under reduced
-   motion. */
+/* Lead the screen in: intro then controls; the results block stages itself when it arrives. Off under reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   .intro {
     animation: var(--kf-rise) var(--dur-3) var(--ease-spring) both;
@@ -50,13 +43,7 @@
 }
 
 /* --- Controls ------------------------------------------------------------ */
-/* `position: relative; z-index: 2` keeps the player-picker dropdown (absolutely
-   positioned inside this block) above the results below. The `--kf-rise`
-   entrance animation applies a transform while it plays, turning both this block
-   and `.results` into stacking contexts, that traps the dropdown's own z-index
-   inside `.controls`, so without an explicit order the later-sibling `.results`
-   paints over it. Pinning controls above results fixes it at every animation
-   state, theme and zoom level. */
+/* z-index: 2 keeps the player-picker dropdown above .results: the rise transform makes both blocks stacking contexts, so without an explicit order .results paints over the dropdown. */
 .controls {
   position: relative;
   z-index: 2;
@@ -77,12 +64,7 @@
   gap: 0.75rem 1rem;
 }
 
-/* Mirrors .picker's own vertical rhythm (label row, input row, hint row) so
-   that under the shared `align-items: end` the "vs" text lands centered on
-   the input row rather than on the picker's overall bottom edge, which sits
-   below the input once the reserved hint line is counted. The spacer rows
-   reuse .pickerLabel/.pickerHint exactly so their heights always match,
-   including if a label's text ever wraps. */
+/* Mirrors .picker's label/input/hint rhythm so the "vs" text lands centred on the input row under the shared align-items: end. */
 .versus {
   display: flex;
   flex-direction: column;
@@ -197,9 +179,7 @@
   color: var(--ink);
 }
 
-/* Always in the DOM (see MatchSim.tsx) with a fixed height, so the "Searching…"
-   status appearing or clearing never changes the picker's height. `min-height`
-   reserves the line even when its text is a lone space. */
+/* Always in the DOM with a min-height, so the "Searching..." status appearing or clearing never changes the picker's height. */
 .pickerHint {
   margin: 0;
   min-height: 1.1em;
@@ -304,8 +284,7 @@
 }
 
 /* --- Results ------------------------------------------------------------- */
-/* Sits one level below `.controls` (see that block) so the picker dropdown
-   always overlays it. */
+/* Sits one level below `.controls` (see that block) so the picker dropdown always overlays it. */
 .results {
   position: relative;
   z-index: 1;
@@ -370,10 +349,7 @@
   transition: width var(--dur-3) var(--ease-spring);
 }
 
-/* The result's headline number: the fill grows from the left on arrival rather
-   than snapping to width, so the odds read as being drawn. The React-set inline
-   width is untouched, this scales the already-sized fill, so the final state
-   is identical. `transition: width` above still carries any later change. */
+/* The fill grows from the left on arrival (scaling the React-set width), so the odds read as being drawn; the final state is identical. */
 @media (prefers-reduced-motion: no-preference) {
   .winFill {
     transform-origin: left;
@@ -504,9 +480,7 @@
 }
 
 /* --- Loading ---------------------------------------------------------- */
-/* The pulsing dot marks this as deliberate, live activity rather than a
-   frozen panel, no explanation of why a given request takes as long as it
-   does, just a plain "something is happening" signal. */
+/* The pulsing dot marks this as deliberate, live activity rather than a frozen panel, no explanation of why a given request takes as long as it does, just a plain "something is happening" signal. */
 .loadingLine {
   display: flex;
   align-items: center;

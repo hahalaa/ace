@@ -43,8 +43,7 @@ for y in range(H):
         else:
             tp[x,y]=(r,g,b,a); dp[x,y]=(r,g,b,255)
 dark.convert("RGB").resize((180,180), Image.LANCZOS).save("apple-touch-icon.png")
-# Pillow downscales the 512 master to each frame; 48×48 is the size index.html
-# declares (sizes="48x48"), so it must be present in the file.
+# 48x48 must be present: index.html declares sizes="48x48" on the .ico.
 trans.save("favicon.ico", format="ICO", sizes=[(16,16),(32,32),(48,48)])
 PY
 ```

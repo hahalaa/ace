@@ -1,39 +1,4 @@
-/**
- * The bracket: one column per round, matchups as {@link MatchCard}s.
- *
- * Fetches through the API client's `getBracket`, there is no second fetch
- * wrapper here, and no second copy of the wire types. Everything about the layout is
- * derived from the response (`./rounds`), so an 8 draw renders three columns
- * labelled `QF/SF/F` and a 128 draw renders seven labelled `R128 … F` from the
- * same code path.
- *
- * **Navigating a large draw: horizontal scroll *and* a round selector.** They
- * solve different problems and neither covers the other. Seven columns of
- * legible cards is ~1,700 px, so the all-rounds view scrolls horizontally
- * rather than shrinking cards to fit. But round one of a 128 draw is 64 cards,
- * ~4,000 px of vertical page, so "scroll to the QF" is a poor way to reach the
- * QF; the selector filters the board to a single column instead. Small draws
- * need neither, and get both anyway, because a size-dependent affordance is a
- * hardcoded draw-size assumption in another costume.
- *
- * **Every failure the client can throw renders as itself.** The client's typed
- * errors are branched on directly, an unknown id, a broken draw file and an
- * unreachable server are visibly different panels rather than one "something
- * went wrong". That branching lives in {@link ErrorPanel}, shared with the odds
- * screen; only the one failure unique to laying out a bracket (a draw size that
- * cannot halve) is rendered here.
- *
- * **The storybook overlay sits *on top of* this and changes nothing underneath.**
- * The optional `storybook` prop is its whole footprint here: absent, every
- * caller without a run, and this screen before a run, the component fetches
- * and renders exactly as it does without it, byte for byte (pinned by the snapshot
- * differential in `Bracket.test.tsx`). Present, each card gains the winner,
- * loser and scoreline that `./overlay` keys onto this same layout, and the
- * later rounds `/bracket` leaves as `TBD` fill in with whoever won their way
- * there. The two bodies come from two endpoints and are joined by structure, not
- * by trust, see `./overlay`, whose `describesBracket` refuses a run that is not
- * about this draw.
- */
+// The bracket: one column per round, layout derived from the /bracket response by ./rounds. The optional `storybook` prop overlays a played-out run (keyed on by ./overlay) and changes nothing when absent.
 
 import { useEffect, useMemo, useState } from 'react';
 
@@ -49,12 +14,7 @@ import panelStyles from './panel.module.css';
 export interface BracketProps {
   /** Registry id, as listed by `/tournaments`. */
   tournamentId: string;
-  /**
-   * A played-out run to draw over the draw, or nothing.
-   *
-   * Passed by {@link Storybook}; **nobody else passes it**, and without it this
-   * component behaves precisely as it does with no overlay.
-   */
+  /** A played-out run to draw over the draw; passed only by {@link Storybook}. */
   storybook?: StorybookResponse | null;
 }
 
@@ -65,10 +25,6 @@ type LoadState =
 
 /** `null` = show every round; otherwise the index of the only round shown. */
 type RoundFilter = number | null;
-
-// --------------------------------------------------------------------------
-// The bracket.
-// --------------------------------------------------------------------------
 
 export default function Bracket({ tournamentId, storybook = null }: BracketProps) {
   const [state, setState] = useState<LoadState>({ status: 'loading' });
@@ -84,8 +40,7 @@ export default function Bracket({ tournamentId, storybook = null }: BracketProps
         if (!controller.signal.aborted) setState({ status: 'ready', bracket });
       },
       (error: unknown) => {
-        // An abort surfaces as an ApiNetworkError; it is this effect tearing
-        // down, not a failure worth showing.
+        // An abort surfaces as an ApiNetworkError; it is this effect tearing down.
         if (!controller.signal.aborted) setState({ status: 'error', error });
       },
     );
@@ -175,8 +130,7 @@ export default function Bracket({ tournamentId, storybook = null }: BracketProps
             </h3>
             <ol className={styles.matches} aria-label={`${round.label} matches`}>
               {round.matches.map((match) => {
-                // `played === undefined` for every non-storybook render, which
-                // reduces the props below to exactly the two `{ slot }`s.
+                // `played === undefined` for every non-storybook render.
                 const played = overlay?.get(overlayKey(round.index, match.matchIndex));
                 return (
                   <MatchCard

@@ -1,17 +1,4 @@
-# Render Blueprint for the ace frontend (static site). Read from the repo root;
-# `rootDir` moves the build into `frontend/` and every path below is relative to it.
-#
-# The portable contract for any static host:
-#   build command   npm ci && npm run build
-#   publish dir     frontend/dist
-#   build env var   VITE_API_BASE_URL   (required, no default, inlined at BUILD time)
-#
-# After a real deploy: add the frontend origin to config.API_ALLOWED_ORIGINS and
-# restart the API, and serve the API over HTTPS if the frontend is (browsers block
-# https -> http and it surfaces as the generic "could not reach the ace API" panel).
-#
-# Frontend container packaging is separate and lives in the root Dockerfile /
-# docker-compose.yml, not here.
+# Render Blueprint: static host for frontend/ (build `npm ci && npm run build`, publish frontend/dist).
 
 services:
   - type: web
@@ -22,11 +9,7 @@ services:
     staticPublishPath: ./dist
 
     envVars:
-      # Base URL of the deployed ace API. Read by Vite at build time and inlined
-      # into the bundle, so a change needs a rebuild, not just a restart.
-      # `sync: false`: Render prompts for the value and stores it on the service.
-      # The repo hardcodes no origin, and the API CORS allow-list is explicit, so
-      # both sides are configured together at deploy time.
+      # Inlined into the bundle at build time; a change needs a rebuild, not a restart.
       - key: VITE_API_BASE_URL
         sync: false
 
@@ -35,7 +18,7 @@ services:
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
-      # Un-hashed files that a deploy must be able to replace immediately.
+      # Un-hashed files a deploy must be able to replace immediately.
       - path: /index.html
         name: Cache-Control
         value: no-cache
@@ -52,13 +35,7 @@ services:
         name: Cache-Control
         value: no-cache
 
-      # CSP scoped to what a Vite build of this app actually loads: same-origin
-      # ES module bundle + stylesheet + the same-origin pre-paint /theme-init.js
-      # (which must stay an external file, never an inline <script>, or CSP blocks
-      # it; regression-guarded by test). connect-src is pinned to the exact
-      # deployed API origin, not *.onrender.com (a shared host), and must match
-      # the origin baked into the bundle via VITE_API_BASE_URL. No 'unsafe-inline'
-      # or 'unsafe-eval' anywhere.
+      # connect-src must match the origin baked into the bundle via VITE_API_BASE_URL.
       - path: /*
         name: Content-Security-Policy
         value: >-
@@ -80,14 +57,6 @@ services:
       - path: /*
         name: X-Frame-Options
         value: DENY
-      # HSTS is omitted on purpose: Render terminates TLS and owns that header at
-      # its edge (its dashboard offers it).
+      # HSTS is omitted: Render owns that header at its TLS edge.
 
-    # No SPA rewrite rule on purpose: every screen is `/` plus a query string, so
-    # no deep link requests a non-index path, and a catch-all rewrite would only
-    # turn genuine 404s into blank app shells. If a real router is adopted, add:
-    #
-    # routes:
-    #   - type: rewrite
-    #     source: /*
-    #     destination: /index.html
+    # No SPA rewrite rule: every screen is `/` plus a query string.

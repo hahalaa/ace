@@ -1,19 +1,4 @@
-/**
- * The theme control in the masthead.
- *
- * A single native `<button>`, not the ball mark, not the wordmark, so it is
- * keyboard-operable and in the tab order for free, and reads unambiguously as a
- * control rather than an easter egg on the brand. Its accessible name states the
- * action and changes with the theme ("Switch to light theme" / "…dark theme"),
- * which is what a screen reader announces; the sun/moon glyph is `aria-hidden`
- * decoration on top of that name. `aria-pressed` reports whether light is the
- * active (pressed) state, so the control also announces as a toggle.
- *
- * State lives here, seeded from whatever the pre-paint script already stamped on
- * <html> (see theme.ts). Flipping it writes through to the DOM attribute and
- * localStorage in one step, the URL is deliberately never touched (theme.ts
- * explains why theme is not shareable link state).
- */
+// The theme control: a native <button> whose accessible name states the action. State is seeded from the painted attribute; flipping it writes through to the DOM attribute and localStorage, never the URL.
 
 import { useCallback, useState } from 'react';
 
@@ -35,12 +20,9 @@ function useTheme(): [Theme, () => void] {
   return [theme, toggle];
 }
 
-/** The sun (shown in dark mode, i.e. tap for light) or moon (shown in light). */
+/** The sun (shown in dark mode) or moon (shown in light), drawn with currentColor. Decorative. */
 function ThemeGlyph({ theme }: { theme: Theme }) {
-  // Drawn with currentColor so it inherits the button's themed ink. Decorative:
-  // the button's aria-label carries the meaning.
   if (theme === 'dark') {
-    // A sun, tapping moves toward the light theme.
     return (
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
         <circle cx="12" cy="12" r="4.2" fill="currentColor" />
@@ -57,7 +39,6 @@ function ThemeGlyph({ theme }: { theme: Theme }) {
       </svg>
     );
   }
-  // A crescent moon, tapping moves toward the dark theme.
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
       <path

@@ -1,18 +1,4 @@
-/**
- * The rankings board: an Elo leaderboard, overall and per surface.
- *
- * A **display-only** rating (`GET /rankings`), not the official ATP ranking, the
- * note the server sends says so, and it stays because it is a factual accuracy
- * label a user needs, not an over-explanation. No formula, K-factor or internal
- * detail is surfaced, per the copy standard.
- *
- * **Two axes the user controls.** A tab picks the track (overall / one surface).
- * A toggle picks whether long-inactive players are shown: by default the board
- * lists only players active on tour recently, so a retired legend's frozen peak
- * does not sit above current form. Turning inactive players on keeps the same
- * rating order but dims and tags them, so the raw leaderboard, stale entries and
- * all, is visible on request rather than hidden outright.
- */
+// The rankings board: a display-only Elo leaderboard (GET /rankings). A tab picks the track; a toggle shows long-inactive players, hidden by default.
 
 import { useEffect, useMemo, useState } from 'react';
 

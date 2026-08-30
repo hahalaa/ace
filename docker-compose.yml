@@ -1,12 +1,5 @@
-# Local full-stack run: the API and the web app, together, offline.
-#
-#     docker compose up --build          # first run; builds both images
-#     open http://localhost:4173
-#
-# Both services build from the single root Dockerfile via `target:`. The first
-# build trains the classifier and precomputes the Monte Carlo inside the image
-# (Dockerfile header explains why), so expect it to take a few minutes; set
-# PRECOMPUTE_RUNS lower for a quick one.
+# Local full-stack run, offline: `docker compose up --build`, then open http://localhost:4173
+# The first build trains the model and precomputes the Monte Carlo (a few minutes).
 
 services:
   api:
@@ -15,20 +8,14 @@ services:
       dockerfile: Dockerfile
       target: api
       args:
-        # Trim the baked-in Monte Carlo for a fast local/CI build:
-        #   PRECOMPUTE_RUNS=200 docker compose build api
+        # Lower this for a fast build; it sizes the baked-in Monte Carlo.
         PRECOMPUTE_RUNS: ${PRECOMPUTE_RUNS:-5000}
     image: ace-api:local
     container_name: ace-api
     ports:
-      # Host 8000 → container 8000. This mapping is not a convenience: the
-      # frontend bundle has http://localhost:8000 compiled into it (see below),
-      # and the fetch runs in the user's browser on the host, so the API has to
-      # be reachable at exactly that address from the host.
+      # Must match the URL compiled into the frontend bundle (the fetch runs in the host browser).
       - "8000:8000"
-    # No `environment:` and no volumes, the image is self-contained: vendored
-    # CSVs, draws, the trained model and the sim cache are all baked in.
-    # Healthcheck is inherited from the Dockerfile; `frontend` waits on it.
+    # No environment: or volumes: the image bakes in the CSVs, draws, model and cache.
     restart: unless-stopped
 
   frontend:
@@ -37,30 +24,16 @@ services:
       dockerfile: Dockerfile
       target: frontend
       args:
-        # BUILD ARG, NOT `environment:`. Vite inlines this into the bundle
-        # at build time and the minifier constant-folds the lookup away, so the
-        # value is frozen when the image is built. An `environment:` entry here
-        # would be silently ignored, and `docker compose up` cannot repoint an
-        # already-built image at a different API, that needs a rebuild
-        # (`docker compose build --no-cache frontend`).
-        #
-        # The value is the API's address AS THE BROWSER SEES IT. Not
-        # `http://api:8000`: that name only resolves inside the compose
-        # network, and nothing inside the network ever makes this call, the
-        # request comes from the user's browser, on the host.
+        # Build arg, not an `environment:` entry, and repointing needs a rebuild.
+        # The value is the API address as the browser sees it, not the compose-network name.
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
     image: ace-frontend:local
     container_name: ace-frontend
     ports:
-      # Host 4173 → nginx :80. 4173 is deliberate, not arbitrary: the browser's
-      # Origin is then http://localhost:4173, which is already the third entry
-      # of config.API_ALLOWED_ORIGINS (for `npm run preview`).
-      # CORS is an explicit allow-list and never "*", so any other host port
-      # needs that list extended and the API restarted.
+      # 4173 maps to nginx :80 and is already in config.API_ALLOWED_ORIGINS.
       - "4173:80"
     depends_on:
       api:
-        # The API is ~2 s of startup work; without this the frontend can be up
-        # while the first fetch still fails.
+        # The API needs ~2s of startup; without this the first fetch can fail.
         condition: service_healthy
     restart: unless-stopped

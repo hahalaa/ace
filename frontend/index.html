@@ -2,23 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!--
-      Icon order and attributes are load-bearing: Chrome renders the LAST
-      equally-appropriate icon, so the .ico must come before the .svg and
-      sizes="any" goes on the .svg, not the .ico. The raster files are generated
-      from favicon.svg (regeneration command in public/README.md); regenerate
-      them when the ball-mark changes.
-    -->
+    <!-- Chrome renders the last equally-appropriate icon: .ico before .svg, sizes="any" on the .svg. -->
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ace</title>
-    <!--
-      Pre-paint theme, render-blocking so it runs before the bundle and before
-      first paint. External same-origin file, never inline: the deployed CSP
-      (`script-src 'self'`, no 'unsafe-inline') blocks inline scripts.
-    -->
+    <!-- Render-blocking pre-paint theme, before the module bundle and first paint. -->
     <script src="/theme-init.js"></script>
   </head>
   <body>

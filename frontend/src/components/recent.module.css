@@ -1,9 +1,4 @@
-/*
- * The "Recent simulations" panel on the dashboard. Editorial and restrained to
- * match the two cards above it: no icons, monochrome, the gold accent spent only
- * on a link's focus/hover the way the rest of the dashboard spends it. Tokens
- * from src/index.css.
- */
+/* The "Recent simulations" dashboard panel: monochrome, the accent only on a link focus/hover. Tokens from src/index.css. */
 
 .recent {
   display: flex;

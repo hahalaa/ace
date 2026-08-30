@@ -1,60 +1,8 @@
-"""Simulation validation harness, "does the physics look right?".
+"""Compare historical vs simulated match shapes (set counts, games/set, tiebreak/break rate).
 
-Confirms the point-by-point match simulator (``sim/match.py``, driven by the
-``sim/points.py`` point model and the ``features/serve.py`` skill table) produces
-realistic *match shapes* before Phase 2 builds tournaments on top of it. It
-compares, side by side:
-
-* the **historical** distribution of match shapes computed from the vendored
-  ``data/raw`` CSVs (Grand Slam best-of-5, and best-of-3 tour matches), and
-* the **simulated** distribution produced by running many matches at *realistic*
-  point-win probabilities, drawn from the actual snapshot skill table over real
-  historical matchups, so the validation reflects the population the simulator
-  will be run against in Phase 2.
-
-Metrics (per format):
-
-* **Set-count distribution**, bo5: share of matches ending 3–0 / 3–1 / 3–2
-  sets; bo3: 2–0 vs 2–1.
-* **Games per set**, **tiebreak frequency**, **break rate**.
-
-What is validated here is the **emergent behaviour of the actual point-by-point
-simulator** (``simulate_match_bo3`` / ``simulate_match_bo5``), *not* the
-analytic match-win composition, and *not* the reconciled model. The
-raw point model is measured as-is; see the finding below.
-
-Determinism: every simulated quantity is drawn from a single
-``numpy.random.default_rng(seed)`` (``--seed``), so a run is fully reproducible.
-
-**Break rate, measurement note.** ``MatchResult`` deliberately carries only the
-game *score* of each set, not a per-game hold/break log, so break rate cannot be
-read back off a finished match. Because ``§5`` holds ``p`` constant within a
-match (no momentum/fatigue), a match's service games are i.i.d.
-``simulate_game(p)`` draws per server, so we measure break rate at the game layer
-by drawing a handful of standalone ``simulate_game`` games on each matchup's two
-serve probabilities, the identical primitive the set/match layers use. This is
-the emergent match break rate, not a separate model.
-
-Retirements/walkovers (``RET`` / ``W/O`` / ``def.``) are excluded from the
-historical side, matching how the skill table already excludes them, so the
-historical and simulated populations are apples-to-apples. (``parse_match_score``
-over-counts a pre-retirement partial set, so this harness parses scores itself
-and drops those matches outright.)
-
-Run directly to print the full side-by-side report::
-
-    python scripts/validate_sim.py                 # defaults
-    python scripts/validate_sim.py --n-matches 40000 --seed 20260725
-
-Exit status is non-zero if a **hard-tolerance** metric (the set-count
-distribution or games-per-set) falls outside its documented band. See
-``tests/test_sim_realism.py`` for the seeded, generous-band CI version.
-
-The ``CONFOUND CONTROL`` block re-runs the comparison on a recent-only subset
-(``>= CONFOUND_SINCE_YEAR``) so a snapshot-skill-table artifact can be ruled out.
-This harness originally surfaced the skill-gap compression finding (too few
-straight-set matches, too many deciders); the resolution was the point-model
-amplification ``config.POINT_GAP_GAMMA`` (ticket T1.9b).
+Simulates many bo5/bo3 matches at realistic point-win probabilities sampled from real historical
+matchups. Exit status is non-zero if a hard-tolerance metric falls outside its band. The
+CONFOUND CONTROL block re-runs on a recent-only subset to rule out a stale-snapshot artifact.
 """
 from __future__ import annotations
 
@@ -68,9 +16,7 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 
-# scripts/ is not on pyproject's ``pythonpath = ["src"]`` (that covers src
-# modules); add src/ so this script and its test can import project modules the
-# same way the runtime pipeline does. Mirrors tests/test_refresh_data.py's hack.
+# scripts/ is not on pyproject's pythonpath; add src/ so imports resolve like the runtime.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 import config  # noqa: E402
@@ -80,52 +26,18 @@ from features.serve import SkillTable, build_skill_table  # noqa: E402
 from sim.match import simulate_game, simulate_match_bo3, simulate_match_bo5  # noqa: E402
 from sim.points import matchup_point_probs  # noqa: E402
 
-# --------------------------------------------------------------------------- #
-# Defaults
-# --------------------------------------------------------------------------- #
 DEFAULT_N_MATCHES = 40_000
 DEFAULT_SEED = 20_260_725
-# Standalone service games drawn per simulated match to measure break rate
-# (see the module docstring). Split evenly across the matchup's two serve
-# probabilities; over DEFAULT_N_MATCHES matches this is a large game sample.
-BREAKRATE_GAMES_PER_SERVER = 3
-# Confound control (§7 finding robustness). The snapshot skill table scores every
-# historical matchup with the *latest* known skills, so a 2014-era matchup is
-# scored with present-day skills. To rule out that stale-snapshot mismatch as the
-# source of the |pA−pB| compression, the bo5 comparison is re-run on a recent-only
-# matchup pool (``tourney_date`` year >= this), where the snapshot is roughly
-# contemporaneous, and the mean gap + set-count skew are confirmed unchanged.
-CONFOUND_SINCE_YEAR = 2024
+BREAKRATE_GAMES_PER_SERVER = 3  # standalone games drawn per match, per server, to measure break rate
+CONFOUND_SINCE_YEAR = 2024      # recent-only cutoff for the stale-snapshot control
 
-# Deciding-set rules: all four current Slams use a 10-point tiebreak at 6–6;
-# modern ATP best-of-3 uses a 7-point tiebreak in every set including the
-# decider.
+# Current Slams use a 10-point deciding-set tiebreak; modern ATP bo3 uses 7-point in every set.
 BO5_FINAL_SET_RULE = "10pt_at_6_6"
 BO3_FINAL_SET_RULE = "7pt_at_6_6"
 
-# --------------------------------------------------------------------------- #
-# Tolerances (documented + justified against sample-size statistics)
-# --------------------------------------------------------------------------- #
-# Historical set-count shares are estimated from ~6.1k Slam bo5 / ~25k bo3
-# matches; the simulated shares from DEFAULT_N_MATCHES. The combined standard
-# error of a per-bucket share difference is
-#     SE = sqrt( p(1-p)/n_hist + p(1-p)/n_sim )
-# which for p≈0.4, n_hist≈6_000, n_sim≈40_000 is ≈0.007. SETCOUNT_ABS_TOL is set
-# to 0.05, ~7×SE, a deliberately *generous* model-adequacy band, far wider than
-# sampling noise, so a PASS means genuine agreement and a FAIL means a real
-# modelling error rather than a tightly-tuned band. (The bo5 discrepancies this
-# harness observes are ≈0.09–0.13 across the failing buckets, i.e. ≈13.9–19.1×SE,
-# well past even this band, see the module FINDING.)
+# Generous model-adequacy bands, deliberately far wider than sampling noise.
 SETCOUNT_ABS_TOL = 0.05
-# Games-per-set: per-set game counts have SD≈2.4; over thousands of sets the SE
-# of the mean is <0.05, so 0.5 games is again a generous absolute band. (A few
-# pre-2022 advantage final sets inflate the historical mean slightly; immaterial
-# at this tolerance.)
 GPS_ABS_TOL = 0.5
-# Tiebreak frequency and break rate are checked against a *plausible range* (per
-# the acceptance criteria, "in a plausible range"), not a tight tolerance vs
-# historical. Historical Slam values are ≈0.18 (tb) and ≈0.20 (break); these
-# bands bracket both the historical and a reasonable simulated spread.
 TB_FREQ_PLAUSIBLE = (0.10, 0.32)
 BREAK_RATE_PLAUSIBLE = (0.12, 0.28)
 
@@ -134,21 +46,9 @@ _MARKERS = ("RET", "W/O", "def.")
 _SET_TOKEN = re.compile(r"^(\d+)-(\d+)(?:\(([^)]*)\))?$")
 
 
-# --------------------------------------------------------------------------- #
-# Metric container
-# --------------------------------------------------------------------------- #
 @dataclass
 class ShapeMetrics:
-    """Aggregate "match shape" statistics for one population (hist or sim).
-
-    Attributes:
-        n_matches: Number of matches the set-count distribution is over.
-        setcount: ``{n_sets: share}``, share of matches decided in ``n_sets``
-            sets (bo5: 3/4/5; bo3: 2/3). Shares sum to 1.
-        games_per_set: Mean games per set (a 7–6 tiebreak set counts as 13).
-        tb_freq: Share of sets that reached a tiebreak.
-        break_rate: Share of service games broken. ``None`` if not measured.
-    """
+    """Aggregate match-shape statistics for one population (setcount shares sum to 1; break_rate None if unmeasured)."""
 
     n_matches: int
     setcount: dict[int, float]
@@ -159,21 +59,7 @@ class ShapeMetrics:
 
 @dataclass
 class ConfoundResult:
-    """Stale-snapshot confound control for the bo5 Slam comparison (``§7``).
-
-    Contrasts the mean ``|pA − pB|`` gap (and the recent pool's set-count) of the
-    full all-years matchup pool against a recent-only pool where the snapshot
-    skills are ~contemporaneous. Near-equal gaps show the compression is not an
-    artifact of scoring old matchups with latest-known skills.
-
-    Attributes:
-        since_year: The cutoff year for the recent pool (``CONFOUND_SINCE_YEAR``).
-        full_gap: Mean ``|pA − pB|`` over the full all-years bo5 pool.
-        full_n: Number of matchups in the full pool.
-        recent_gap: Mean ``|pA − pB|`` over the recent-only bo5 pool.
-        recent_n: Number of matchups in the recent pool.
-        recent_setcount: Simulated set-count distribution on the recent pool.
-    """
+    """Full-pool vs recent-only mean ``|pA - pB|`` and set-count, for the stale-snapshot control."""
 
     since_year: int
     full_gap: float
@@ -183,22 +69,13 @@ class ConfoundResult:
     recent_setcount: dict[int, float]
 
 
-# --------------------------------------------------------------------------- #
-# Score parsing (historical side)
-# --------------------------------------------------------------------------- #
 def _is_incomplete(score: object) -> bool:
     """True if the score marks a retirement/walkover (partial/unreliable stats)."""
     return isinstance(score, str) and any(m in score for m in _MARKERS)
 
 
 def parse_completed_sets(score: object) -> list[tuple[int, int, bool]] | None:
-    """Parse a score string into completed sets ``[(games_a, games_b, had_tb), …]``.
-
-    Returns ``None`` for an unparseable or non-string score. Tiebreak tokens
-    (``7-6(5)``, ``7-6(10-8)``) are recognised by the parenthetical and counted
-    as a played tiebreak; their game score is used as-is (7–6). Tokens flagged
-    ``RET``/``W/O``/``def.`` never reach here, such matches are excluded whole.
-    """
+    """Parse a score string into ``[(games_a, games_b, had_tb), ...]``, or ``None`` if unparseable."""
     if not isinstance(score, str) or not score.strip():
         return None
     sets: list[tuple[int, int, bool]] = []
@@ -214,18 +91,7 @@ def parse_completed_sets(score: object) -> list[tuple[int, int, bool]] | None:
 def historical_shape_metrics(
     raw: pd.DataFrame, mask: pd.Series, best_of: int
 ) -> ShapeMetrics:
-    """Set-count distribution, games-per-set and tiebreak freq from ``data/raw``.
-
-    Args:
-        raw: The raw winner/loser match frame from :func:`load_atp_data`.
-        mask: Boolean row selector for the population (e.g. Slam best-of-5).
-        best_of: ``5`` or ``3``, determines the valid set-count buckets
-            (3/4/5 or 2/3); matches with any other count are dropped as malformed.
-
-    Returns:
-        A :class:`ShapeMetrics` (``break_rate`` left ``None``, measured
-        separately by :func:`historical_break_rate`).
-    """
+    """Set-count distribution, games-per-set and tiebreak freq from ``data/raw`` (break_rate left None)."""
     valid_counts = {3, 4, 5} if best_of == 5 else {2, 3}
     sub = raw[mask & (raw["best_of"] == best_of)]
     sub = sub[~sub["score"].map(_is_incomplete)]
@@ -259,17 +125,7 @@ def historical_shape_metrics(
 
 
 def historical_break_rate(raw: pd.DataFrame, mask: pd.Series) -> tuple[float, int]:
-    """Break rate from the serve columns: Σ(bpFaced − bpSaved) / Σ SvGms.
-
-    A service game is broken exactly when a faced break point is not saved, and a
-    held game saves all it faced, so ``bpFaced − bpSaved`` counts broken service
-    games. Summed over both players and normalised by total service games. Only
-    rows with a complete break-point/serve-game line and
-    non-retirement scores contribute.
-
-    Returns:
-        ``(break_rate, n_matches_used)``.
-    """
+    """Break rate from the serve columns: Sum(bpFaced - bpSaved) / Sum SvGms; returns ``(rate, n_matches)``."""
     need = ["w_bpFaced", "w_bpSaved", "w_SvGms", "l_bpFaced", "l_bpSaved", "l_SvGms"]
     sub = raw[mask & ~raw["score"].map(_is_incomplete)].dropna(subset=need)
     sub = sub[(sub["w_SvGms"] > 0) & (sub["l_SvGms"] > 0)]
@@ -280,12 +136,8 @@ def historical_break_rate(raw: pd.DataFrame, mask: pd.Series) -> tuple[float, in
     return float(breaks / serve_games), len(sub)
 
 
-# --------------------------------------------------------------------------- #
-# Simulated side
-# --------------------------------------------------------------------------- #
 def _eligible(df: pd.DataFrame) -> pd.DataFrame:
-    """Preprocessed rows usable as realistic matchup samples: complete serve
-    line, real surface, completed match, both ids present."""
+    """Preprocessed rows usable as matchup samples: complete serve line, real surface, completed match, both ids present."""
     ok = df["has_serve_stats"].astype(bool)
     ok &= df["surface"].isin(config.VALID_SURFACES)
     ok &= ~df["score"].map(_is_incomplete)
@@ -299,19 +151,7 @@ def matchup_pool(
     slam_only: bool,
     since: pd.Timestamp | None = None,
 ) -> pd.DataFrame:
-    """Eligible ``(p1_id, p2_id, surface)`` matchups to sample realistic ``p`` from.
-
-    Sampling real historical matchups (rather than synthetic ``p`` values) makes
-    the simulated population reflect the real distribution of skill pairings the
-    simulator faces. For bo5 this is Grand Slam matches (``tourney_level == 'G'``);
-    for bo3, non–Davis-Cup best-of-3 tour matches (men's Slams are bo5-only, so
-    bo3 has no Slam sample, noted in the report).
-
-    Args:
-        since: If given, keep only matchups with ``tourney_date >= since``, the
-            recent-only pool for the stale-snapshot confound control. Requires
-            ``processed["tourney_date"]`` to be datetime (the caller converts it).
-    """
+    """Eligible ``(p1_id, p2_id, surface)`` matchups (bo5 = Slam only; bo3 = non-Davis-Cup); ``since`` filters to the recent pool."""
     df = processed[processed["best_of"] == best_of]
     if slam_only:
         df = df[df["tourney_level"] == "G"]
@@ -323,20 +163,7 @@ def matchup_pool(
 
 
 def mean_point_gap(pool: pd.DataFrame, table: SkillTable) -> tuple[float, int]:
-    """Mean ``|pA − pB|`` point-win gap over **every** matchup in ``pool``.
-
-    Deterministic, no sampling, no RNG: this is the crux statistic behind the
-    ``§7`` finding. A gap compressed toward zero (both players near the surface
-    baseline) is exactly what makes simulated matches play out too evenly, so it
-    is reported directly and drives the confound control.
-
-    Args:
-        pool: Eligible matchup rows from :func:`matchup_pool`.
-        table: The snapshot skill table.
-
-    Returns:
-        ``(mean_gap, n_matchups)``; ``mean_gap`` is ``nan`` for an empty pool.
-    """
+    """Mean ``|pA - pB|`` point-win gap over every matchup in ``pool`` (deterministic); ``nan`` for an empty pool."""
     surfaces = pool["surface"].to_numpy()
     a_ids = pool["p1_id"].astype(str).to_numpy()
     b_ids = pool["p2_id"].astype(str).to_numpy()
@@ -359,28 +186,7 @@ def simulated_shape_metrics(
     n_matches: int,
     rng: np.random.Generator,
 ) -> ShapeMetrics:
-    """Run ``n_matches`` point-by-point matches over sampled realistic ``p`` pairs.
-
-    For each match: sample a real matchup row (with replacement), look up both
-    players' snapshot skills on that surface, derive ``(pA, pB)`` via
-    :func:`~sim.points.matchup_point_probs`, pick a first server, and simulate
-    with ``match_fn`` (``simulate_match_bo3``/``bo5``). Set-count, games-per-set
-    and tiebreak frequency are read off the returned :class:`MatchResult`; break
-    rate is measured at the game layer (see the module docstring).
-
-    Args:
-        pool: Eligible matchup rows from :func:`matchup_pool`.
-        table: The snapshot skill table (:func:`build_skill_table` with
-            ``as_of=None``), the "latest known skills" the simulator will run
-            against in Phase 2.
-        match_fn: ``simulate_match_bo3`` or ``simulate_match_bo5``.
-        final_set_rule: Deciding-set rule passed to ``match_fn``.
-        n_matches: Number of matches to simulate.
-        rng: The single shared ``numpy`` generator (determinism).
-
-    Returns:
-        A fully-populated :class:`ShapeMetrics`.
-    """
+    """Run ``n_matches`` point-by-point matches over matchups sampled with replacement from ``pool``, returning a full ``ShapeMetrics``."""
     idx = rng.integers(0, len(pool), size=n_matches)
     rows = pool.iloc[idx]
     surfaces = rows["surface"].to_numpy()
@@ -408,8 +214,7 @@ def simulated_shape_metrics(
             total_sets += 1
             total_tb += int(s.tb_score is not None)
 
-        # Break rate: emergent from the identical game primitive the match layer
-        # uses, drawn equally on each server's point-win prob (module docstring).
+        # Break rate: the same game primitive the match layer uses, drawn on each server's p.
         for p in (pa, pb):
             for _ in range(BREAKRATE_GAMES_PER_SERVER):
                 serve_games += 1
@@ -426,9 +231,6 @@ def simulated_shape_metrics(
     )
 
 
-# --------------------------------------------------------------------------- #
-# Comparison / gate
-# --------------------------------------------------------------------------- #
 @dataclass
 class Check:
     """One evaluated metric row for the report."""
@@ -526,7 +328,7 @@ def print_report(
 
 
 def print_confound(c: ConfoundResult) -> None:
-    """Print the stale-snapshot confound control (``§7`` finding robustness)."""
+    """Print the stale-snapshot confound control."""
     dist = "  ".join(f"{k}:{v:.3f}" for k, v in c.recent_setcount.items())
     print("\n" + "-" * 78)
     print("CONFOUND CONTROL: stale snapshot? (bo5 Slam, recent-only re-run)")
@@ -541,22 +343,13 @@ def print_confound(c: ConfoundResult) -> None:
     print("     of scoring old matchups with latest-known skills.")
 
 
-# --------------------------------------------------------------------------- #
-# Orchestration
-# --------------------------------------------------------------------------- #
 def run_validation(
     start_year: int,
     end_year: int,
     n_matches: int,
     seed: int,
 ) -> tuple[list[Check], dict[str, ShapeMetrics | ConfoundResult]]:
-    """Load data, build the snapshot table, compute all hist + sim metrics.
-
-    Returns ``(checks, metrics)`` where ``metrics`` maps
-    ``"bo5_hist"``/``"bo5_sim"``/``"bo3_hist"``/``"bo3_sim"`` to their
-    :class:`ShapeMetrics`, plus ``"confound"`` to a :class:`ConfoundResult` (the
-    stale-snapshot control). Pure of I/O beyond loading the vendored CSVs.
-    """
+    """Load data, build the snapshot table, compute all hist + sim metrics; returns ``(checks, metrics)``."""
     raw = load_atp_data(start_year, end_year)
     processed = preprocess_data(raw)
     processed["tourney_date"] = pd.to_datetime(processed["tourney_date"])
@@ -582,9 +375,7 @@ def run_validation(
         table, simulate_match_bo3, BO3_FINAL_SET_RULE, n_matches, rng,
     )
 
-    # Stale-snapshot confound control (§7): re-derive the bo5 gap + set-count on a
-    # recent-only pool where the snapshot skills are ~contemporaneous. Runs after
-    # the main sims so it does not perturb their RNG stream / values.
+    # Stale-snapshot control: bo5 gap + set-count on a recent-only pool, run after the main sims.
     since = pd.Timestamp(year=CONFOUND_SINCE_YEAR, month=1, day=1)
     recent_bo5_pool = matchup_pool(processed, best_of=5, slam_only=True, since=since)
     full_gap, full_n = mean_point_gap(bo5_pool, table)

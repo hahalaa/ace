@@ -1,34 +1,4 @@
-/**
- * The single-match view: pick two players, a surface and a format, and get a
- * live-simulated win probability with the betting-relevant breakdowns a
- * tournament board cannot show, the set-score distribution and a total-games
- * (over/under) summary.
- *
- * **This is the featured path, and it simulates live.** `/match/simulate` runs a
- * Monte Carlo for one matchup per request, a deliberate, bounded exception to the
- * cache-only rule for the 128-draw board (a single match is a different cost
- * class). Same players, surface, format and seed return a byte-identical body, so
- * the run is reproducible, which is why the seed lives in the URL (`./match`
- * reads and writes it), never in a `useState` that could re-roll on a render.
- * Reloading a shared link replays the same numbers; "Simulate again" picks a new
- * seed and says so in the address bar.
- *
- * **Players are chosen, not typed blind.** Each picker searches `/players` (the
- * same resolver the server uses), so a user selects a player the model knows.
- * The server still refuses an unknown or ambiguous name with a 422; the UI just
- * makes that hard to hit.
- *
- * **The disclosure component is shared; its wording here is not.**
- * `MatchMetadata` carries the same required `ModelDisclosure` fields as every
- * other published number, so the same {@link Disclosure} renders a caveat
- * here too, a probability cannot be shown without it. The compact line's
- * text is overridden with {@link SINGLE_MATCH_DISCLAIMER} rather than the
- * server's `metadata.classifier_limitation`: the wire field
- * (`MATCH_CLASSIFIER_LIMITATION` in `api/schemas.py`) is already
- * single-match-specific, not shared with `/simulate` or `/storybook`, so this
- * override only changes what the browser renders, the response body, and
- * any non-browser consumer reading it, are untouched.
- */
+// The single-match view: /match/simulate runs a live Monte Carlo per request; same players/surface/format/seed gives a byte-identical body, so the seed lives in the URL. Players are chosen from /players.
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
@@ -56,10 +26,7 @@ import panelStyles from './panel.module.css';
 const SINGLE_MATCH_DISCLAIMER =
   'Disclaimer: this is a model estimate for a hypothetical matchup, not a betting tip.';
 
-// --------------------------------------------------------------------------
-// Player picker, an accessible combobox over /players.
-// --------------------------------------------------------------------------
-
+// Player picker: an accessible combobox over /players.
 interface PlayerPickerProps {
   label: string;
   value: string;
@@ -76,14 +43,12 @@ function PlayerPicker({ label, value, onChange }: PlayerPickerProps) {
   const [loading, setLoading] = useState(false);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keep the input text in step when the parent resets it (e.g. a shared URL
-  // pre-fills both names).
+  // Keep the input text in step when the parent resets it (a shared URL pre-fills both names).
   useEffect(() => {
     setText(value);
   }, [value]);
 
-  // Debounced search. A query under two characters searches nothing (the server
-  // would return ~hundreds of players for a single letter).
+  // Debounced search; a query under two characters searches nothing.
   useEffect(() => {
     const query = text.trim();
     if (query.length < 2) {
@@ -188,8 +153,7 @@ function PlayerPicker({ label, value, onChange }: PlayerPickerProps) {
               aria-selected={index === active}
               className={styles.pickerOption}
               data-active={index === active}
-              // onMouseDown, not onClick: it fires before the input's blur, so
-              // the selection is not cancelled by the list unmounting first.
+              // onMouseDown, not onClick: it fires before the input's blur.
               onMouseDown={(event) => {
                 event.preventDefault();
                 if (blurTimer.current) clearTimeout(blurTimer.current);
@@ -202,10 +166,7 @@ function PlayerPicker({ label, value, onChange }: PlayerPickerProps) {
           ))}
         </ul>
       )}
-      {/* Always rendered so the picker's height never changes when the status
-          appears or clears, an empty line reserves the same space, keeping the
-          two side-by-side pickers aligned. `aria-hidden` while empty so screen
-          readers announce only the real "Searching…" status. */}
+      {/* Always rendered so the picker's height never changes; aria-hidden while empty. */}
       <p
         className={styles.pickerHint}
         role="status"
@@ -216,10 +177,6 @@ function PlayerPicker({ label, value, onChange }: PlayerPickerProps) {
     </div>
   );
 }
-
-// --------------------------------------------------------------------------
-// Results.
-// --------------------------------------------------------------------------
 
 function pct(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
@@ -320,10 +277,6 @@ function TotalGames({ result }: { result: MatchSimulateResponse }) {
   );
 }
 
-// --------------------------------------------------------------------------
-// The screen.
-// --------------------------------------------------------------------------
-
 type LoadState =
   | { status: 'idle' }
   | { status: 'loading' }
@@ -371,9 +324,7 @@ export default function MatchSim() {
       (result) => {
         if (!controller.signal.aborted) {
           setState({ status: 'ready', result });
-          // Log the completed result to the browser-local history the dashboard
-          // reads back. Fires once per fetch, so a re-render cannot re-log it.
-          recordMatch(result);
+          recordMatch(result); // log to browser-local history the dashboard reads back
         }
       },
       (error: unknown) => {

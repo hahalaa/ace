@@ -1,27 +1,4 @@
-/**
- * One entrant's detail, expanded from their row in {@link TitleOdds}.
- *
- * Two halves, from two different places, and the split is the point:
- *
- *   * **Skill** comes from `/players`, serve- and return-points-won per
- *     surface, fetched on expand rather than for all 128 rows up front.
- *   * **Probabilities** come from the `/simulate` row the caller already holds
- *     and are passed in. Re-fetching them per player would ask the server for a
- *     number the table is already displaying, and risk the card disagreeing
- *     with the row above it.
- *
- * **`n_serve_pts === 0` means "no measurement", not "no points won".** The API
- * fills every surface for every player, falling back to the surface baseline
- * when a player has never been measured there; the raw counts are how a client
- * tells the two apart, so a baseline figure is labelled rather than presented
- * as this player's record.
- *
- * **`/players` answers all three resolver outcomes with a 200** (unique,
- * ambiguous, no match, the client's note), so this branches on `count` rather than
- * treating anything but success as an error. An exact name match is preferred
- * out of an ambiguous candidate list, since the name came from the draw file
- * and is already canonical.
- */
+// One entrant's detail, expanded from a TitleOdds row: skill from /players (fetched on expand), probabilities from the /simulate row the caller holds. n_serve_pts === 0 is the "surface baseline, not measured" signal.
 
 import { useEffect, useState } from 'react';
 

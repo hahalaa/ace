@@ -1,16 +1,4 @@
-/*
- * Storybook screen styles.
- *
- * This screen has the one cinematic moment in the app: the champion reveal. It
- * is the payoff of a played-out run, so it gets the biggest type on any screen
- * and the accent, the ball, on the one player who lifted the trophy. Motion is
- * a single considered entrance on that reveal, gated behind
- * prefers-reduced-motion.
- *
- * The bracket below brings its own stylesheet (bracket.module.css, including
- * the winner rules a run switches on), so this file covers only what wraps it:
- * the run controls and the champion panel. Tokens come from src/index.css.
- */
+/* Storybook screen styles: the run controls and the champion reveal (the one cinematic moment). The bracket brings its own stylesheet. Tokens from src/index.css. */
 
 .storybook {
   display: flex;
@@ -20,9 +8,7 @@
   min-width: 0;
 }
 
-/* -------------------------------------------------------------------------
- * Run controls.
- * ------------------------------------------------------------------------- */
+/* Run controls. */
 
 .toolbar {
   display: flex;
@@ -64,10 +50,7 @@
     translate var(--dur-1) var(--ease-spring);
 }
 
-/* The primary action is the live one, running the simulation, so it carries
-   the accent as a filled control. Its hover brightens the fill with a filter
-   rather than a second hardcoded colour, so it stays correct in both themes
-   (optic-yellow in the dark register, trophy-gold in the light one). */
+/* The primary action carries the accent as a filled control; hover brightens the fill with a filter so it stays correct in both themes. */
 .primary {
   color: var(--ball-ink);
   background: var(--ball);
@@ -130,14 +113,9 @@
   word-break: break-all;
 }
 
-/* -------------------------------------------------------------------------
- * Champion, the reveal.
- * ------------------------------------------------------------------------- */
+/* Champion, the reveal. */
 
-/* One divider, immediately after the reveal, filling the gap the removed
-   disclosure block used to occupy rather than leaving it blank. No
-   border-top: nothing above the reveal needs marking off, and a second rule
-   there would just recreate the doubled-line problem this replaced. */
+/* One divider immediately after the reveal; no border-top, since nothing above the reveal needs marking off. */
 .champion {
   padding: 2rem 0 2.25rem;
   border-bottom: 1px solid var(--line);
@@ -189,13 +167,7 @@
   color: var(--ink-mid);
 }
 
-/* Cinematic, singular, and off by default for anyone who asked for less.
- *
- * The reveal is now staged: the rule-lined panel opens first, then the label,
- * the champion's name (rising a touch further and settling from just under
- * full size, the one place in the app that earns a scale), and finally the
- * meta and scoreline. It is still one considered moment, not a parade; the
- * spring is the shared `--ease-spring`. */
+/* The champion reveal, staged (panel, label, name with a slight scale, then meta/scoreline); off by default under reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   .champion {
     animation: reveal var(--dur-reveal) var(--ease-spring) both;
@@ -244,9 +216,7 @@
   }
 }
 
-/* Provenance note for an uploaded draw: user-submitted, unverified, temporary.
-   Rendered alongside the model disclosure, not in place of it, the same
-   warning the upload form shows, carried onto the shared results screen. */
+/* Provenance note for an uploaded draw: user-submitted, unverified, temporary. Rendered alongside the model disclosure. */
 .contentNote {
   margin: 0;
   padding: 0.9rem 1.1rem;

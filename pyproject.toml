@@ -1,6 +1,4 @@
 [tool.pytest.ini_options]
-# src/ on the import path so tests use the same src-relative imports as the
-# runtime pipeline (`import config`, `import data.loader`), no per-file
-# sys.path hacks. Runtime deps are pinned in requirements.txt.
+# src/ on the import path so tests use the same src-relative imports as the runtime.
 pythonpath = ["src"]
 testpaths = ["tests"]

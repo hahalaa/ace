@@ -1,20 +1,12 @@
-# Ace CI, lint + test on every push and pull request.
-#
-# Source-level checks only. Both jobs run against a clean checkout, which is the
-# point: the two runtime artefacts the app needs (`outputs/tennis_model.pkl` and
-# `data/cache/*.json`) are gitignored and in no checkout, and nothing here needs
-# them, `tests/test_reconcile.py::test_load_pinned_classifier_records_identity`
-# skips itself when the pickle is absent, and every other test builds what it
-# needs from the vendored CSVs in `data/raw/` or from `tests/fixtures/`.
-# Container build + `/health` smoke-test is a separate concern, run manually.
+# Source-level checks (pytest + typecheck + build) on every push and pull request.
+# No runtime artefacts and no network; the container build/smoke-test is a manual step.
 name: CI
 
 on:
   push:
   pull_request:
 
-# A push and its PR are separate refs and both still run; this only cancels a
-# run superseded by a newer push to the same ref.
+# Cancels only a run superseded by a newer push to the same ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -32,7 +24,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          # 3.11 matches the Dockerfile's base image (`python:3.11-slim`).
+          # 3.11 matches the Dockerfile base image.
           python-version: "3.11"
           cache: pip
           cache-dependency-path: requirements.txt
@@ -42,11 +34,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # No network step of any kind: match data is vendored under `data/raw/`
-      # (committed despite the blanket `*.csv` ignore) and the one module that
-      # downloads anything, `scripts/refresh_data.py`, has its single network
-      # primitive monkeypatched in `tests/test_refresh_data.py`.
-      # pytest finds `src/` via `pythonpath = ["src"]` in pyproject.toml.
       - name: Run tests
         run: pytest -q
 
@@ -62,7 +49,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # 22 matches the Dockerfile's `node:22-alpine` builder stage.
+          # 22 matches the Dockerfile builder stage.
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
@@ -70,15 +57,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # The repo's own script, not a bare `tsc --noEmit`: the build uses project
-      # references (`tsc -b`), and `--noEmit` alone is rejected in that mode.
+      # `npm run typecheck`, not bare `tsc --noEmit`: the build uses project references (`tsc -b`).
       - name: Type-check
         run: npm run typecheck
 
-      # VITE_API_BASE_URL is deliberately left UNSET here. It is inlined at
-      # build time, so there is no correct value for CI to supply, and the build
-      # warns-but-succeeds without one by design, the resulting bundle
-      # renders the ApiConfigError panel, which is the intended runtime signal.
-      # Passing a dummy URL would only train people to satisfy the check.
+      # VITE_API_BASE_URL is deliberately left unset; the build warns-but-succeeds without one.
       - name: Build
         run: npm run build
