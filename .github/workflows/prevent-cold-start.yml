@@ -21,7 +21,10 @@ jobs:
   ping:
     name: Ping the live API
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Sized for a 50+ second cold start: if the instance has spun down, this run
+    # is the wake-up ping and must wait out the boot rather than report it as a
+    # failure.
+    timeout-minutes: 10
     steps:
       - name: Curl /health
-        run: curl -fsS --max-time 30 https://ace-7acv.onrender.com/health
+        run: curl -fsS --max-time 90 --retry 2 --retry-all-errors https://ace-7acv.onrender.com/health
