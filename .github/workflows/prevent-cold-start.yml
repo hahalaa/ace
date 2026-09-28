@@ -1,0 +1,27 @@
+# Keeps the Render free-tier API instance warm during likely viewing hours.
+# Render's free tier spins a service down after 15 minutes idle, so the next
+# request pays a 50+ second cold start. Pinging /health every 10 minutes while
+# real visitors are plausibly looking at the demo avoids that, without running
+# 24/7: a round-the-clock ping combined with real traffic would blow past the
+# account's 750 free instance-hours/month.
+name: Prevent cold start
+
+on:
+  # 8am-11pm AEST (UTC+10) is 22:00 UTC the day before through 13:00 UTC, so the
+  # window wraps midnight UTC and needs two ranges. Cron is UTC-only and not
+  # DST-aware, so during AEDT (UTC+11, roughly Oct-Apr) the local window drifts
+  # to 9am-midnight; close enough for keeping an instance warm.
+  schedule:
+    - cron: '*/10 22-23 * * *'
+    - cron: '*/10 0-13 * * *'
+
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping the live API
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Curl /health
+        run: curl -fsS --max-time 30 https://ace-7acv.onrender.com/health
