@@ -16,9 +16,9 @@
           "rank": 2,
           "player_id": "A0E2",
           "player_name": "Carlos Alcaraz",
-          "rating": 2298.79,
-          "matches": 376,
-          "last_played": "2026-09-08",
+          "rating": 2292.29,
+          "matches": 384,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
@@ -34,18 +34,18 @@
           "rank": 4,
           "player_id": "D643",
           "player_name": "Novak Djokovic",
-          "rating": 2199.64,
-          "matches": 1435,
-          "last_played": "2026-08-30",
+          "rating": 2204.09,
+          "matches": 1441,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
           "rank": 5,
           "player_id": "Z355",
           "player_name": "Alexander Zverev",
-          "rating": 2164.95,
-          "matches": 812,
-          "last_played": "2026-09-13",
+          "rating": 2168.13,
+          "matches": 823,
+          "last_played": "2026-10-17",
           "is_active": true
         },
         {
@@ -68,11 +68,11 @@
         },
         {
           "rank": 8,
-          "player_id": "F0F1",
-          "player_name": "Arthur Fils",
-          "rating": 2097.93,
-          "matches": 187,
-          "last_played": "2026-08-31",
+          "player_id": "J0DZ",
+          "player_name": "Rafael Jodar",
+          "rating": 2075.48,
+          "matches": 63,
+          "last_played": "2026-10-18",
           "is_active": true
         },
         {
@@ -86,195 +86,186 @@
         },
         {
           "rank": 10,
-          "player_id": "S0S1",
-          "player_name": "Ben Shelton",
-          "rating": 2070.91,
-          "matches": 242,
-          "last_played": "2026-09-13",
+          "player_id": "F0F1",
+          "player_name": "Arthur Fils",
+          "rating": 2068.03,
+          "matches": 192,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
           "rank": 11,
-          "player_id": "FB98",
-          "player_name": "Taylor Fritz",
-          "rating": 2032.93,
-          "matches": 602,
-          "last_played": "2026-09-05",
+          "player_id": "MM58",
+          "player_name": "Daniil Medvedev",
+          "rating": 2030.97,
+          "matches": 670,
+          "last_played": "2026-10-17",
           "is_active": true
         },
         {
           "rank": 12,
-          "player_id": "J0DZ",
-          "player_name": "Rafael Jodar",
-          "rating": 2032.24,
-          "matches": 54,
-          "last_played": "2026-09-02",
+          "player_id": "DH58",
+          "player_name": "Alex de Minaur",
+          "rating": 2024.19,
+          "matches": 554,
+          "last_played": "2026-10-15",
           "is_active": true
         },
         {
           "rank": 13,
-          "player_id": "PL56",
-          "player_name": "Tommy Paul",
-          "rating": 2014.62,
-          "matches": 401,
-          "last_played": "2026-09-06",
+          "player_id": "DH50",
+          "player_name": "Alejandro Davidovich Fokina",
+          "rating": 2022.87,
+          "matches": 353,
+          "last_played": "2026-10-18",
           "is_active": true
         },
         {
           "rank": 14,
-          "player_id": "AG37",
-          "player_name": "Felix Auger-Aliassime",
-          "rating": 2004.62,
-          "matches": 489,
-          "last_played": "2026-09-03",
+          "player_id": "S0S1",
+          "player_name": "Ben Shelton",
+          "rating": 2021.57,
+          "matches": 246,
+          "last_played": "2026-10-11",
           "is_active": true
         },
         {
           "rank": 15,
-          "player_id": "TD51",
-          "player_name": "Frances Tiafoe",
-          "rating": 2003.7,
-          "matches": 509,
-          "last_played": "2026-09-11",
+          "player_id": "L0BV",
+          "player_name": "Jiri Lehecka",
+          "rating": 2014.21,
+          "matches": 262,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
           "rank": 16,
-          "player_id": "M0EJ",
-          "player_name": "Lorenzo Musetti",
-          "rating": 1986.18,
-          "matches": 344,
-          "last_played": "2026-09-03",
+          "player_id": "PL56",
+          "player_name": "Tommy Paul",
+          "rating": 2008.05,
+          "matches": 406,
+          "last_played": "2026-10-16",
           "is_active": true
         },
         {
           "rank": 17,
-          "player_id": "DH58",
-          "player_name": "Alex de Minaur",
-          "rating": 1985.56,
-          "matches": 543,
-          "last_played": "2026-09-03",
+          "player_id": "FB98",
+          "player_name": "Taylor Fritz",
+          "rating": 2006.09,
+          "matches": 606,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
           "rank": 18,
-          "player_id": "MM58",
-          "player_name": "Daniil Medvedev",
-          "rating": 1984.5,
-          "matches": 657,
-          "last_played": "2026-09-06",
+          "player_id": "AG37",
+          "player_name": "Felix Auger-Aliassime",
+          "rating": 1997.32,
+          "matches": 495,
+          "last_played": "2026-10-14",
           "is_active": true
         },
         {
           "rank": 19,
-          "player_id": "T0HA",
-          "player_name": "Learner Tien",
-          "rating": 1979.66,
-          "matches": 117,
-          "last_played": "2026-09-07",
+          "player_id": "TD51",
+          "player_name": "Frances Tiafoe",
+          "rating": 1996.75,
+          "matches": 513,
+          "last_played": "2026-10-11",
           "is_active": true
         },
         {
           "rank": 20,
-          "player_id": "C0E9",
-          "player_name": "Flavio Cobolli",
-          "rating": 1974.86,
-          "matches": 193,
-          "last_played": "2026-09-05",
+          "player_id": "RH16",
+          "player_name": "Casper Ruud",
+          "rating": 1981.51,
+          "matches": 507,
+          "last_played": "2026-10-16",
           "is_active": true
         },
         {
           "rank": 21,
-          "player_id": "N0AE",
-          "player_name": "Brandon Nakashima",
-          "rating": 1967.63,
-          "matches": 288,
-          "last_played": "2026-09-02",
+          "player_id": "G0IX",
+          "player_name": "Arthur Gea",
+          "rating": 1978.54,
+          "matches": 24,
+          "last_played": "2026-10-15",
           "is_active": true
         },
         {
           "rank": 22,
           "player_id": "D0CO",
           "player_name": "Jack Draper",
-          "rating": 1966.69,
+          "rating": 1966.72,
           "matches": 185,
           "last_played": "2026-08-14",
           "is_active": true
         },
         {
           "rank": 23,
-          "player_id": "RH16",
-          "player_name": "Casper Ruud",
-          "rating": 1965.52,
-          "matches": 499,
-          "last_played": "2026-08-16",
+          "player_id": "F0FV",
+          "player_name": "Joao Fonseca",
+          "rating": 1965.89,
+          "matches": 98,
+          "last_played": "2026-09-18",
           "is_active": true
         },
         {
           "rank": 24,
-          "player_id": "L0BV",
-          "player_name": "Jiri Lehecka",
-          "rating": 1958.91,
-          "matches": 253,
-          "last_played": "2026-09-04",
+          "player_id": "M0EJ",
+          "player_name": "Lorenzo Musetti",
+          "rating": 1964.77,
+          "matches": 345,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
           "rank": 25,
-          "player_id": "F0FV",
-          "player_name": "Joao Fonseca",
-          "rating": 1958.67,
-          "matches": 97,
-          "last_played": "2026-08-19",
+          "player_id": "N0AE",
+          "player_name": "Brandon Nakashima",
+          "rating": 1958.37,
+          "matches": 292,
+          "last_played": "2026-10-11",
           "is_active": true
         },
         {
           "rank": 26,
-          "player_id": "M0N7",
-          "player_name": "Daniel Merida",
-          "rating": 1945.86,
-          "matches": 30,
-          "last_played": "2026-09-04",
+          "player_id": "T0HA",
+          "player_name": "Learner Tien",
+          "rating": 1954.33,
+          "matches": 124,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
           "rank": 27,
+          "player_id": "HB71",
+          "player_name": "Hubert Hurkacz",
+          "rating": 1949.52,
+          "matches": 425,
+          "last_played": "2026-10-13",
+          "is_active": true
+        },
+        {
+          "rank": 28,
           "player_id": "K0AH",
           "player_name": "Sebastian Korda",
-          "rating": 1944.74,
+          "rating": 1944.71,
           "matches": 266,
           "last_played": "2026-03-24",
           "is_active": true
         },
         {
-          "rank": 28,
+          "rank": 29,
           "player_id": "M0NI",
           "player_name": "Jakub Mensik",
-          "rating": 1941.5,
-          "matches": 153,
-          "last_played": "2026-09-05",
-          "is_active": true
-        },
-        {
-          "rank": 29,
-          "player_id": "R0DG",
-          "player_name": "Holger Rune",
-          "rating": 1939.48,
-          "matches": 286,
-          "last_played": "2025-10-13",
+          "rating": 1941.07,
+          "matches": 161,
+          "last_played": "2026-10-13",
           "is_active": true
         },
         {
           "rank": 30,
-          "player_id": "DH50",
-          "player_name": "Alejandro Davidovich Fokina",
-          "rating": 1939.15,
-          "matches": 341,
-          "last_played": "2026-07-17",
-          "is_active": true
-        },
-        {
-          "rank": 31,
           "player_id": "R485",
           "player_name": "Andy Roddick",
           "rating": 1939.08,
@@ -283,16 +274,7 @@
           "is_active": false
         },
         {
-          "rank": 32,
-          "player_id": "B0PG",
-          "player_name": "Alexander Blockx",
-          "rating": 1939.07,
-          "matches": 49,
-          "last_played": "2026-09-09",
-          "is_active": true
-        },
-        {
-          "rank": 33,
+          "rank": 31,
           "player_id": "KE17",
           "player_name": "Nick Kyrgios",
           "rating": 1933.91,
@@ -301,21 +283,39 @@
           "is_active": true
         },
         {
+          "rank": 32,
+          "player_id": "TE51",
+          "player_name": "Stefanos Tsitsipas",
+          "rating": 1930.12,
+          "matches": 610,
+          "last_played": "2026-10-14",
+          "is_active": true
+        },
+        {
+          "rank": 33,
+          "player_id": "M0N7",
+          "player_name": "Daniel Merida",
+          "rating": 1929.56,
+          "matches": 32,
+          "last_played": "2026-10-08",
+          "is_active": true
+        },
+        {
           "rank": 34,
           "player_id": "C0AU",
           "player_name": "Francisco Cerundolo",
-          "rating": 1924.44,
-          "matches": 302,
-          "last_played": "2026-09-07",
+          "rating": 1927.48,
+          "matches": 310,
+          "last_played": "2026-10-11",
           "is_active": true
         },
         {
           "rank": 35,
           "player_id": "BK92",
           "player_name": "Alexander Bublik",
-          "rating": 1923.11,
-          "matches": 408,
-          "last_played": "2026-09-04",
+          "rating": 1926.72,
+          "matches": 412,
+          "last_played": "2026-10-13",
           "is_active": true
         },
         {
@@ -329,6 +329,15 @@
         },
         {
           "rank": 37,
+          "player_id": "C0E9",
+          "player_name": "Flavio Cobolli",
+          "rating": 1915.61,
+          "matches": 196,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
+          "rank": 38,
           "player_id": "BA47",
           "player_name": "Tomas Berdych",
           "rating": 1915.23,
@@ -337,16 +346,25 @@
           "is_active": false
         },
         {
-          "rank": 38,
-          "player_id": "RE44",
-          "player_name": "Andrey Rublev",
-          "rating": 1914.27,
-          "matches": 628,
-          "last_played": "2026-09-02",
+          "rank": 39,
+          "player_id": "VA25",
+          "player_name": "Valentin Vacherot",
+          "rating": 1914.97,
+          "matches": 72,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
-          "rank": 39,
+          "rank": 40,
+          "player_id": "R0DG",
+          "player_name": "Holger Rune",
+          "rating": 1912.93,
+          "matches": 290,
+          "last_played": "2026-10-07",
+          "is_active": true
+        },
+        {
+          "rank": 41,
           "player_id": "R255",
           "player_name": "Patrick Rafter",
           "rating": 1912.21,
@@ -355,16 +373,7 @@
           "is_active": false
         },
         {
-          "rank": 40,
-          "player_id": "M0QI",
-          "player_name": "Alex Michelsen",
-          "rating": 1911.95,
-          "matches": 175,
-          "last_played": "2026-09-08",
-          "is_active": true
-        },
-        {
-          "rank": 41,
+          "rank": 42,
           "player_id": "A092",
           "player_name": "Andre Agassi",
           "rating": 1911.91,
@@ -373,84 +382,75 @@
           "is_active": false
         },
         {
-          "rank": 42,
-          "player_id": "TE51",
-          "player_name": "Stefanos Tsitsipas",
-          "rating": 1908.36,
-          "matches": 602,
-          "last_played": "2026-09-06",
-          "is_active": true
-        },
-        {
           "rank": 43,
-          "player_id": "T0A1",
-          "player_name": "Thiago Agustin Tirante",
-          "rating": 1901.75,
-          "matches": 65,
-          "last_played": "2026-08-31",
+          "player_id": "RE44",
+          "player_name": "Andrey Rublev",
+          "rating": 1908.43,
+          "matches": 636,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
           "rank": 44,
-          "player_id": "G0IX",
-          "player_name": "Arthur Gea",
-          "rating": 1901.45,
-          "matches": 17,
-          "last_played": "2026-09-07",
+          "player_id": "KE29",
+          "player_name": "Karen Khachanov",
+          "rating": 1898.48,
+          "matches": 585,
+          "last_played": "2026-10-13",
           "is_active": true
         },
         {
           "rank": 45,
-          "player_id": "D875",
-          "player_name": "Grigor Dimitrov",
-          "rating": 1890.91,
-          "matches": 807,
-          "last_played": "2026-08-31",
+          "player_id": "M0QI",
+          "player_name": "Alex Michelsen",
+          "rating": 1897.89,
+          "matches": 178,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
           "rank": 46,
-          "player_id": "HB71",
-          "player_name": "Hubert Hurkacz",
-          "rating": 1889.32,
-          "matches": 412,
-          "last_played": "2026-09-02",
+          "player_id": "V812",
+          "player_name": "Botic van de Zandschulp",
+          "rating": 1888.1,
+          "matches": 274,
+          "last_played": "2026-10-14",
           "is_active": true
         },
         {
           "rank": 47,
-          "player_id": "B0ID",
-          "player_name": "Ignacio Buse",
-          "rating": 1885.48,
-          "matches": 54,
-          "last_played": "2026-09-03",
+          "player_id": "D875",
+          "player_name": "Grigor Dimitrov",
+          "rating": 1887.62,
+          "matches": 809,
+          "last_played": "2026-09-19",
           "is_active": true
         },
         {
           "rank": 48,
           "player_id": "BK40",
           "player_name": "Matteo Berrettini",
-          "rating": 1884.71,
-          "matches": 358,
-          "last_played": "2026-09-02",
+          "rating": 1878.72,
+          "matches": 362,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
           "rank": 49,
-          "player_id": "F0DM",
-          "player_name": "Arthur Fery",
-          "rating": 1880.35,
-          "matches": 28,
-          "last_played": "2026-09-01",
+          "player_id": "T0A1",
+          "player_name": "Thiago Agustin Tirante",
+          "rating": 1878.31,
+          "matches": 69,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
           "rank": 50,
-          "player_id": "KE29",
-          "player_name": "Karen Khachanov",
-          "rating": 1875.5,
-          "matches": 579,
-          "last_played": "2026-09-11",
+          "player_id": "B0PG",
+          "player_name": "Alexander Blockx",
+          "rating": 1876.74,
+          "matches": 51,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
@@ -464,15 +464,6 @@
         },
         {
           "rank": 52,
-          "player_id": "N552",
-          "player_name": "Kei Nishikori",
-          "rating": 1871.94,
-          "matches": 693,
-          "last_played": "2026-07-30",
-          "is_active": true
-        },
-        {
-          "rank": 53,
           "player_id": "F339",
           "player_name": "Mardy Fish",
           "rating": 1871.54,
@@ -481,70 +472,25 @@
           "is_active": false
         },
         {
+          "rank": 53,
+          "player_id": "N552",
+          "player_name": "Kei Nishikori",
+          "rating": 1866.14,
+          "matches": 694,
+          "last_played": "2026-10-01",
+          "is_active": true
+        },
+        {
           "rank": 54,
-          "player_id": "VA25",
-          "player_name": "Valentin Vacherot",
-          "rating": 1870.27,
-          "matches": 63,
-          "last_played": "2026-09-04",
+          "player_id": "BT72",
+          "player_name": "Nuno Borges",
+          "rating": 1862.22,
+          "matches": 204,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
           "rank": 55,
-          "player_id": "N771",
-          "player_name": "Cameron Norrie",
-          "rating": 1868.43,
-          "matches": 465,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 56,
-          "player_id": "D0FJ",
-          "player_name": "Luciano Darderi",
-          "rating": 1867.09,
-          "matches": 167,
-          "last_played": "2026-09-07",
-          "is_active": true
-        },
-        {
-          "rank": 57,
-          "player_id": "BT72",
-          "player_name": "Nuno Borges",
-          "rating": 1866.22,
-          "matches": 200,
-          "last_played": "2026-08-31",
-          "is_active": true
-        },
-        {
-          "rank": 58,
-          "player_id": "TE30",
-          "player_name": "Alejandro Tabilo",
-          "rating": 1865.91,
-          "matches": 191,
-          "last_played": "2026-09-05",
-          "is_active": true
-        },
-        {
-          "rank": 59,
-          "player_id": "V812",
-          "player_name": "Botic van de Zandschulp",
-          "rating": 1861.65,
-          "matches": 266,
-          "last_played": "2026-09-09",
-          "is_active": true
-        },
-        {
-          "rank": 60,
-          "player_id": "N0BS",
-          "player_name": "Mariano Navone",
-          "rating": 1861.48,
-          "matches": 127,
-          "last_played": "2026-09-04",
-          "is_active": true
-        },
-        {
-          "rank": 61,
           "player_id": "A385",
           "player_name": "Mario Ancic",
           "rating": 1859.93,
@@ -553,25 +499,52 @@
           "is_active": false
         },
         {
-          "rank": 62,
+          "rank": 56,
+          "player_id": "BU13",
+          "player_name": "Zizou Bergs",
+          "rating": 1858.13,
+          "matches": 164,
+          "last_played": "2026-10-14",
+          "is_active": true
+        },
+        {
+          "rank": 57,
           "player_id": "HH26",
           "player_name": "Ugo Humbert",
-          "rating": 1858.69,
-          "matches": 362,
-          "last_played": "2026-08-16",
+          "rating": 1857.06,
+          "matches": 365,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
-          "rank": 63,
-          "player_id": "MV14",
-          "player_name": "Alex Molcan",
-          "rating": 1854.14,
-          "matches": 116,
-          "last_played": "2026-09-02",
+          "rank": 58,
+          "player_id": "F0DM",
+          "player_name": "Arthur Fery",
+          "rating": 1852.82,
+          "matches": 32,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
-          "rank": 64,
+          "rank": 59,
+          "player_id": "D0FJ",
+          "player_name": "Luciano Darderi",
+          "rating": 1852.42,
+          "matches": 170,
+          "last_played": "2026-10-10",
+          "is_active": true
+        },
+        {
+          "rank": 60,
+          "player_id": "BM95",
+          "player_name": "Benjamin Bonzi",
+          "rating": 1851.57,
+          "matches": 160,
+          "last_played": "2026-09-05",
+          "is_active": true
+        },
+        {
+          "rank": 61,
           "player_id": "S402",
           "player_name": "Pete Sampras",
           "rating": 1850.99,
@@ -580,34 +553,43 @@
           "is_active": false
         },
         {
+          "rank": 62,
+          "player_id": "N771",
+          "player_name": "Cameron Norrie",
+          "rating": 1849.49,
+          "matches": 467,
+          "last_played": "2026-10-08",
+          "is_active": true
+        },
+        {
+          "rank": 63,
+          "player_id": "SU55",
+          "player_name": "Denis Shapovalov",
+          "rating": 1847.65,
+          "matches": 470,
+          "last_played": "2026-10-04",
+          "is_active": true
+        },
+        {
+          "rank": 64,
+          "player_id": "HB64",
+          "player_name": "Quentin Halys",
+          "rating": 1846.63,
+          "matches": 178,
+          "last_played": "2026-10-11",
+          "is_active": true
+        },
+        {
           "rank": 65,
-          "player_id": "BM95",
-          "player_name": "Benjamin Bonzi",
-          "rating": 1850.76,
-          "matches": 160,
-          "last_played": "2026-09-05",
-          "is_active": true
-        },
-        {
-          "rank": 66,
-          "player_id": "RC91",
-          "player_name": "Arthur Rinderknech",
-          "rating": 1845.92,
-          "matches": 252,
-          "last_played": "2026-09-04",
-          "is_active": true
-        },
-        {
-          "rank": 67,
           "player_id": "KD46",
           "player_name": "Thanasi Kokkinakis",
-          "rating": 1842.09,
+          "rating": 1842.33,
           "matches": 184,
           "last_played": "2026-08-15",
           "is_active": true
         },
         {
-          "rank": 68,
+          "rank": 66,
           "player_id": "D801",
           "player_name": "Alexandr Dolgopolov",
           "rating": 1839.63,
@@ -616,7 +598,16 @@
           "is_active": false
         },
         {
-          "rank": 69,
+          "rank": 67,
+          "player_id": "MV14",
+          "player_name": "Alex Molcan",
+          "rating": 1839.61,
+          "matches": 122,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
+          "rank": 68,
           "player_id": "F401",
           "player_name": "David Ferrer",
           "rating": 1835.07,
@@ -625,52 +616,52 @@
           "is_active": false
         },
         {
+          "rank": 69,
+          "player_id": "H997",
+          "player_name": "Yannick Hanfmann",
+          "rating": 1834.3,
+          "matches": 222,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
           "rank": 70,
-          "player_id": "BU13",
-          "player_name": "Zizou Bergs",
-          "rating": 1834.27,
-          "matches": 157,
-          "last_played": "2026-09-05",
+          "player_id": "N0BS",
+          "player_name": "Mariano Navone",
+          "rating": 1829.1,
+          "matches": 129,
+          "last_played": "2026-10-08",
           "is_active": true
         },
         {
           "rank": 71,
-          "player_id": "M0FH",
-          "player_name": "Tomas Machac",
-          "rating": 1829.02,
-          "matches": 162,
-          "last_played": "2026-08-30",
+          "player_id": "MU94",
+          "player_name": "Jaume Munar",
+          "rating": 1824.66,
+          "matches": 315,
+          "last_played": "2026-10-08",
           "is_active": true
         },
         {
           "rank": 72,
-          "player_id": "H997",
-          "player_name": "Yannick Hanfmann",
-          "rating": 1828.78,
-          "matches": 220,
-          "last_played": "2026-08-31",
+          "player_id": "P0HW",
+          "player_name": "Dino Prizmic",
+          "rating": 1824.46,
+          "matches": 50,
+          "last_played": "2026-09-20",
           "is_active": true
         },
         {
           "rank": 73,
-          "player_id": "HB64",
-          "player_name": "Quentin Halys",
-          "rating": 1826.62,
-          "matches": 170,
-          "last_played": "2026-09-03",
+          "player_id": "TE30",
+          "player_name": "Alejandro Tabilo",
+          "rating": 1823.88,
+          "matches": 196,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
           "rank": 74,
-          "player_id": "F0F2",
-          "player_name": "Jaime Faria",
-          "rating": 1824.92,
-          "matches": 42,
-          "last_played": "2026-09-02",
-          "is_active": true
-        },
-        {
-          "rank": 75,
           "player_id": "A678",
           "player_name": "Kevin Anderson",
           "rating": 1823.76,
@@ -679,16 +670,16 @@
           "is_active": false
         },
         {
-          "rank": 76,
-          "player_id": "C977",
-          "player_name": "Marin Cilic",
-          "rating": 1821.29,
-          "matches": 984,
-          "last_played": "2026-08-15",
+          "rank": 75,
+          "player_id": "SL28",
+          "player_name": "Jan-Lennard Struff",
+          "rating": 1822.64,
+          "matches": 541,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
-          "rank": 77,
+          "rank": 76,
           "player_id": "MC10",
           "player_name": "Andy Murray",
           "rating": 1817.72,
@@ -697,7 +688,7 @@
           "is_active": false
         },
         {
-          "rank": 78,
+          "rank": 77,
           "player_id": "G415",
           "player_name": "Fernando Gonzalez",
           "rating": 1816.42,
@@ -706,31 +697,40 @@
           "is_active": false
         },
         {
+          "rank": 78,
+          "player_id": "RC91",
+          "player_name": "Arthur Rinderknech",
+          "rating": 1816.15,
+          "matches": 254,
+          "last_played": "2026-09-19",
+          "is_active": true
+        },
+        {
           "rank": 79,
           "player_id": "MC65",
           "player_name": "Gael Monfils",
-          "rating": 1815.91,
+          "rating": 1815.93,
           "matches": 959,
           "last_played": "2026-09-03",
           "is_active": true
         },
         {
           "rank": 80,
-          "player_id": "SU55",
-          "player_name": "Denis Shapovalov",
-          "rating": 1815.9,
-          "matches": 463,
-          "last_played": "2026-09-04",
-          "is_active": true
-        },
-        {
-          "rank": 81,
           "player_id": "F316",
           "player_name": "Juan Carlos Ferrero",
           "rating": 1814.92,
           "matches": 717,
           "last_played": "2012-10-21",
           "is_active": false
+        },
+        {
+          "rank": 81,
+          "player_id": "C977",
+          "player_name": "Marin Cilic",
+          "rating": 1814.04,
+          "matches": 985,
+          "last_played": "2026-10-07",
+          "is_active": true
         },
         {
           "rank": 82,
@@ -743,33 +743,15 @@
         },
         {
           "rank": 83,
-          "player_id": "A0GC",
-          "player_name": "Terence Atmane",
-          "rating": 1812.87,
-          "matches": 68,
-          "last_played": "2026-08-30",
+          "player_id": "M0FH",
+          "player_name": "Tomas Machac",
+          "rating": 1811.16,
+          "matches": 165,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
           "rank": 84,
-          "player_id": "EA24",
-          "player_name": "Tomas Martin Etcheverry",
-          "rating": 1811.8,
-          "matches": 241,
-          "last_played": "2026-09-06",
-          "is_active": true
-        },
-        {
-          "rank": 85,
-          "player_id": "P0HW",
-          "player_name": "Dino Prizmic",
-          "rating": 1811.68,
-          "matches": 48,
-          "last_played": "2026-09-02",
-          "is_active": true
-        },
-        {
-          "rank": 86,
           "player_id": "TC61",
           "player_name": "Jordan Thompson",
           "rating": 1810.6,
@@ -778,7 +760,7 @@
           "is_active": true
         },
         {
-          "rank": 87,
+          "rank": 85,
           "player_id": "I186",
           "player_name": "John Isner",
           "rating": 1809.77,
@@ -787,25 +769,16 @@
           "is_active": false
         },
         {
-          "rank": 88,
-          "player_id": "C0C8",
-          "player_name": "Juan Manuel Cerundolo",
-          "rating": 1808.52,
-          "matches": 95,
-          "last_played": "2026-09-01",
+          "rank": 86,
+          "player_id": "CH27",
+          "player_name": "Hyeon Chung",
+          "rating": 1809.43,
+          "matches": 160,
+          "last_played": "2026-09-18",
           "is_active": true
         },
         {
-          "rank": 89,
-          "player_id": "SL28",
-          "player_name": "Jan-Lennard Struff",
-          "rating": 1807.56,
-          "matches": 536,
-          "last_played": "2026-09-03",
-          "is_active": true
-        },
-        {
-          "rank": 90,
+          "rank": 87,
           "player_id": "L360",
           "player_name": "Ivan Ljubicic",
           "rating": 1803.69,
@@ -814,16 +787,7 @@
           "is_active": false
         },
         {
-          "rank": 91,
-          "player_id": "CH27",
-          "player_name": "Hyeon Chung",
-          "rating": 1803.66,
-          "matches": 159,
-          "last_played": "2026-02-06",
-          "is_active": true
-        },
-        {
-          "rank": 92,
+          "rank": 88,
           "player_id": "R513",
           "player_name": "Jean-Julien Rojer",
           "rating": 1802.77,
@@ -832,7 +796,7 @@
           "is_active": false
         },
         {
-          "rank": 93,
+          "rank": 89,
           "player_id": "S694",
           "player_name": "Radek Stepanek",
           "rating": 1801.14,
@@ -841,7 +805,7 @@
           "is_active": false
         },
         {
-          "rank": 94,
+          "rank": 90,
           "player_id": "MP01",
           "player_name": "Michael Mmoh",
           "rating": 1800.57,
@@ -850,16 +814,16 @@
           "is_active": true
         },
         {
-          "rank": 95,
-          "player_id": "MQ75",
-          "player_name": "Kamil Majchrzak",
-          "rating": 1799.5,
-          "matches": 130,
-          "last_played": "2026-09-02",
+          "rank": 91,
+          "player_id": "B0ID",
+          "player_name": "Ignacio Buse",
+          "rating": 1799.81,
+          "matches": 58,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
-          "rank": 96,
+          "rank": 92,
           "player_id": "T786",
           "player_name": "Jo-Wilfried Tsonga",
           "rating": 1797.34,
@@ -868,7 +832,7 @@
           "is_active": false
         },
         {
-          "rank": 97,
+          "rank": 93,
           "player_id": "WB08",
           "player_name": "Yosuke Watanuki",
           "rating": 1797.05,
@@ -877,7 +841,7 @@
           "is_active": true
         },
         {
-          "rank": 98,
+          "rank": 94,
           "player_id": "E140",
           "player_name": "Nicolas Escude",
           "rating": 1796.73,
@@ -886,16 +850,25 @@
           "is_active": false
         },
         {
-          "rank": 99,
-          "player_id": "MU94",
-          "player_name": "Jaume Munar",
-          "rating": 1796.67,
-          "matches": 310,
-          "last_played": "2026-09-02",
+          "rank": 95,
+          "player_id": "SX50",
+          "player_name": "Roman Safiullin",
+          "rating": 1796.11,
+          "matches": 147,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
-          "rank": 100,
+          "rank": 96,
+          "player_id": "F0F2",
+          "player_name": "Jaime Faria",
+          "rating": 1795.67,
+          "matches": 48,
+          "last_played": "2026-10-07",
+          "is_active": true
+        },
+        {
+          "rank": 97,
           "player_id": "S0JA",
           "player_name": "Eliot Spizzirri",
           "rating": 1795.08,
@@ -904,34 +877,43 @@
           "is_active": true
         },
         {
-          "rank": 101,
-          "player_id": "GJ37",
-          "player_name": "Tallon Griekspoor",
-          "rating": 1793.4,
-          "matches": 275,
-          "last_played": "2026-08-31",
+          "rank": 98,
+          "player_id": "CD85",
+          "player_name": "Pablo Carreno Busta",
+          "rating": 1792.09,
+          "matches": 552,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
-          "rank": 102,
+          "rank": 99,
+          "player_id": "A0GC",
+          "player_name": "Terence Atmane",
+          "rating": 1791.29,
+          "matches": 69,
+          "last_played": "2026-09-24",
+          "is_active": true
+        },
+        {
+          "rank": 100,
           "player_id": "PH64",
           "player_name": "Andrea Pellegrino",
-          "rating": 1787.34,
+          "rating": 1787.29,
           "matches": 16,
           "last_played": "2026-07-16",
           "is_active": true
         },
         {
-          "rank": 103,
+          "rank": 101,
           "player_id": "RH24",
           "player_name": "Emil Ruusuvuori",
           "rating": 1786.47,
           "matches": 218,
           "last_played": "2025-10-13",
-          "is_active": true
+          "is_active": false
         },
         {
-          "rank": 104,
+          "rank": 102,
           "player_id": "C0H0",
           "player_name": "Arthur Cazaux",
           "rating": 1785.68,
@@ -940,7 +922,16 @@
           "is_active": true
         },
         {
-          "rank": 105,
+          "rank": 103,
+          "player_id": "C0C8",
+          "player_name": "Juan Manuel Cerundolo",
+          "rating": 1785.44,
+          "matches": 100,
+          "last_played": "2026-10-10",
+          "is_active": true
+        },
+        {
+          "rank": 104,
           "player_id": "MA21",
           "player_name": "Juan Monaco",
           "rating": 1784.54,
@@ -949,16 +940,16 @@
           "is_active": false
         },
         {
-          "rank": 106,
+          "rank": 105,
           "player_id": "P09Z",
           "player_name": "Alexei Popyrin",
-          "rating": 1783.25,
+          "rating": 1783.19,
           "matches": 276,
           "last_played": "2026-09-03",
           "is_active": true
         },
         {
-          "rank": 107,
+          "rank": 106,
           "player_id": "B747",
           "player_name": "Julien Benneteau",
           "rating": 1783.08,
@@ -967,16 +958,43 @@
           "is_active": false
         },
         {
+          "rank": 107,
+          "player_id": "B0CD",
+          "player_name": "Jenson Brooksby",
+          "rating": 1781.64,
+          "matches": 153,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
           "rank": 108,
-          "player_id": "CD85",
-          "player_name": "Pablo Carreno Busta",
-          "rating": 1777.64,
-          "matches": 548,
-          "last_played": "2026-08-30",
+          "player_id": "V0DP",
+          "player_name": "Adolfo Daniel Vallejo",
+          "rating": 1780.6,
+          "matches": 43,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
           "rank": 109,
+          "player_id": "MQ75",
+          "player_name": "Kamil Majchrzak",
+          "rating": 1780.26,
+          "matches": 135,
+          "last_played": "2026-10-07",
+          "is_active": true
+        },
+        {
+          "rank": 110,
+          "player_id": "WB32",
+          "player_name": "Yibing Wu",
+          "rating": 1780.24,
+          "matches": 79,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
+          "rank": 111,
           "player_id": "A479",
           "player_name": "Nicolas Almagro",
           "rating": 1777.53,
@@ -985,25 +1003,25 @@
           "is_active": false
         },
         {
-          "rank": 110,
-          "player_id": "Z0BZ",
-          "player_name": "Michael Zheng",
-          "rating": 1774.04,
-          "matches": 17,
-          "last_played": "2026-09-05",
-          "is_active": true
-        },
-        {
-          "rank": 111,
-          "player_id": "M0CI",
-          "player_name": "Fabian Marozsan",
-          "rating": 1769.95,
-          "matches": 165,
-          "last_played": "2026-09-02",
-          "is_active": true
-        },
-        {
           "rank": 112,
+          "player_id": "KF17",
+          "player_name": "Soonwoo Kwon",
+          "rating": 1770.44,
+          "matches": 146,
+          "last_played": "2026-09-19",
+          "is_active": true
+        },
+        {
+          "rank": 113,
+          "player_id": "ME82",
+          "player_name": "Adrian Mannarino",
+          "rating": 1769.33,
+          "matches": 719,
+          "last_played": "2026-10-11",
+          "is_active": true
+        },
+        {
+          "rank": 114,
           "player_id": "KE73",
           "player_name": "Dominik Koepfer",
           "rating": 1767.15,
@@ -1012,7 +1030,16 @@
           "is_active": false
         },
         {
-          "rank": 113,
+          "rank": 115,
+          "player_id": "EA24",
+          "player_name": "Tomas Martin Etcheverry",
+          "rating": 1766.27,
+          "matches": 244,
+          "last_played": "2026-10-10",
+          "is_active": true
+        },
+        {
+          "rank": 116,
           "player_id": "J397",
           "player_name": "Jerzy Janowicz",
           "rating": 1766.04,
@@ -1021,25 +1048,7 @@
           "is_active": false
         },
         {
-          "rank": 114,
-          "player_id": "SU87",
-          "player_name": "Lorenzo Sonego",
-          "rating": 1765.97,
-          "matches": 379,
-          "last_played": "2026-09-01",
-          "is_active": true
-        },
-        {
-          "rank": 115,
-          "player_id": "WB32",
-          "player_name": "Yibing Wu",
-          "rating": 1765.5,
-          "matches": 77,
-          "last_played": "2026-09-04",
-          "is_active": true
-        },
-        {
-          "rank": 116,
+          "rank": 117,
           "player_id": "K316",
           "player_name": "Nicolas Kiefer",
           "rating": 1764.84,
@@ -1048,25 +1057,43 @@
           "is_active": false
         },
         {
-          "rank": 117,
+          "rank": 118,
+          "player_id": "SU87",
+          "player_name": "Lorenzo Sonego",
+          "rating": 1764.46,
+          "matches": 381,
+          "last_played": "2026-09-25",
+          "is_active": true
+        },
+        {
+          "rank": 119,
+          "player_id": "S0GD",
+          "player_name": "Dalibor Svrcina",
+          "rating": 1763.96,
+          "matches": 32,
+          "last_played": "2026-10-12",
+          "is_active": true
+        },
+        {
+          "rank": 120,
           "player_id": "F724",
           "player_name": "Marton Fucsovics",
-          "rating": 1763.58,
+          "rating": 1763.27,
           "matches": 387,
           "last_played": "2026-08-30",
           "is_active": true
         },
         {
-          "rank": 118,
-          "player_id": "B0BI",
-          "player_name": "Sebastian Baez",
-          "rating": 1763.55,
-          "matches": 264,
-          "last_played": "2026-08-31",
+          "rank": 121,
+          "player_id": "S0K7",
+          "player_name": "Zachary Svajda",
+          "rating": 1761.48,
+          "matches": 53,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
-          "rank": 119,
+          "rank": 122,
           "player_id": "S741",
           "player_name": "Marat Safin",
           "rating": 1761.48,
@@ -1075,16 +1102,7 @@
           "is_active": false
         },
         {
-          "rank": 120,
-          "player_id": "Q02L",
-          "player_name": "Ethan Quinn",
-          "rating": 1761.09,
-          "matches": 66,
-          "last_played": "2026-07-01",
-          "is_active": true
-        },
-        {
-          "rank": 121,
+          "rank": 123,
           "player_id": "G0GD",
           "player_name": "Matteo Gigante",
           "rating": 1760.71,
@@ -1093,25 +1111,61 @@
           "is_active": false
         },
         {
-          "rank": 122,
-          "player_id": "B0CD",
-          "player_name": "Jenson Brooksby",
-          "rating": 1758.78,
-          "matches": 148,
-          "last_played": "2026-08-30",
+          "rank": 124,
+          "player_id": "Q02L",
+          "player_name": "Ethan Quinn",
+          "rating": 1760.44,
+          "matches": 66,
+          "last_played": "2026-07-01",
           "is_active": true
         },
         {
-          "rank": 123,
+          "rank": 125,
+          "player_id": "GJ37",
+          "player_name": "Tallon Griekspoor",
+          "rating": 1759.6,
+          "matches": 279,
+          "last_played": "2026-10-08",
+          "is_active": true
+        },
+        {
+          "rank": 126,
+          "player_id": "W0BH",
+          "player_name": "Coleman Wong",
+          "rating": 1758.42,
+          "matches": 52,
+          "last_played": "2026-10-07",
+          "is_active": true
+        },
+        {
+          "rank": 127,
+          "player_id": "J0AZ",
+          "player_name": "Kyrian Jacquet",
+          "rating": 1758.39,
+          "matches": 21,
+          "last_played": "2026-10-04",
+          "is_active": true
+        },
+        {
+          "rank": 128,
+          "player_id": "AE14",
+          "player_name": "Daniel Altmaier",
+          "rating": 1758.12,
+          "matches": 220,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
+          "rank": 129,
           "player_id": "O522",
           "player_name": "Reilly Opelka",
-          "rating": 1757.9,
+          "rating": 1757.88,
           "matches": 251,
           "last_played": "2026-05-24",
           "is_active": true
         },
         {
-          "rank": 124,
+          "rank": 130,
           "player_id": "K435",
           "player_name": "Philipp Kohlschreiber",
           "rating": 1757.45,
@@ -1120,7 +1174,16 @@
           "is_active": false
         },
         {
-          "rank": 125,
+          "rank": 131,
+          "player_id": "M0CI",
+          "player_name": "Fabian Marozsan",
+          "rating": 1755.85,
+          "matches": 170,
+          "last_played": "2026-10-08",
+          "is_active": true
+        },
+        {
+          "rank": 132,
           "player_id": "E687",
           "player_name": "Daniel Evans",
           "rating": 1755.39,
@@ -1129,52 +1192,25 @@
           "is_active": false
         },
         {
-          "rank": 126,
-          "player_id": "S0H2",
-          "player_name": "Aleksandr Shevchenko",
-          "rating": 1754.7,
-          "matches": 144,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 127,
+          "rank": 133,
           "player_id": "D0DW",
           "player_name": "Titouan Droguet",
-          "rating": 1754.44,
+          "rating": 1754.39,
           "matches": 26,
           "last_played": "2026-08-14",
           "is_active": true
         },
         {
-          "rank": 128,
-          "player_id": "AE14",
-          "player_name": "Daniel Altmaier",
-          "rating": 1753.69,
-          "matches": 217,
-          "last_played": "2026-09-02",
+          "rank": 134,
+          "player_id": "A0FC",
+          "player_name": "Matteo Arnaldi",
+          "rating": 1750.73,
+          "matches": 163,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
-          "rank": 129,
-          "player_id": "M0JF",
-          "player_name": "Hamad Medjedovic",
-          "rating": 1752.5,
-          "matches": 97,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 130,
-          "player_id": "W0BH",
-          "player_name": "Coleman Wong",
-          "rating": 1750.37,
-          "matches": 48,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 131,
+          "rank": 135,
           "player_id": "SD32",
           "player_name": "Gilles Simon",
           "rating": 1750.22,
@@ -1183,7 +1219,16 @@
           "is_active": false
         },
         {
-          "rank": 132,
+          "rank": 136,
+          "player_id": "R09X",
+          "player_name": "Jurij Rodionov",
+          "rating": 1750.09,
+          "matches": 59,
+          "last_played": "2026-09-19",
+          "is_active": true
+        },
+        {
+          "rank": 137,
           "player_id": "PD07",
           "player_name": "Vasek Pospisil",
           "rating": 1749.87,
@@ -1192,7 +1237,16 @@
           "is_active": false
         },
         {
-          "rank": 133,
+          "rank": 138,
+          "player_id": "Y09V",
+          "player_name": "Yunchaokete Bu",
+          "rating": 1749.85,
+          "matches": 69,
+          "last_played": "2026-10-10",
+          "is_active": true
+        },
+        {
+          "rank": 139,
           "player_id": "H432",
           "player_name": "Lleyton Hewitt",
           "rating": 1749.61,
@@ -1201,25 +1255,25 @@
           "is_active": false
         },
         {
-          "rank": 134,
-          "player_id": "H0BH",
-          "player_name": "Rinky Hijikata",
-          "rating": 1749.45,
-          "matches": 122,
-          "last_played": "2026-08-31",
+          "rank": 140,
+          "player_id": "M0JF",
+          "player_name": "Hamad Medjedovic",
+          "rating": 1749.36,
+          "matches": 99,
+          "last_played": "2026-10-08",
           "is_active": true
         },
         {
-          "rank": 135,
-          "player_id": "KF17",
-          "player_name": "Soonwoo Kwon",
-          "rating": 1748.01,
-          "matches": 144,
-          "last_played": "2026-07-29",
+          "rank": 141,
+          "player_id": "B0BI",
+          "player_name": "Sebastian Baez",
+          "rating": 1749.1,
+          "matches": 269,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
-          "rank": 136,
+          "rank": 142,
           "player_id": "H355",
           "player_name": "Tommy Haas",
           "rating": 1747.08,
@@ -1228,43 +1282,16 @@
           "is_active": false
         },
         {
-          "rank": 137,
-          "player_id": "S0K7",
-          "player_name": "Zachary Svajda",
-          "rating": 1747.04,
-          "matches": 51,
-          "last_played": "2026-09-03",
-          "is_active": true
-        },
-        {
-          "rank": 138,
+          "rank": 143,
           "player_id": "BD06",
           "player_name": "Roberto Bautista Agut",
-          "rating": 1746.98,
+          "rating": 1746.96,
           "matches": 747,
           "last_played": "2026-06-29",
           "is_active": true
         },
         {
-          "rank": 139,
-          "player_id": "SX50",
-          "player_name": "Roman Safiullin",
-          "rating": 1746.77,
-          "matches": 139,
-          "last_played": "2026-08-31",
-          "is_active": true
-        },
-        {
-          "rank": 140,
-          "player_id": "C0JP",
-          "player_name": "Raphael Collignon",
-          "rating": 1746.62,
-          "matches": 53,
-          "last_played": "2026-08-31",
-          "is_active": true
-        },
-        {
-          "rank": 141,
+          "rank": 144,
           "player_id": "M873",
           "player_name": "Nicolas Mahut",
           "rating": 1746.56,
@@ -1273,7 +1300,16 @@
           "is_active": false
         },
         {
-          "rank": 142,
+          "rank": 145,
+          "player_id": "C0JP",
+          "player_name": "Raphael Collignon",
+          "rating": 1746.44,
+          "matches": 53,
+          "last_played": "2026-08-31",
+          "is_active": true
+        },
+        {
+          "rank": 146,
           "player_id": "B837",
           "player_name": "Marcos Baghdatis",
           "rating": 1745.28,
@@ -1282,7 +1318,7 @@
           "is_active": false
         },
         {
-          "rank": 143,
+          "rank": 147,
           "player_id": "TB69",
           "player_name": "Dominic Thiem",
           "rating": 1744.75,
@@ -1291,16 +1327,7 @@
           "is_active": false
         },
         {
-          "rank": 144,
-          "player_id": "B0GG",
-          "player_name": "Mattia Bellucci",
-          "rating": 1744.51,
-          "matches": 72,
-          "last_played": "2026-09-03",
-          "is_active": true
-        },
-        {
-          "rank": 145,
+          "rank": 148,
           "player_id": "MA30",
           "player_name": "Gilles Muller",
           "rating": 1743.73,
@@ -1309,43 +1336,43 @@
           "is_active": false
         },
         {
-          "rank": 146,
+          "rank": 149,
           "player_id": "O483",
           "player_name": "Christopher O'Connell",
-          "rating": 1741.83,
+          "rating": 1741.85,
           "matches": 164,
           "last_played": "2026-08-20",
           "is_active": true
         },
         {
-          "rank": 147,
+          "rank": 150,
           "player_id": "Y268",
           "player_name": "Mikael Ymer",
           "rating": 1741.64,
           "matches": 157,
           "last_played": "2025-10-13",
+          "is_active": false
+        },
+        {
+          "rank": 151,
+          "player_id": "HG86",
+          "player_name": "Lloyd Harris",
+          "rating": 1740.51,
+          "matches": 168,
+          "last_played": "2026-09-27",
           "is_active": true
         },
         {
-          "rank": 148,
-          "player_id": "ME82",
-          "player_name": "Adrian Mannarino",
-          "rating": 1741.3,
-          "matches": 713,
-          "last_played": "2026-09-02",
+          "rank": 152,
+          "player_id": "H0BH",
+          "player_name": "Rinky Hijikata",
+          "rating": 1739.64,
+          "matches": 125,
+          "last_played": "2026-10-07",
           "is_active": true
         },
         {
-          "rank": 149,
-          "player_id": "V0DZ",
-          "player_name": "Luca Van Assche",
-          "rating": 1740.07,
-          "matches": 82,
-          "last_played": "2026-09-02",
-          "is_active": true
-        },
-        {
-          "rank": 150,
+          "rank": 153,
           "player_id": "I305",
           "player_name": "Ilya Ivashka",
           "rating": 1738.76,
@@ -1354,7 +1381,7 @@
           "is_active": false
         },
         {
-          "rank": 151,
+          "rank": 154,
           "player_id": "MH30",
           "player_name": "John Millman",
           "rating": 1738.25,
@@ -1363,16 +1390,16 @@
           "is_active": false
         },
         {
-          "rank": 152,
+          "rank": 155,
           "player_id": "D0DT",
           "player_name": "Martin Damm",
-          "rating": 1737.24,
-          "matches": 27,
-          "last_played": "2026-08-31",
+          "rating": 1737.3,
+          "matches": 29,
+          "last_played": "2026-09-26",
           "is_active": true
         },
         {
-          "rank": 153,
+          "rank": 156,
           "player_id": "L428",
           "player_name": "Michael Llodra",
           "rating": 1736.52,
@@ -1381,7 +1408,7 @@
           "is_active": false
         },
         {
-          "rank": 154,
+          "rank": 157,
           "player_id": "D402",
           "player_name": "Nikolay Davydenko",
           "rating": 1735.78,
@@ -1390,7 +1417,7 @@
           "is_active": false
         },
         {
-          "rank": 155,
+          "rank": 158,
           "player_id": "KC56",
           "player_name": "Aslan Karatsev",
           "rating": 1735.44,
@@ -1399,7 +1426,7 @@
           "is_active": false
         },
         {
-          "rank": 156,
+          "rank": 159,
           "player_id": "BE90",
           "player_name": "Ricardas Berankis",
           "rating": 1734.53,
@@ -1408,7 +1435,7 @@
           "is_active": false
         },
         {
-          "rank": 157,
+          "rank": 160,
           "player_id": "H336",
           "player_name": "Tim Henman",
           "rating": 1734.43,
@@ -1417,7 +1444,7 @@
           "is_active": false
         },
         {
-          "rank": 158,
+          "rank": 161,
           "player_id": "M762",
           "player_name": "Jurgen Melzer",
           "rating": 1734.37,
@@ -1426,16 +1453,7 @@
           "is_active": false
         },
         {
-          "rank": 159,
-          "player_id": "A0FC",
-          "player_name": "Matteo Arnaldi",
-          "rating": 1734.25,
-          "matches": 159,
-          "last_played": "2026-08-31",
-          "is_active": true
-        },
-        {
-          "rank": 160,
+          "rank": 162,
           "player_id": "KB05",
           "player_name": "Filip Krajinovic",
           "rating": 1732.6,
@@ -1444,7 +1462,7 @@
           "is_active": false
         },
         {
-          "rank": 161,
+          "rank": 163,
           "player_id": "Q927",
           "player_name": "Sam Querrey",
           "rating": 1732.09,
@@ -1453,7 +1471,7 @@
           "is_active": false
         },
         {
-          "rank": 162,
+          "rank": 164,
           "player_id": "PH71",
           "player_name": "Max Purcell",
           "rating": 1731.98,
@@ -1462,7 +1480,7 @@
           "is_active": false
         },
         {
-          "rank": 163,
+          "rank": 165,
           "player_id": "E831",
           "player_name": "Kyle Edmund",
           "rating": 1731.94,
@@ -1471,16 +1489,7 @@
           "is_active": false
         },
         {
-          "rank": 164,
-          "player_id": "D994",
-          "player_name": "James Duckworth",
-          "rating": 1731.19,
-          "matches": 222,
-          "last_played": "2026-09-02",
-          "is_active": true
-        },
-        {
-          "rank": 165,
+          "rank": 166,
           "player_id": "GB88",
           "player_name": "David Goffin",
           "rating": 1730.88,
@@ -1489,16 +1498,16 @@
           "is_active": true
         },
         {
-          "rank": 166,
+          "rank": 167,
           "player_id": "B0FV",
           "player_name": "Roman Andres Burruchaga",
-          "rating": 1729.44,
+          "rating": 1729.99,
           "matches": 37,
           "last_played": "2026-08-31",
           "is_active": true
         },
         {
-          "rank": 167,
+          "rank": 168,
           "player_id": "AA27",
           "player_name": "Franco Agamenone",
           "rating": 1729.2,
@@ -1507,7 +1516,7 @@
           "is_active": false
         },
         {
-          "rank": 168,
+          "rank": 169,
           "player_id": "SM25",
           "player_name": "Jack Sock",
           "rating": 1726.96,
@@ -1516,34 +1525,7 @@
           "is_active": false
         },
         {
-          "rank": 169,
-          "player_id": "S0GD",
-          "player_name": "Dalibor Svrcina",
-          "rating": 1726.91,
-          "matches": 28,
-          "last_played": "2026-09-03",
-          "is_active": true
-        },
-        {
           "rank": 170,
-          "player_id": "KI95",
-          "player_name": "Miomir Kecmanovic",
-          "rating": 1726.74,
-          "matches": 384,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 171,
-          "player_id": "MW02",
-          "player_name": "Corentin Moutet",
-          "rating": 1725.23,
-          "matches": 242,
-          "last_played": "2026-09-01",
-          "is_active": true
-        },
-        {
-          "rank": 172,
           "player_id": "J194",
           "player_name": "Joachim Johansson",
           "rating": 1725.18,
@@ -1552,7 +1534,7 @@
           "is_active": false
         },
         {
-          "rank": 173,
+          "rank": 171,
           "player_id": "W269",
           "player_name": "Febi Widhiyanto",
           "rating": 1724.29,
@@ -1561,7 +1543,16 @@
           "is_active": false
         },
         {
-          "rank": 174,
+          "rank": 172,
+          "player_id": "MW02",
+          "player_name": "Corentin Moutet",
+          "rating": 1724.24,
+          "matches": 242,
+          "last_played": "2026-09-01",
+          "is_active": true
+        },
+        {
+          "rank": 173,
           "player_id": "R419",
           "player_name": "Tommy Robredo",
           "rating": 1724.22,
@@ -1570,7 +1561,7 @@
           "is_active": false
         },
         {
-          "rank": 175,
+          "rank": 174,
           "player_id": "VA08",
           "player_name": "Andrea Vavassori",
           "rating": 1723.79,
@@ -1579,21 +1570,30 @@
           "is_active": true
         },
         {
+          "rank": 175,
+          "player_id": "KI95",
+          "player_name": "Miomir Kecmanovic",
+          "rating": 1723.42,
+          "matches": 388,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
           "rank": 176,
+          "player_id": "S0RE",
+          "player_name": "Juncheng Shang",
+          "rating": 1722.89,
+          "matches": 92,
+          "last_played": "2026-10-03",
+          "is_active": true
+        },
+        {
+          "rank": 177,
           "player_id": "D0F6",
           "player_name": "Gabriel Diallo",
           "rating": 1721.75,
           "matches": 109,
           "last_played": "2026-08-05",
-          "is_active": true
-        },
-        {
-          "rank": 177,
-          "player_id": "S0RE",
-          "player_name": "Juncheng Shang",
-          "rating": 1721.34,
-          "matches": 89,
-          "last_played": "2026-08-31",
           "is_active": true
         },
         {
@@ -1616,15 +1616,6 @@
         },
         {
           "rank": 180,
-          "player_id": "S0DE",
-          "player_name": "Dhakshineswar Suresh",
-          "rating": 1719.6,
-          "matches": 6,
-          "last_played": "2026-08-26",
-          "is_active": true
-        },
-        {
-          "rank": 181,
           "player_id": "BA98",
           "player_name": "Simone Bolelli",
           "rating": 1719.34,
@@ -1633,16 +1624,7 @@
           "is_active": false
         },
         {
-          "rank": 182,
-          "player_id": "GC88",
-          "player_name": "Marcos Giron",
-          "rating": 1719.0,
-          "matches": 304,
-          "last_played": "2026-09-02",
-          "is_active": true
-        },
-        {
-          "rank": 183,
+          "rank": 181,
           "player_id": "BO10",
           "player_name": "Gijs Brouwer",
           "rating": 1717.11,
@@ -1651,13 +1633,31 @@
           "is_active": false
         },
         {
-          "rank": 184,
+          "rank": 182,
           "player_id": "H756",
           "player_name": "Robin Haase",
           "rating": 1715.42,
           "matches": 507,
           "last_played": "2024-07-29",
           "is_active": false
+        },
+        {
+          "rank": 183,
+          "player_id": "V0DZ",
+          "player_name": "Luca Van Assche",
+          "rating": 1714.63,
+          "matches": 84,
+          "last_played": "2026-10-08",
+          "is_active": true
+        },
+        {
+          "rank": 184,
+          "player_id": "K0EP",
+          "player_name": "Jerome Kym",
+          "rating": 1714.57,
+          "matches": 14,
+          "last_played": "2026-07-16",
+          "is_active": true
         },
         {
           "rank": 185,
@@ -1679,15 +1679,6 @@
         },
         {
           "rank": 187,
-          "player_id": "KI82",
-          "player_name": "Vit Kopriva",
-          "rating": 1712.75,
-          "matches": 76,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 188,
           "player_id": "P338",
           "player_name": "Mark Philippoussis",
           "rating": 1712.32,
@@ -1696,7 +1687,7 @@
           "is_active": false
         },
         {
-          "rank": 189,
+          "rank": 188,
           "player_id": "S550",
           "player_name": "Takao Suzuki",
           "rating": 1712.08,
@@ -1705,16 +1696,7 @@
           "is_active": false
         },
         {
-          "rank": 190,
-          "player_id": "HG86",
-          "player_name": "Lloyd Harris",
-          "rating": 1712.04,
-          "matches": 165,
-          "last_played": "2026-09-02",
-          "is_active": true
-        },
-        {
-          "rank": 191,
+          "rank": 189,
           "player_id": "KB54",
           "player_name": "Andrey Kuznetsov",
           "rating": 1711.73,
@@ -1723,7 +1705,7 @@
           "is_active": false
         },
         {
-          "rank": 192,
+          "rank": 190,
           "player_id": "V942",
           "player_name": "Tim van Rijthoven",
           "rating": 1711.22,
@@ -1732,34 +1714,25 @@
           "is_active": false
         },
         {
+          "rank": 191,
+          "player_id": "S0TM",
+          "player_name": "Toby Samuel",
+          "rating": 1710.65,
+          "matches": 9,
+          "last_played": "2026-09-19",
+          "is_active": true
+        },
+        {
+          "rank": 192,
+          "player_id": "P09O",
+          "player_name": "Zsombor Piros",
+          "rating": 1709.06,
+          "matches": 22,
+          "last_played": "2026-09-18",
+          "is_active": true
+        },
+        {
           "rank": 193,
-          "player_id": "GD64",
-          "player_name": "Cristian Garin",
-          "rating": 1710.05,
-          "matches": 274,
-          "last_played": "2026-05-26",
-          "is_active": true
-        },
-        {
-          "rank": 194,
-          "player_id": "D0C1",
-          "player_name": "Jesper de Jong",
-          "rating": 1709.9,
-          "matches": 61,
-          "last_played": "2026-09-03",
-          "is_active": true
-        },
-        {
-          "rank": 195,
-          "player_id": "BI81",
-          "player_name": "Alex Bolt",
-          "rating": 1709.05,
-          "matches": 52,
-          "last_played": "2026-04-02",
-          "is_active": true
-        },
-        {
-          "rank": 196,
           "player_id": "S424",
           "player_name": "Fabrice Santoro",
           "rating": 1708.77,
@@ -1768,16 +1741,7 @@
           "is_active": false
         },
         {
-          "rank": 197,
-          "player_id": "V0DP",
-          "player_name": "Adolfo Daniel Vallejo",
-          "rating": 1708.07,
-          "matches": 34,
-          "last_played": "2026-09-01",
-          "is_active": true
-        },
-        {
-          "rank": 198,
+          "rank": 194,
           "player_id": "B676",
           "player_name": "James Blake",
           "rating": 1707.85,
@@ -1786,7 +1750,16 @@
           "is_active": false
         },
         {
-          "rank": 199,
+          "rank": 195,
+          "player_id": "GC88",
+          "player_name": "Marcos Giron",
+          "rating": 1707.82,
+          "matches": 305,
+          "last_played": "2026-10-08",
+          "is_active": true
+        },
+        {
+          "rank": 196,
           "player_id": "BH09",
           "player_name": "Aljaz Bedene",
           "rating": 1706.84,
@@ -1795,13 +1768,40 @@
           "is_active": false
         },
         {
-          "rank": 200,
+          "rank": 197,
           "player_id": "N289",
           "player_name": "Jarkko Nieminen",
           "rating": 1706.35,
           "matches": 760,
           "last_played": "2016-07-15",
           "is_active": false
+        },
+        {
+          "rank": 198,
+          "player_id": "H940",
+          "player_name": "Ryan Harrison",
+          "rating": 1706.15,
+          "matches": 279,
+          "last_played": "2021-01-04",
+          "is_active": false
+        },
+        {
+          "rank": 199,
+          "player_id": "GD64",
+          "player_name": "Cristian Garin",
+          "rating": 1706.0,
+          "matches": 275,
+          "last_played": "2026-09-19",
+          "is_active": true
+        },
+        {
+          "rank": 200,
+          "player_id": "J551",
+          "player_name": "Nicolas Jarry",
+          "rating": 1705.67,
+          "matches": 256,
+          "last_played": "2026-02-24",
+          "is_active": true
         }
       ]
     },
@@ -1875,9 +1875,9 @@
           "rank": 8,
           "player_id": "RH16",
           "player_name": "Casper Ruud",
-          "rating": 2016.9,
-          "matches": 241,
-          "last_played": "2026-07-17",
+          "rating": 2020.49,
+          "matches": 243,
+          "last_played": "2026-09-19",
           "is_active": true
         },
         {
@@ -1902,9 +1902,9 @@
           "rank": 11,
           "player_id": "J0DZ",
           "player_name": "Rafael Jodar",
-          "rating": 1992.46,
-          "matches": 23,
-          "last_played": "2026-06-02",
+          "rating": 2001.81,
+          "matches": 24,
+          "last_played": "2026-09-19",
           "is_active": true
         },
         {
@@ -1918,20 +1918,20 @@
         },
         {
           "rank": 13,
+          "player_id": "TE51",
+          "player_name": "Stefanos Tsitsipas",
+          "rating": 1966.09,
+          "matches": 183,
+          "last_played": "2026-09-20",
+          "is_active": true
+        },
+        {
+          "rank": 14,
           "player_id": "PL56",
           "player_name": "Tommy Paul",
           "rating": 1952.48,
           "matches": 84,
           "last_played": "2026-05-29",
-          "is_active": true
-        },
-        {
-          "rank": 14,
-          "player_id": "TE51",
-          "player_name": "Stefanos Tsitsipas",
-          "rating": 1950.49,
-          "matches": 181,
-          "last_played": "2026-07-19",
           "is_active": true
         },
         {
@@ -1947,7 +1947,7 @@
           "rank": 16,
           "player_id": "RE44",
           "player_name": "Andrey Rublev",
-          "rating": 1941.91,
+          "rating": 1942.38,
           "matches": 156,
           "last_played": "2026-07-24",
           "is_active": true
@@ -1983,7 +1983,7 @@
           "rank": 20,
           "player_id": "D0FJ",
           "player_name": "Luciano Darderi",
-          "rating": 1916.72,
+          "rating": 1916.75,
           "matches": 96,
           "last_played": "2026-07-26",
           "is_active": true
@@ -2091,7 +2091,7 @@
           "rank": 32,
           "player_id": "HB64",
           "player_name": "Quentin Halys",
-          "rating": 1865.53,
+          "rating": 1865.65,
           "matches": 42,
           "last_played": "2026-07-25",
           "is_active": true
@@ -2100,9 +2100,9 @@
           "rank": 33,
           "player_id": "MV14",
           "player_name": "Alex Molcan",
-          "rating": 1858.72,
-          "matches": 63,
-          "last_played": "2026-07-23",
+          "rating": 1850.47,
+          "matches": 65,
+          "last_played": "2026-09-20",
           "is_active": true
         },
         {
@@ -2181,7 +2181,7 @@
           "rank": 42,
           "player_id": "N0BS",
           "player_name": "Mariano Navone",
-          "rating": 1825.29,
+          "rating": 1825.99,
           "matches": 74,
           "last_played": "2026-07-23",
           "is_active": true
@@ -2208,7 +2208,7 @@
           "rank": 45,
           "player_id": "BK92",
           "player_name": "Alexander Bublik",
-          "rating": 1822.95,
+          "rating": 1822.96,
           "matches": 90,
           "last_played": "2026-07-25",
           "is_active": true
@@ -2233,18 +2233,18 @@
         },
         {
           "rank": 48,
-          "player_id": "B0ID",
-          "player_name": "Ignacio Buse",
-          "rating": 1815.81,
-          "matches": 33,
-          "last_played": "2026-07-23",
+          "player_id": "M0N7",
+          "player_name": "Daniel Merida",
+          "rating": 1820.31,
+          "matches": 17,
+          "last_played": "2026-09-19",
           "is_active": true
         },
         {
           "rank": 49,
           "player_id": "V0DZ",
           "player_name": "Luca Van Assche",
-          "rating": 1815.43,
+          "rating": 1815.45,
           "matches": 33,
           "last_played": "2026-07-26",
           "is_active": true
@@ -2368,11 +2368,11 @@
         },
         {
           "rank": 63,
-          "player_id": "M0N7",
-          "player_name": "Daniel Merida",
-          "rating": 1784.36,
-          "matches": 16,
-          "last_played": "2026-07-21",
+          "player_id": "B0ID",
+          "player_name": "Ignacio Buse",
+          "rating": 1784.53,
+          "matches": 35,
+          "last_played": "2026-09-19",
           "is_active": true
         },
         {
@@ -2431,15 +2431,6 @@
         },
         {
           "rank": 70,
-          "player_id": "TE30",
-          "player_name": "Alejandro Tabilo",
-          "rating": 1774.64,
-          "matches": 81,
-          "last_played": "2026-07-22",
-          "is_active": true
-        },
-        {
-          "rank": 71,
           "player_id": "FB98",
           "player_name": "Taylor Fritz",
           "rating": 1772.94,
@@ -2448,12 +2439,21 @@
           "is_active": true
         },
         {
-          "rank": 72,
+          "rank": 71,
           "player_id": "P0HW",
           "player_name": "Dino Prizmic",
           "rating": 1765.43,
           "matches": 25,
           "last_played": "2026-07-16",
+          "is_active": true
+        },
+        {
+          "rank": 72,
+          "player_id": "H997",
+          "player_name": "Yannick Hanfmann",
+          "rating": 1763.57,
+          "matches": 127,
+          "last_played": "2026-07-24",
           "is_active": true
         },
         {
@@ -2467,11 +2467,11 @@
         },
         {
           "rank": 74,
-          "player_id": "H997",
-          "player_name": "Yannick Hanfmann",
-          "rating": 1762.67,
-          "matches": 127,
-          "last_played": "2026-07-24",
+          "player_id": "TE30",
+          "player_name": "Alejandro Tabilo",
+          "rating": 1754.21,
+          "matches": 82,
+          "last_played": "2026-09-19",
           "is_active": true
         },
         {
@@ -2485,6 +2485,15 @@
         },
         {
           "rank": 76,
+          "player_id": "SL28",
+          "player_name": "Jan-Lennard Struff",
+          "rating": 1752.12,
+          "matches": 171,
+          "last_played": "2026-07-22",
+          "is_active": true
+        },
+        {
+          "rank": 77,
           "player_id": "C813",
           "player_name": "Ti Chen",
           "rating": 1749.71,
@@ -2493,7 +2502,7 @@
           "is_active": false
         },
         {
-          "rank": 77,
+          "rank": 78,
           "player_id": "A389",
           "player_name": "Jose Acasuso",
           "rating": 1748.32,
@@ -2502,7 +2511,7 @@
           "is_active": false
         },
         {
-          "rank": 78,
+          "rank": 79,
           "player_id": "T786",
           "player_name": "Jo-Wilfried Tsonga",
           "rating": 1748.29,
@@ -2511,7 +2520,7 @@
           "is_active": false
         },
         {
-          "rank": 79,
+          "rank": 80,
           "player_id": "H528",
           "player_name": "Victor Hanescu",
           "rating": 1747.8,
@@ -2520,7 +2529,7 @@
           "is_active": false
         },
         {
-          "rank": 80,
+          "rank": 81,
           "player_id": "T264",
           "player_name": "Marko Tkalec",
           "rating": 1747.11,
@@ -2529,7 +2538,7 @@
           "is_active": false
         },
         {
-          "rank": 81,
+          "rank": 82,
           "player_id": "K435",
           "player_name": "Philipp Kohlschreiber",
           "rating": 1747.03,
@@ -2538,7 +2547,7 @@
           "is_active": false
         },
         {
-          "rank": 82,
+          "rank": 83,
           "player_id": "C0JP",
           "player_name": "Raphael Collignon",
           "rating": 1746.45,
@@ -2547,7 +2556,7 @@
           "is_active": true
         },
         {
-          "rank": 83,
+          "rank": 84,
           "player_id": "PH64",
           "player_name": "Andrea Pellegrino",
           "rating": 1742.71,
@@ -2556,7 +2565,7 @@
           "is_active": true
         },
         {
-          "rank": 84,
+          "rank": 85,
           "player_id": "C514",
           "player_name": "Juan Ignacio Chela",
           "rating": 1741.31,
@@ -2565,25 +2574,7 @@
           "is_active": false
         },
         {
-          "rank": 85,
-          "player_id": "D0C1",
-          "player_name": "Jesper de Jong",
-          "rating": 1740.85,
-          "matches": 29,
-          "last_played": "2026-07-21",
-          "is_active": true
-        },
-        {
           "rank": 86,
-          "player_id": "SL28",
-          "player_name": "Jan-Lennard Struff",
-          "rating": 1740.29,
-          "matches": 170,
-          "last_played": "2026-07-22",
-          "is_active": true
-        },
-        {
-          "rank": 87,
           "player_id": "BT72",
           "player_name": "Nuno Borges",
           "rating": 1740.1,
@@ -2592,7 +2583,7 @@
           "is_active": true
         },
         {
-          "rank": 88,
+          "rank": 87,
           "player_id": "BA98",
           "player_name": "Simone Bolelli",
           "rating": 1738.43,
@@ -2601,7 +2592,7 @@
           "is_active": false
         },
         {
-          "rank": 89,
+          "rank": 88,
           "player_id": "D646",
           "player_name": "Ivan Dodig",
           "rating": 1736.67,
@@ -2610,7 +2601,7 @@
           "is_active": false
         },
         {
-          "rank": 90,
+          "rank": 89,
           "player_id": "O234",
           "player_name": "Wayne Odesnik",
           "rating": 1734.05,
@@ -2619,7 +2610,7 @@
           "is_active": false
         },
         {
-          "rank": 91,
+          "rank": 90,
           "player_id": "C0H0",
           "player_name": "Arthur Cazaux",
           "rating": 1733.1,
@@ -2628,7 +2619,7 @@
           "is_active": true
         },
         {
-          "rank": 92,
+          "rank": 91,
           "player_id": "CG80",
           "player_name": "Borna Coric",
           "rating": 1732.23,
@@ -2637,7 +2628,7 @@
           "is_active": false
         },
         {
-          "rank": 93,
+          "rank": 92,
           "player_id": "S0K7",
           "player_name": "Zachary Svajda",
           "rating": 1730.48,
@@ -2646,7 +2637,7 @@
           "is_active": true
         },
         {
-          "rank": 94,
+          "rank": 93,
           "player_id": "M0JZ",
           "player_name": "Filip Misolic",
           "rating": 1730.07,
@@ -2655,7 +2646,7 @@
           "is_active": true
         },
         {
-          "rank": 95,
+          "rank": 94,
           "player_id": "TB69",
           "player_name": "Dominic Thiem",
           "rating": 1729.34,
@@ -2664,7 +2655,7 @@
           "is_active": false
         },
         {
-          "rank": 96,
+          "rank": 95,
           "player_id": "D316",
           "player_name": "Ramon Delgado",
           "rating": 1728.58,
@@ -2673,7 +2664,7 @@
           "is_active": false
         },
         {
-          "rank": 97,
+          "rank": 96,
           "player_id": "KE73",
           "player_name": "Dominik Koepfer",
           "rating": 1728.04,
@@ -2682,7 +2673,7 @@
           "is_active": false
         },
         {
-          "rank": 98,
+          "rank": 97,
           "player_id": "C0C8",
           "player_name": "Juan Manuel Cerundolo",
           "rating": 1725.38,
@@ -2691,7 +2682,7 @@
           "is_active": true
         },
         {
-          "rank": 99,
+          "rank": 98,
           "player_id": "M605",
           "player_name": "Carlos Moya",
           "rating": 1722.48,
@@ -2700,7 +2691,7 @@
           "is_active": false
         },
         {
-          "rank": 100,
+          "rank": 99,
           "player_id": "S809",
           "player_name": "Yuri Schukin",
           "rating": 1720.77,
@@ -2709,13 +2700,22 @@
           "is_active": false
         },
         {
-          "rank": 101,
+          "rank": 100,
           "player_id": "H355",
           "player_name": "Tommy Haas",
           "rating": 1719.52,
           "matches": 182,
           "last_played": "2017-07-31",
           "is_active": false
+        },
+        {
+          "rank": 101,
+          "player_id": "B0BI",
+          "player_name": "Sebastian Baez",
+          "rating": 1718.54,
+          "matches": 149,
+          "last_played": "2026-07-23",
+          "is_active": true
         },
         {
           "rank": 102,
@@ -2728,21 +2728,21 @@
         },
         {
           "rank": 103,
+          "player_id": "RC91",
+          "player_name": "Arthur Rinderknech",
+          "rating": 1715.81,
+          "matches": 68,
+          "last_played": "2026-07-22",
+          "is_active": true
+        },
+        {
+          "rank": 104,
           "player_id": "N109",
           "player_name": "Diego Nargiso",
           "rating": 1714.74,
           "matches": 9,
           "last_played": "2000-09-25",
           "is_active": false
-        },
-        {
-          "rank": 104,
-          "player_id": "RC91",
-          "player_name": "Arthur Rinderknech",
-          "rating": 1714.54,
-          "matches": 68,
-          "last_played": "2026-07-22",
-          "is_active": true
         },
         {
           "rank": 105,
@@ -2836,6 +2836,15 @@
         },
         {
           "rank": 115,
+          "player_id": "D0C1",
+          "player_name": "Jesper de Jong",
+          "rating": 1705.39,
+          "matches": 30,
+          "last_played": "2026-07-21",
+          "is_active": true
+        },
+        {
+          "rank": 116,
           "player_id": "KI82",
           "player_name": "Vit Kopriva",
           "rating": 1704.68,
@@ -2844,7 +2853,7 @@
           "is_active": true
         },
         {
-          "rank": 116,
+          "rank": 117,
           "player_id": "A276",
           "player_name": "Jan Frode Andersen",
           "rating": 1703.22,
@@ -2853,22 +2862,13 @@
           "is_active": false
         },
         {
-          "rank": 117,
+          "rank": 118,
           "player_id": "F339",
           "player_name": "Mardy Fish",
           "rating": 1701.48,
           "matches": 65,
           "last_played": "2012-04-09",
           "is_active": false
-        },
-        {
-          "rank": 118,
-          "player_id": "B0BI",
-          "player_name": "Sebastian Baez",
-          "rating": 1700.69,
-          "matches": 148,
-          "last_played": "2026-07-23",
-          "is_active": true
         },
         {
           "rank": 119,
@@ -2881,6 +2881,15 @@
         },
         {
           "rank": 120,
+          "player_id": "V0DP",
+          "player_name": "Adolfo Daniel Vallejo",
+          "rating": 1697.41,
+          "matches": 25,
+          "last_played": "2026-09-19",
+          "is_active": true
+        },
+        {
+          "rank": 121,
           "player_id": "F724",
           "player_name": "Marton Fucsovics",
           "rating": 1697.35,
@@ -2889,7 +2898,7 @@
           "is_active": true
         },
         {
-          "rank": 121,
+          "rank": 122,
           "player_id": "M824",
           "player_name": "Albert Montanes",
           "rating": 1696.43,
@@ -2898,7 +2907,16 @@
           "is_active": false
         },
         {
-          "rank": 122,
+          "rank": 123,
+          "player_id": "V836",
+          "player_name": "Juan Pablo Varillas",
+          "rating": 1696.34,
+          "matches": 62,
+          "last_played": "2026-09-19",
+          "is_active": true
+        },
+        {
+          "rank": 124,
           "player_id": "SG87",
           "player_name": "Ryan Sweeting",
           "rating": 1696.08,
@@ -2907,7 +2925,7 @@
           "is_active": false
         },
         {
-          "rank": 123,
+          "rank": 125,
           "player_id": "Z184",
           "player_name": "Horacio Zeballos",
           "rating": 1695.53,
@@ -2916,7 +2934,7 @@
           "is_active": false
         },
         {
-          "rank": 124,
+          "rank": 126,
           "player_id": "F0F2",
           "player_name": "Jaime Faria",
           "rating": 1693.73,
@@ -2925,7 +2943,7 @@
           "is_active": true
         },
         {
-          "rank": 125,
+          "rank": 127,
           "player_id": "DB63",
           "player_name": "Laslo Djere",
           "rating": 1693.37,
@@ -2934,7 +2952,7 @@
           "is_active": true
         },
         {
-          "rank": 126,
+          "rank": 128,
           "player_id": "AE14",
           "player_name": "Daniel Altmaier",
           "rating": 1692.95,
@@ -2943,16 +2961,7 @@
           "is_active": true
         },
         {
-          "rank": 127,
-          "player_id": "S0GR",
-          "player_name": "Timofey Skatov",
-          "rating": 1692.73,
-          "matches": 13,
-          "last_played": "2026-07-23",
-          "is_active": true
-        },
-        {
-          "rank": 128,
+          "rank": 129,
           "player_id": "AA27",
           "player_name": "Franco Agamenone",
           "rating": 1692.39,
@@ -2961,7 +2970,7 @@
           "is_active": false
         },
         {
-          "rank": 129,
+          "rank": 130,
           "player_id": "T840",
           "player_name": "Viktor Troicki",
           "rating": 1691.11,
@@ -2970,7 +2979,7 @@
           "is_active": false
         },
         {
-          "rank": 130,
+          "rank": 131,
           "player_id": "G379",
           "player_name": "Sebastien Grosjean",
           "rating": 1690.99,
@@ -2979,7 +2988,7 @@
           "is_active": false
         },
         {
-          "rank": 131,
+          "rank": 132,
           "player_id": "KC04",
           "player_name": "Jozef Kovalik",
           "rating": 1690.02,
@@ -2988,7 +2997,7 @@
           "is_active": false
         },
         {
-          "rank": 132,
+          "rank": 133,
           "player_id": "D776",
           "player_name": "Thiemo de Bakker",
           "rating": 1689.18,
@@ -2997,7 +3006,16 @@
           "is_active": false
         },
         {
-          "rank": 133,
+          "rank": 134,
+          "player_id": "S0GR",
+          "player_name": "Timofey Skatov",
+          "rating": 1688.88,
+          "matches": 13,
+          "last_played": "2026-07-23",
+          "is_active": true
+        },
+        {
+          "rank": 135,
           "player_id": "S694",
           "player_name": "Radek Stepanek",
           "rating": 1688.77,
@@ -3006,7 +3024,7 @@
           "is_active": false
         },
         {
-          "rank": 134,
+          "rank": 136,
           "player_id": "G810",
           "player_name": "Ruben Gonzales",
           "rating": 1688.4,
@@ -3015,7 +3033,7 @@
           "is_active": false
         },
         {
-          "rank": 135,
+          "rank": 137,
           "player_id": "D479",
           "player_name": "Sebastian Decoud",
           "rating": 1688.33,
@@ -3024,7 +3042,7 @@
           "is_active": false
         },
         {
-          "rank": 136,
+          "rank": 138,
           "player_id": "CA12",
           "player_name": "Jeremy Chardy",
           "rating": 1688.19,
@@ -3033,7 +3051,7 @@
           "is_active": false
         },
         {
-          "rank": 137,
+          "rank": 139,
           "player_id": "MW02",
           "player_name": "Corentin Moutet",
           "rating": 1687.79,
@@ -3042,7 +3060,7 @@
           "is_active": true
         },
         {
-          "rank": 138,
+          "rank": 140,
           "player_id": "N0AE",
           "player_name": "Brandon Nakashima",
           "rating": 1687.37,
@@ -3051,7 +3069,7 @@
           "is_active": true
         },
         {
-          "rank": 139,
+          "rank": 141,
           "player_id": "C882",
           "player_name": "Pablo Cuevas",
           "rating": 1687.29,
@@ -3060,7 +3078,7 @@
           "is_active": false
         },
         {
-          "rank": 140,
+          "rank": 142,
           "player_id": "C433",
           "player_name": "Guillermo Canas",
           "rating": 1686.14,
@@ -3069,7 +3087,7 @@
           "is_active": false
         },
         {
-          "rank": 141,
+          "rank": 143,
           "player_id": "M0CI",
           "player_name": "Fabian Marozsan",
           "rating": 1685.63,
@@ -3078,16 +3096,7 @@
           "is_active": true
         },
         {
-          "rank": 142,
-          "player_id": "V0DP",
-          "player_name": "Adolfo Daniel Vallejo",
-          "rating": 1685.32,
-          "matches": 23,
-          "last_played": "2026-07-21",
-          "is_active": true
-        },
-        {
-          "rank": 143,
+          "rank": 144,
           "player_id": "GJ37",
           "player_name": "Tallon Griekspoor",
           "rating": 1684.94,
@@ -3096,7 +3105,7 @@
           "is_active": true
         },
         {
-          "rank": 144,
+          "rank": 145,
           "player_id": "E121",
           "player_name": "Younes El Aynaoui",
           "rating": 1684.77,
@@ -3105,7 +3114,7 @@
           "is_active": false
         },
         {
-          "rank": 145,
+          "rank": 146,
           "player_id": "SK94",
           "player_name": "Cedrik-Marcel Stebe",
           "rating": 1683.9,
@@ -3114,7 +3123,7 @@
           "is_active": false
         },
         {
-          "rank": 146,
+          "rank": 147,
           "player_id": "K966",
           "player_name": "Martin Klizan",
           "rating": 1681.73,
@@ -3123,7 +3132,7 @@
           "is_active": false
         },
         {
-          "rank": 147,
+          "rank": 148,
           "player_id": "K316",
           "player_name": "Nicolas Kiefer",
           "rating": 1681.51,
@@ -3132,7 +3141,7 @@
           "is_active": false
         },
         {
-          "rank": 148,
+          "rank": 149,
           "player_id": "D923",
           "player_name": "Damir Dzumhur",
           "rating": 1681.5,
@@ -3141,7 +3150,7 @@
           "is_active": true
         },
         {
-          "rank": 149,
+          "rank": 150,
           "player_id": "BD80",
           "player_name": "Attila Balazs",
           "rating": 1680.63,
@@ -3150,7 +3159,7 @@
           "is_active": false
         },
         {
-          "rank": 150,
+          "rank": 151,
           "player_id": "C524",
           "player_name": "Guillermo Coria",
           "rating": 1680.48,
@@ -3159,7 +3168,7 @@
           "is_active": false
         },
         {
-          "rank": 151,
+          "rank": 152,
           "player_id": "Z419",
           "player_name": "Bernabe Zapata Miralles",
           "rating": 1679.95,
@@ -3168,7 +3177,7 @@
           "is_active": false
         },
         {
-          "rank": 152,
+          "rank": 153,
           "player_id": "V812",
           "player_name": "Botic van de Zandschulp",
           "rating": 1679.92,
@@ -3177,22 +3186,13 @@
           "is_active": true
         },
         {
-          "rank": 153,
+          "rank": 154,
           "player_id": "G0GD",
           "player_name": "Matteo Gigante",
           "rating": 1679.8,
           "matches": 8,
           "last_played": "2025-05-26",
           "is_active": false
-        },
-        {
-          "rank": 154,
-          "player_id": "GD64",
-          "player_name": "Cristian Garin",
-          "rating": 1679.68,
-          "matches": 157,
-          "last_played": "2026-05-26",
-          "is_active": true
         },
         {
           "rank": 155,
@@ -3259,6 +3259,15 @@
         },
         {
           "rank": 162,
+          "player_id": "GD64",
+          "player_name": "Cristian Garin",
+          "rating": 1675.04,
+          "matches": 158,
+          "last_played": "2026-09-19",
+          "is_active": true
+        },
+        {
+          "rank": 163,
           "player_id": "V306",
           "player_name": "Fernando Verdasco",
           "rating": 1673.95,
@@ -3267,20 +3276,11 @@
           "is_active": false
         },
         {
-          "rank": 163,
+          "rank": 164,
           "player_id": "O513",
           "player_name": "Sebastian Ofner",
           "rating": 1673.75,
           "matches": 64,
-          "last_played": "2026-07-21",
-          "is_active": true
-        },
-        {
-          "rank": 164,
-          "player_id": "S0H2",
-          "player_name": "Aleksandr Shevchenko",
-          "rating": 1673.69,
-          "matches": 53,
           "last_played": "2026-07-21",
           "is_active": true
         },
@@ -3291,7 +3291,7 @@
           "rating": 1672.4,
           "matches": 33,
           "last_played": "2025-03-31",
-          "is_active": false
+          "is_active": true
         },
         {
           "rank": 166,
@@ -3583,15 +3583,6 @@
         },
         {
           "rank": 198,
-          "player_id": "V836",
-          "player_name": "Juan Pablo Varillas",
-          "rating": 1656.38,
-          "matches": 60,
-          "last_played": "2024-07-15",
-          "is_active": true
-        },
-        {
-          "rank": 199,
           "player_id": "CF59",
           "player_name": "Roberto Carballes Baena",
           "rating": 1656.27,
@@ -3600,12 +3591,21 @@
           "is_active": true
         },
         {
-          "rank": 200,
+          "rank": 199,
           "player_id": "N254",
           "player_name": "Jiri Novak",
           "rating": 1656.15,
           "matches": 140,
           "last_played": "2006-07-24",
+          "is_active": false
+        },
+        {
+          "rank": 200,
+          "player_id": "K407",
+          "player_name": "Alexey Kedryuk",
+          "rating": 1655.97,
+          "matches": 4,
+          "last_played": "2005-07-15",
           "is_active": false
         }
       ]
@@ -5186,7 +5186,7 @@
           "rating": 1597.28,
           "matches": 23,
           "last_played": "2024-07-01",
-          "is_active": true
+          "is_active": false
         },
         {
           "rank": 176,
@@ -5267,7 +5267,7 @@
           "rating": 1590.08,
           "matches": 13,
           "last_played": "2023-07-03",
-          "is_active": true
+          "is_active": false
         },
         {
           "rank": 185,
@@ -5431,9 +5431,9 @@
           "rank": 2,
           "player_id": "A0E2",
           "player_name": "Carlos Alcaraz",
-          "rating": 2218.64,
-          "matches": 208,
-          "last_played": "2026-09-08",
+          "rating": 2214.57,
+          "matches": 216,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
@@ -5449,13 +5449,22 @@
           "rank": 4,
           "player_id": "D643",
           "player_name": "Novak Djokovic",
-          "rating": 2179.96,
-          "matches": 892,
-          "last_played": "2026-08-30",
+          "rating": 2183.24,
+          "matches": 898,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
           "rank": 5,
+          "player_id": "Z355",
+          "player_name": "Alexander Zverev",
+          "rating": 2095.22,
+          "matches": 489,
+          "last_played": "2026-10-17",
+          "is_active": true
+        },
+        {
+          "rank": 6,
           "player_id": "D683",
           "player_name": "Juan Martin del Potro",
           "rating": 2092.82,
@@ -5464,25 +5473,7 @@
           "is_active": false
         },
         {
-          "rank": 6,
-          "player_id": "Z355",
-          "player_name": "Alexander Zverev",
-          "rating": 2086.38,
-          "matches": 478,
-          "last_played": "2026-09-13",
-          "is_active": true
-        },
-        {
           "rank": 7,
-          "player_id": "S0S1",
-          "player_name": "Ben Shelton",
-          "rating": 2062.9,
-          "matches": 164,
-          "last_played": "2026-09-13",
-          "is_active": true
-        },
-        {
-          "rank": 8,
           "player_id": "N409",
           "player_name": "Rafael Nadal",
           "rating": 2059.44,
@@ -5491,7 +5482,7 @@
           "is_active": false
         },
         {
-          "rank": 9,
+          "rank": 8,
           "player_id": "SA49",
           "player_name": "Robin Soderling",
           "rating": 2050.46,
@@ -5500,97 +5491,124 @@
           "is_active": false
         },
         {
+          "rank": 9,
+          "player_id": "MM58",
+          "player_name": "Daniil Medvedev",
+          "rating": 2021.15,
+          "matches": 494,
+          "last_played": "2026-10-17",
+          "is_active": true
+        },
+        {
           "rank": 10,
-          "player_id": "F0F1",
-          "player_name": "Arthur Fils",
-          "rating": 2010.01,
-          "matches": 115,
-          "last_played": "2026-08-31",
+          "player_id": "S0S1",
+          "player_name": "Ben Shelton",
+          "rating": 1999.95,
+          "matches": 168,
+          "last_played": "2026-10-11",
           "is_active": true
         },
         {
           "rank": 11,
-          "player_id": "MM58",
-          "player_name": "Daniil Medvedev",
-          "rating": 1988.33,
-          "matches": 481,
-          "last_played": "2026-09-06",
+          "player_id": "DH58",
+          "player_name": "Alex de Minaur",
+          "rating": 1993.36,
+          "matches": 396,
+          "last_played": "2026-10-15",
           "is_active": true
         },
         {
           "rank": 12,
-          "player_id": "AG37",
-          "player_name": "Felix Auger-Aliassime",
-          "rating": 1974.03,
-          "matches": 322,
-          "last_played": "2026-09-03",
+          "player_id": "F0F1",
+          "player_name": "Arthur Fils",
+          "rating": 1980.12,
+          "matches": 120,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
           "rank": 13,
-          "player_id": "DH58",
-          "player_name": "Alex de Minaur",
-          "rating": 1962.16,
-          "matches": 385,
-          "last_played": "2026-09-03",
+          "player_id": "DH50",
+          "player_name": "Alejandro Davidovich Fokina",
+          "rating": 1977.36,
+          "matches": 213,
+          "last_played": "2026-10-18",
           "is_active": true
         },
         {
           "rank": 14,
-          "player_id": "FB98",
-          "player_name": "Taylor Fritz",
-          "rating": 1961.24,
-          "matches": 419,
-          "last_played": "2026-09-05",
+          "player_id": "J0DZ",
+          "player_name": "Rafael Jodar",
+          "rating": 1973.92,
+          "matches": 36,
+          "last_played": "2026-10-18",
           "is_active": true
         },
         {
           "rank": 15,
           "player_id": "F0FV",
           "player_name": "Joao Fonseca",
-          "rating": 1955.79,
-          "matches": 45,
-          "last_played": "2026-08-19",
+          "rating": 1962.58,
+          "matches": 46,
+          "last_played": "2026-09-18",
           "is_active": true
         },
         {
           "rank": 16,
-          "player_id": "T0HA",
-          "player_name": "Learner Tien",
-          "rating": 1952.55,
-          "matches": 86,
-          "last_played": "2026-09-07",
+          "player_id": "AG37",
+          "player_name": "Felix Auger-Aliassime",
+          "rating": 1957.98,
+          "matches": 328,
+          "last_played": "2026-10-14",
           "is_active": true
         },
         {
           "rank": 17,
-          "player_id": "TD51",
-          "player_name": "Frances Tiafoe",
-          "rating": 1952.48,
-          "matches": 352,
-          "last_played": "2026-09-11",
+          "player_id": "L0BV",
+          "player_name": "Jiri Lehecka",
+          "rating": 1957.22,
+          "matches": 182,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
           "rank": 18,
+          "player_id": "G0IX",
+          "player_name": "Arthur Gea",
+          "rating": 1956.94,
+          "matches": 22,
+          "last_played": "2026-10-15",
+          "is_active": true
+        },
+        {
+          "rank": 19,
           "player_id": "D0CO",
           "player_name": "Jack Draper",
-          "rating": 1949.3,
+          "rating": 1949.29,
           "matches": 116,
           "last_played": "2026-08-14",
           "is_active": true
         },
         {
-          "rank": 19,
-          "player_id": "PL56",
-          "player_name": "Tommy Paul",
-          "rating": 1933.99,
-          "matches": 270,
-          "last_played": "2026-09-06",
+          "rank": 20,
+          "player_id": "TD51",
+          "player_name": "Frances Tiafoe",
+          "rating": 1943.12,
+          "matches": 356,
+          "last_played": "2026-10-11",
           "is_active": true
         },
         {
-          "rank": 20,
+          "rank": 21,
+          "player_id": "PL56",
+          "player_name": "Tommy Paul",
+          "rating": 1933.98,
+          "matches": 275,
+          "last_played": "2026-10-16",
+          "is_active": true
+        },
+        {
+          "rank": 22,
           "player_id": "A092",
           "player_name": "Andre Agassi",
           "rating": 1933.6,
@@ -5599,7 +5617,16 @@
           "is_active": false
         },
         {
-          "rank": 21,
+          "rank": 23,
+          "player_id": "FB98",
+          "player_name": "Taylor Fritz",
+          "rating": 1931.33,
+          "matches": 423,
+          "last_played": "2026-10-12",
+          "is_active": true
+        },
+        {
+          "rank": 24,
           "player_id": "R485",
           "player_name": "Andy Roddick",
           "rating": 1929.85,
@@ -5608,16 +5635,7 @@
           "is_active": false
         },
         {
-          "rank": 22,
-          "player_id": "R0DG",
-          "player_name": "Holger Rune",
-          "rating": 1927.97,
-          "matches": 174,
-          "last_played": "2025-10-13",
-          "is_active": true
-        },
-        {
-          "rank": 23,
+          "rank": 25,
           "player_id": "S402",
           "player_name": "Pete Sampras",
           "rating": 1926.31,
@@ -5626,25 +5644,25 @@
           "is_active": false
         },
         {
-          "rank": 24,
+          "rank": 26,
           "player_id": "N0AE",
           "player_name": "Brandon Nakashima",
-          "rating": 1920.21,
-          "matches": 201,
-          "last_played": "2026-09-02",
+          "rating": 1909.95,
+          "matches": 205,
+          "last_played": "2026-10-11",
           "is_active": true
         },
         {
-          "rank": 25,
+          "rank": 27,
           "player_id": "M0NI",
           "player_name": "Jakub Mensik",
-          "rating": 1906.37,
-          "matches": 105,
-          "last_played": "2026-09-05",
+          "rating": 1904.31,
+          "matches": 113,
+          "last_played": "2026-10-13",
           "is_active": true
         },
         {
-          "rank": 26,
+          "rank": 28,
           "player_id": "R975",
           "player_name": "Milos Raonic",
           "rating": 1903.92,
@@ -5653,25 +5671,34 @@
           "is_active": false
         },
         {
-          "rank": 27,
-          "player_id": "M0QI",
-          "player_name": "Alex Michelsen",
-          "rating": 1899.9,
-          "matches": 121,
-          "last_played": "2026-09-08",
+          "rank": 29,
+          "player_id": "T0HA",
+          "player_name": "Learner Tien",
+          "rating": 1903.28,
+          "matches": 93,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
-          "rank": 28,
+          "rank": 30,
+          "player_id": "HB71",
+          "player_name": "Hubert Hurkacz",
+          "rating": 1899.68,
+          "matches": 290,
+          "last_played": "2026-10-13",
+          "is_active": true
+        },
+        {
+          "rank": 31,
           "player_id": "K0AH",
           "player_name": "Sebastian Korda",
-          "rating": 1899.53,
+          "rating": 1899.51,
           "matches": 189,
           "last_played": "2026-03-24",
           "is_active": true
         },
         {
-          "rank": 29,
+          "rank": 32,
           "player_id": "KE17",
           "player_name": "Nick Kyrgios",
           "rating": 1899.2,
@@ -5680,16 +5707,7 @@
           "is_active": true
         },
         {
-          "rank": 30,
-          "player_id": "G0IX",
-          "player_name": "Arthur Gea",
-          "rating": 1898.93,
-          "matches": 15,
-          "last_played": "2026-09-07",
-          "is_active": true
-        },
-        {
-          "rank": 31,
+          "rank": 33,
           "player_id": "BA47",
           "player_name": "Tomas Berdych",
           "rating": 1897.08,
@@ -5698,52 +5716,61 @@
           "is_active": false
         },
         {
-          "rank": 32,
-          "player_id": "L0BV",
-          "player_name": "Jiri Lehecka",
-          "rating": 1891.49,
-          "matches": 173,
-          "last_played": "2026-09-04",
-          "is_active": true
-        },
-        {
-          "rank": 33,
-          "player_id": "M0EJ",
-          "player_name": "Lorenzo Musetti",
-          "rating": 1886.74,
-          "matches": 186,
-          "last_played": "2026-09-03",
-          "is_active": true
-        },
-        {
           "rank": 34,
-          "player_id": "J0DZ",
-          "player_name": "Rafael Jodar",
-          "rating": 1882.66,
-          "matches": 28,
-          "last_played": "2026-09-02",
+          "player_id": "R0DG",
+          "player_name": "Holger Rune",
+          "rating": 1891.64,
+          "matches": 178,
+          "last_played": "2026-10-07",
           "is_active": true
         },
         {
           "rank": 35,
-          "player_id": "DH50",
-          "player_name": "Alejandro Davidovich Fokina",
-          "rating": 1882.65,
-          "matches": 201,
-          "last_played": "2026-03-11",
+          "player_id": "M0QI",
+          "player_name": "Alex Michelsen",
+          "rating": 1879.17,
+          "matches": 124,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
           "rank": 36,
           "player_id": "D875",
           "player_name": "Grigor Dimitrov",
-          "rating": 1879.15,
-          "matches": 529,
-          "last_played": "2026-08-31",
+          "rating": 1873.93,
+          "matches": 531,
+          "last_played": "2026-09-19",
           "is_active": true
         },
         {
           "rank": 37,
+          "player_id": "C0AU",
+          "player_name": "Francisco Cerundolo",
+          "rating": 1873.6,
+          "matches": 135,
+          "last_played": "2026-10-11",
+          "is_active": true
+        },
+        {
+          "rank": 38,
+          "player_id": "V812",
+          "player_name": "Botic van de Zandschulp",
+          "rating": 1871.65,
+          "matches": 182,
+          "last_played": "2026-10-14",
+          "is_active": true
+        },
+        {
+          "rank": 39,
+          "player_id": "TE51",
+          "player_name": "Stefanos Tsitsipas",
+          "rating": 1871.03,
+          "matches": 382,
+          "last_played": "2026-10-14",
+          "is_active": true
+        },
+        {
+          "rank": 40,
           "player_id": "N301",
           "player_name": "David Nalbandian",
           "rating": 1870.81,
@@ -5752,7 +5779,25 @@
           "is_active": false
         },
         {
-          "rank": 38,
+          "rank": 41,
+          "player_id": "SU55",
+          "player_name": "Denis Shapovalov",
+          "rating": 1867.81,
+          "matches": 338,
+          "last_played": "2026-10-04",
+          "is_active": true
+        },
+        {
+          "rank": 42,
+          "player_id": "VA25",
+          "player_name": "Valentin Vacherot",
+          "rating": 1867.77,
+          "matches": 48,
+          "last_played": "2026-10-12",
+          "is_active": true
+        },
+        {
+          "rank": 43,
           "player_id": "R255",
           "player_name": "Patrick Rafter",
           "rating": 1864.54,
@@ -5761,52 +5806,43 @@
           "is_active": false
         },
         {
-          "rank": 39,
-          "player_id": "C0AU",
-          "player_name": "Francisco Cerundolo",
-          "rating": 1864.52,
-          "matches": 127,
-          "last_played": "2026-09-07",
+          "rank": 44,
+          "player_id": "RH16",
+          "player_name": "Casper Ruud",
+          "rating": 1862.0,
+          "matches": 251,
+          "last_played": "2026-10-16",
           "is_active": true
         },
         {
-          "rank": 40,
-          "player_id": "M0N7",
-          "player_name": "Daniel Merida",
-          "rating": 1862.22,
-          "matches": 12,
-          "last_played": "2026-09-04",
+          "rank": 45,
+          "player_id": "M0EJ",
+          "player_name": "Lorenzo Musetti",
+          "rating": 1861.21,
+          "matches": 187,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
-          "rank": 41,
-          "player_id": "TE51",
-          "player_name": "Stefanos Tsitsipas",
-          "rating": 1861.29,
-          "matches": 376,
-          "last_played": "2026-09-06",
-          "is_active": true
-        },
-        {
-          "rank": 42,
-          "player_id": "V812",
-          "player_name": "Botic van de Zandschulp",
-          "rating": 1856.49,
-          "matches": 174,
-          "last_played": "2026-09-09",
-          "is_active": true
-        },
-        {
-          "rank": 43,
+          "rank": 46,
           "player_id": "BK92",
           "player_name": "Alexander Bublik",
-          "rating": 1856.42,
-          "matches": 252,
-          "last_played": "2026-09-04",
+          "rating": 1860.34,
+          "matches": 256,
+          "last_played": "2026-10-13",
           "is_active": true
         },
         {
-          "rank": 44,
+          "rank": 47,
+          "player_id": "KE29",
+          "player_name": "Karen Khachanov",
+          "rating": 1851.3,
+          "matches": 385,
+          "last_played": "2026-10-13",
+          "is_active": true
+        },
+        {
+          "rank": 48,
           "player_id": "CA12",
           "player_name": "Jeremy Chardy",
           "rating": 1846.88,
@@ -5815,16 +5851,7 @@
           "is_active": false
         },
         {
-          "rank": 45,
-          "player_id": "SU55",
-          "player_name": "Denis Shapovalov",
-          "rating": 1845.95,
-          "matches": 331,
-          "last_played": "2026-09-04",
-          "is_active": true
-        },
-        {
-          "rank": 46,
+          "rank": 49,
           "player_id": "R513",
           "player_name": "Jean-Julien Rojer",
           "rating": 1844.24,
@@ -5833,40 +5860,13 @@
           "is_active": false
         },
         {
-          "rank": 47,
+          "rank": 50,
           "player_id": "A385",
           "player_name": "Mario Ancic",
           "rating": 1843.04,
           "matches": 192,
           "last_played": "2010-03-24",
           "is_active": false
-        },
-        {
-          "rank": 48,
-          "player_id": "BK40",
-          "player_name": "Matteo Berrettini",
-          "rating": 1842.2,
-          "matches": 192,
-          "last_played": "2026-09-02",
-          "is_active": true
-        },
-        {
-          "rank": 49,
-          "player_id": "N552",
-          "player_name": "Kei Nishikori",
-          "rating": 1841.29,
-          "matches": 459,
-          "last_played": "2026-07-30",
-          "is_active": true
-        },
-        {
-          "rank": 50,
-          "player_id": "HH26",
-          "player_name": "Ugo Humbert",
-          "rating": 1838.92,
-          "matches": 236,
-          "last_played": "2026-08-16",
-          "is_active": true
         },
         {
           "rank": 51,
@@ -5879,69 +5879,42 @@
         },
         {
           "rank": 52,
-          "player_id": "VA25",
-          "player_name": "Valentin Vacherot",
-          "rating": 1834.81,
-          "matches": 39,
-          "last_played": "2026-09-04",
+          "player_id": "RE44",
+          "player_name": "Andrey Rublev",
+          "rating": 1836.55,
+          "matches": 443,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
           "rank": 53,
-          "player_id": "C0E9",
-          "player_name": "Flavio Cobolli",
-          "rating": 1833.89,
-          "matches": 102,
-          "last_played": "2026-09-05",
+          "player_id": "N552",
+          "player_name": "Kei Nishikori",
+          "rating": 1833.88,
+          "matches": 460,
+          "last_played": "2026-10-01",
           "is_active": true
         },
         {
           "rank": 54,
-          "player_id": "RE44",
-          "player_name": "Andrey Rublev",
-          "rating": 1832.48,
-          "matches": 435,
-          "last_played": "2026-09-02",
+          "player_id": "HH26",
+          "player_name": "Ugo Humbert",
+          "rating": 1833.74,
+          "matches": 239,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
           "rank": 55,
-          "player_id": "RH16",
-          "player_name": "Casper Ruud",
-          "rating": 1831.78,
-          "matches": 245,
-          "last_played": "2026-08-16",
+          "player_id": "BK40",
+          "player_name": "Matteo Berrettini",
+          "rating": 1833.32,
+          "matches": 196,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
           "rank": 56,
-          "player_id": "KE29",
-          "player_name": "Karen Khachanov",
-          "rating": 1827.75,
-          "matches": 379,
-          "last_played": "2026-09-11",
-          "is_active": true
-        },
-        {
-          "rank": 57,
-          "player_id": "N771",
-          "player_name": "Cameron Norrie",
-          "rating": 1827.72,
-          "matches": 291,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 58,
-          "player_id": "GJ37",
-          "player_name": "Tallon Griekspoor",
-          "rating": 1826.53,
-          "matches": 174,
-          "last_played": "2026-08-31",
-          "is_active": true
-        },
-        {
-          "rank": 59,
           "player_id": "F339",
           "player_name": "Mardy Fish",
           "rating": 1822.97,
@@ -5950,25 +5923,16 @@
           "is_active": false
         },
         {
-          "rank": 60,
+          "rank": 57,
           "player_id": "MC65",
           "player_name": "Gael Monfils",
-          "rating": 1821.39,
+          "rating": 1821.26,
           "matches": 620,
           "last_played": "2026-09-03",
           "is_active": true
         },
         {
-          "rank": 61,
-          "player_id": "RC91",
-          "player_name": "Arthur Rinderknech",
-          "rating": 1821.08,
-          "matches": 150,
-          "last_played": "2026-09-04",
-          "is_active": true
-        },
-        {
-          "rank": 62,
+          "rank": 58,
           "player_id": "T786",
           "player_name": "Jo-Wilfried Tsonga",
           "rating": 1819.2,
@@ -5977,43 +5941,52 @@
           "is_active": false
         },
         {
-          "rank": 63,
-          "player_id": "T0A1",
-          "player_name": "Thiago Agustin Tirante",
-          "rating": 1819.08,
-          "matches": 22,
-          "last_played": "2026-08-31",
+          "rank": 59,
+          "player_id": "M0N7",
+          "player_name": "Daniel Merida",
+          "rating": 1818.74,
+          "matches": 13,
+          "last_played": "2026-10-08",
           "is_active": true
         },
         {
-          "rank": 64,
-          "player_id": "HB71",
-          "player_name": "Hubert Hurkacz",
-          "rating": 1818.11,
-          "matches": 277,
-          "last_played": "2026-09-02",
+          "rank": 60,
+          "player_id": "MU94",
+          "player_name": "Jaume Munar",
+          "rating": 1816.49,
+          "matches": 131,
+          "last_played": "2026-10-08",
           "is_active": true
         },
         {
-          "rank": 65,
+          "rank": 61,
           "player_id": "KD46",
           "player_name": "Thanasi Kokkinakis",
-          "rating": 1812.7,
+          "rating": 1812.69,
           "matches": 143,
           "last_played": "2026-08-15",
           "is_active": true
         },
         {
-          "rank": 66,
-          "player_id": "TE30",
-          "player_name": "Alejandro Tabilo",
-          "rating": 1800.46,
-          "matches": 93,
-          "last_played": "2026-09-05",
+          "rank": 62,
+          "player_id": "BU13",
+          "player_name": "Zizou Bergs",
+          "rating": 1807.64,
+          "matches": 110,
+          "last_played": "2026-10-14",
           "is_active": true
         },
         {
-          "rank": 67,
+          "rank": 63,
+          "player_id": "N771",
+          "player_name": "Cameron Norrie",
+          "rating": 1804.92,
+          "matches": 293,
+          "last_played": "2026-10-08",
+          "is_active": true
+        },
+        {
+          "rank": 64,
           "player_id": "MC10",
           "player_name": "Andy Murray",
           "rating": 1800.04,
@@ -6022,7 +5995,7 @@
           "is_active": false
         },
         {
-          "rank": 68,
+          "rank": 65,
           "player_id": "D801",
           "player_name": "Alexandr Dolgopolov",
           "rating": 1799.75,
@@ -6031,7 +6004,7 @@
           "is_active": false
         },
         {
-          "rank": 69,
+          "rank": 66,
           "player_id": "E140",
           "player_name": "Nicolas Escude",
           "rating": 1796.74,
@@ -6040,16 +6013,7 @@
           "is_active": false
         },
         {
-          "rank": 70,
-          "player_id": "A0GC",
-          "player_name": "Terence Atmane",
-          "rating": 1794.66,
-          "matches": 45,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 71,
+          "rank": 67,
           "player_id": "MP01",
           "player_name": "Michael Mmoh",
           "rating": 1791.84,
@@ -6058,7 +6022,7 @@
           "is_active": true
         },
         {
-          "rank": 72,
+          "rank": 68,
           "player_id": "K316",
           "player_name": "Nicolas Kiefer",
           "rating": 1790.8,
@@ -6067,25 +6031,25 @@
           "is_active": false
         },
         {
-          "rank": 73,
-          "player_id": "C977",
-          "player_name": "Marin Cilic",
-          "rating": 1788.59,
-          "matches": 612,
-          "last_played": "2026-08-15",
-          "is_active": true
-        },
-        {
-          "rank": 74,
+          "rank": 69,
           "player_id": "BT72",
           "player_name": "Nuno Borges",
-          "rating": 1788.46,
-          "matches": 111,
-          "last_played": "2026-08-31",
+          "rating": 1790.05,
+          "matches": 115,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
-          "rank": 75,
+          "rank": 70,
+          "player_id": "BM95",
+          "player_name": "Benjamin Bonzi",
+          "rating": 1789.2,
+          "matches": 109,
+          "last_played": "2026-09-05",
+          "is_active": true
+        },
+        {
+          "rank": 71,
           "player_id": "TB69",
           "player_name": "Dominic Thiem",
           "rating": 1788.17,
@@ -6094,34 +6058,16 @@
           "is_active": false
         },
         {
-          "rank": 76,
-          "player_id": "BM95",
-          "player_name": "Benjamin Bonzi",
-          "rating": 1787.6,
-          "matches": 109,
-          "last_played": "2026-09-05",
-          "is_active": true
-        },
-        {
-          "rank": 77,
-          "player_id": "MU94",
-          "player_name": "Jaume Munar",
-          "rating": 1786.96,
-          "matches": 126,
-          "last_played": "2026-09-02",
-          "is_active": true
-        },
-        {
-          "rank": 78,
+          "rank": 72,
           "player_id": "RH24",
           "player_name": "Emil Ruusuvuori",
           "rating": 1786.94,
           "matches": 152,
           "last_played": "2025-10-13",
-          "is_active": true
+          "is_active": false
         },
         {
-          "rank": 79,
+          "rank": 73,
           "player_id": "S0JA",
           "player_name": "Eliot Spizzirri",
           "rating": 1783.98,
@@ -6130,7 +6076,25 @@
           "is_active": true
         },
         {
-          "rank": 80,
+          "rank": 74,
+          "player_id": "RC91",
+          "player_name": "Arthur Rinderknech",
+          "rating": 1783.72,
+          "matches": 152,
+          "last_played": "2026-09-19",
+          "is_active": true
+        },
+        {
+          "rank": 75,
+          "player_id": "WB32",
+          "player_name": "Yibing Wu",
+          "rating": 1782.21,
+          "matches": 58,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
+          "rank": 76,
           "player_id": "TC61",
           "player_name": "Jordan Thompson",
           "rating": 1780.97,
@@ -6139,16 +6103,16 @@
           "is_active": true
         },
         {
-          "rank": 81,
+          "rank": 77,
           "player_id": "O522",
           "player_name": "Reilly Opelka",
-          "rating": 1779.72,
+          "rating": 1779.7,
           "matches": 185,
           "last_played": "2026-03-22",
           "is_active": true
         },
         {
-          "rank": 82,
+          "rank": 78,
           "player_id": "R286",
           "player_name": "Marcelo Rios",
           "rating": 1779.17,
@@ -6157,12 +6121,48 @@
           "is_active": false
         },
         {
+          "rank": 79,
+          "player_id": "C977",
+          "player_name": "Marin Cilic",
+          "rating": 1776.12,
+          "matches": 613,
+          "last_played": "2026-10-07",
+          "is_active": true
+        },
+        {
+          "rank": 80,
+          "player_id": "T0A1",
+          "player_name": "Thiago Agustin Tirante",
+          "rating": 1775.55,
+          "matches": 26,
+          "last_played": "2026-10-10",
+          "is_active": true
+        },
+        {
+          "rank": 81,
+          "player_id": "C0E9",
+          "player_name": "Flavio Cobolli",
+          "rating": 1775.06,
+          "matches": 105,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
+          "rank": 82,
+          "player_id": "H997",
+          "player_name": "Yannick Hanfmann",
+          "rating": 1774.4,
+          "matches": 68,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
           "rank": 83,
-          "player_id": "WB32",
-          "player_name": "Yibing Wu",
-          "rating": 1771.9,
-          "matches": 56,
-          "last_played": "2026-09-04",
+          "player_id": "GJ37",
+          "player_name": "Tallon Griekspoor",
+          "rating": 1773.96,
+          "matches": 178,
+          "last_played": "2026-10-08",
           "is_active": true
         },
         {
@@ -6176,33 +6176,24 @@
         },
         {
           "rank": 85,
-          "player_id": "BU13",
-          "player_name": "Zizou Bergs",
-          "rating": 1771.02,
-          "matches": 105,
-          "last_played": "2026-09-05",
+          "player_id": "TE30",
+          "player_name": "Alejandro Tabilo",
+          "rating": 1765.23,
+          "matches": 97,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
           "rank": 86,
-          "player_id": "H997",
-          "player_name": "Yannick Hanfmann",
-          "rating": 1767.88,
-          "matches": 66,
-          "last_played": "2026-08-31",
+          "player_id": "A0GC",
+          "player_name": "Terence Atmane",
+          "rating": 1764.99,
+          "matches": 46,
+          "last_played": "2026-09-24",
           "is_active": true
         },
         {
           "rank": 87,
-          "player_id": "M0FH",
-          "player_name": "Tomas Machac",
-          "rating": 1763.8,
-          "matches": 112,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 88,
           "player_id": "A678",
           "player_name": "Kevin Anderson",
           "rating": 1762.7,
@@ -6211,7 +6202,7 @@
           "is_active": false
         },
         {
-          "rank": 89,
+          "rank": 88,
           "player_id": "D402",
           "player_name": "Nikolay Davydenko",
           "rating": 1761.0,
@@ -6220,13 +6211,22 @@
           "is_active": false
         },
         {
-          "rank": 90,
+          "rank": 89,
           "player_id": "L360",
           "player_name": "Ivan Ljubicic",
           "rating": 1755.07,
           "matches": 395,
           "last_played": "2012-02-27",
           "is_active": false
+        },
+        {
+          "rank": 90,
+          "player_id": "ME82",
+          "player_name": "Adrian Mannarino",
+          "rating": 1754.32,
+          "matches": 499,
+          "last_played": "2026-10-11",
+          "is_active": true
         },
         {
           "rank": 91,
@@ -6248,15 +6248,6 @@
         },
         {
           "rank": 93,
-          "player_id": "EA24",
-          "player_name": "Tomas Martin Etcheverry",
-          "rating": 1753.44,
-          "matches": 106,
-          "last_played": "2026-09-06",
-          "is_active": true
-        },
-        {
-          "rank": 94,
           "player_id": "GH92",
           "player_name": "Borna Gojo",
           "rating": 1752.58,
@@ -6265,7 +6256,7 @@
           "is_active": false
         },
         {
-          "rank": 95,
+          "rank": 94,
           "player_id": "R0FS",
           "player_name": "Leandro Riedi",
           "rating": 1751.45,
@@ -6274,7 +6265,7 @@
           "is_active": true
         },
         {
-          "rank": 96,
+          "rank": 95,
           "player_id": "I186",
           "player_name": "John Isner",
           "rating": 1751.07,
@@ -6283,16 +6274,34 @@
           "is_active": false
         },
         {
+          "rank": 96,
+          "player_id": "CH27",
+          "player_name": "Hyeon Chung",
+          "rating": 1750.4,
+          "matches": 125,
+          "last_played": "2026-09-18",
+          "is_active": true
+        },
+        {
           "rank": 97,
-          "player_id": "SU87",
-          "player_name": "Lorenzo Sonego",
-          "rating": 1747.39,
-          "matches": 205,
-          "last_played": "2026-09-01",
+          "player_id": "SX50",
+          "player_name": "Roman Safiullin",
+          "rating": 1749.71,
+          "matches": 100,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
           "rank": 98,
+          "player_id": "B0CD",
+          "player_name": "Jenson Brooksby",
+          "rating": 1747.11,
+          "matches": 106,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
+          "rank": 99,
           "player_id": "R419",
           "player_name": "Tommy Robredo",
           "rating": 1746.14,
@@ -6301,31 +6310,22 @@
           "is_active": false
         },
         {
-          "rank": 99,
-          "player_id": "B0PG",
-          "player_name": "Alexander Blockx",
-          "rating": 1745.77,
-          "matches": 25,
-          "last_played": "2026-09-09",
-          "is_active": true
-        },
-        {
           "rank": 100,
-          "player_id": "CH27",
-          "player_name": "Hyeon Chung",
-          "rating": 1743.61,
-          "matches": 124,
-          "last_played": "2026-02-06",
-          "is_active": true
-        },
-        {
-          "rank": 101,
           "player_id": "S694",
           "player_name": "Radek Stepanek",
           "rating": 1742.87,
           "matches": 386,
           "last_played": "2017-01-16",
           "is_active": false
+        },
+        {
+          "rank": 101,
+          "player_id": "SU87",
+          "player_name": "Lorenzo Sonego",
+          "rating": 1742.52,
+          "matches": 207,
+          "last_played": "2026-09-25",
+          "is_active": true
         },
         {
           "rank": 102,
@@ -6356,15 +6356,24 @@
         },
         {
           "rank": 105,
-          "player_id": "F0F2",
-          "player_name": "Jaime Faria",
-          "rating": 1740.26,
-          "matches": 17,
-          "last_played": "2026-09-02",
+          "player_id": "M0FH",
+          "player_name": "Tomas Machac",
+          "rating": 1740.66,
+          "matches": 115,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
           "rank": 106,
+          "player_id": "V0DP",
+          "player_name": "Adolfo Daniel Vallejo",
+          "rating": 1739.9,
+          "matches": 14,
+          "last_played": "2026-10-10",
+          "is_active": true
+        },
+        {
+          "rank": 107,
           "player_id": "E831",
           "player_name": "Kyle Edmund",
           "rating": 1738.87,
@@ -6373,7 +6382,7 @@
           "is_active": false
         },
         {
-          "rank": 107,
+          "rank": 108,
           "player_id": "B747",
           "player_name": "Julien Benneteau",
           "rating": 1736.79,
@@ -6382,22 +6391,13 @@
           "is_active": false
         },
         {
-          "rank": 108,
+          "rank": 109,
           "player_id": "SD32",
           "player_name": "Gilles Simon",
           "rating": 1736.0,
           "matches": 528,
           "last_played": "2022-10-31",
           "is_active": false
-        },
-        {
-          "rank": 109,
-          "player_id": "B0BI",
-          "player_name": "Sebastian Baez",
-          "rating": 1735.87,
-          "matches": 104,
-          "last_played": "2026-08-31",
-          "is_active": true
         },
         {
           "rank": 110,
@@ -6419,15 +6419,33 @@
         },
         {
           "rank": 112,
-          "player_id": "W367",
-          "player_name": "Stan Wawrinka",
-          "rating": 1732.09,
-          "matches": 572,
-          "last_played": "2026-08-31",
+          "player_id": "CD85",
+          "player_name": "Pablo Carreno Busta",
+          "rating": 1734.09,
+          "matches": 307,
+          "last_played": "2026-10-12",
           "is_active": true
         },
         {
           "rank": 113,
+          "player_id": "MV14",
+          "player_name": "Alex Molcan",
+          "rating": 1734.06,
+          "matches": 47,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
+          "rank": 114,
+          "player_id": "S0GD",
+          "player_name": "Dalibor Svrcina",
+          "rating": 1732.0,
+          "matches": 28,
+          "last_played": "2026-10-12",
+          "is_active": true
+        },
+        {
+          "rank": 115,
           "player_id": "J194",
           "player_name": "Joachim Johansson",
           "rating": 1731.95,
@@ -6436,16 +6454,7 @@
           "is_active": false
         },
         {
-          "rank": 114,
-          "player_id": "W0BH",
-          "player_name": "Coleman Wong",
-          "rating": 1731.93,
-          "matches": 44,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 115,
+          "rank": 116,
           "player_id": "H432",
           "player_name": "Lleyton Hewitt",
           "rating": 1731.59,
@@ -6454,7 +6463,7 @@
           "is_active": false
         },
         {
-          "rank": 116,
+          "rank": 117,
           "player_id": "K435",
           "player_name": "Philipp Kohlschreiber",
           "rating": 1730.57,
@@ -6463,16 +6472,16 @@
           "is_active": false
         },
         {
-          "rank": 117,
-          "player_id": "ME82",
-          "player_name": "Adrian Mannarino",
-          "rating": 1729.07,
-          "matches": 493,
-          "last_played": "2026-09-02",
+          "rank": 118,
+          "player_id": "W0BH",
+          "player_name": "Coleman Wong",
+          "rating": 1727.51,
+          "matches": 48,
+          "last_played": "2026-10-07",
           "is_active": true
         },
         {
-          "rank": 118,
+          "rank": 119,
           "player_id": "MW02",
           "player_name": "Corentin Moutet",
           "rating": 1727.41,
@@ -6481,40 +6490,31 @@
           "is_active": true
         },
         {
-          "rank": 119,
-          "player_id": "S0H2",
-          "player_name": "Aleksandr Shevchenko",
-          "rating": 1726.27,
-          "matches": 85,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
           "rank": 120,
           "player_id": "O483",
           "player_name": "Christopher O'Connell",
-          "rating": 1725.94,
+          "rating": 1725.99,
           "matches": 117,
           "last_played": "2026-08-20",
           "is_active": true
         },
         {
           "rank": 121,
-          "player_id": "H0BH",
-          "player_name": "Rinky Hijikata",
-          "rating": 1725.83,
-          "matches": 83,
-          "last_played": "2026-08-31",
-          "is_active": true
-        },
-        {
-          "rank": 122,
           "player_id": "I305",
           "player_name": "Ilya Ivashka",
           "rating": 1725.22,
           "matches": 116,
           "last_played": "2023-08-28",
           "is_active": false
+        },
+        {
+          "rank": 122,
+          "player_id": "HB64",
+          "player_name": "Quentin Halys",
+          "rating": 1724.86,
+          "matches": 114,
+          "last_played": "2026-10-11",
+          "is_active": true
         },
         {
           "rank": 123,
@@ -6536,24 +6536,15 @@
         },
         {
           "rank": 125,
-          "player_id": "B0ID",
-          "player_name": "Ignacio Buse",
-          "rating": 1723.38,
-          "matches": 15,
-          "last_played": "2026-09-03",
+          "player_id": "J0AZ",
+          "player_name": "Kyrian Jacquet",
+          "rating": 1723.32,
+          "matches": 14,
+          "last_played": "2026-10-04",
           "is_active": true
         },
         {
           "rank": 126,
-          "player_id": "R09X",
-          "player_name": "Jurij Rodionov",
-          "rating": 1722.41,
-          "matches": 25,
-          "last_played": "2026-09-03",
-          "is_active": true
-        },
-        {
-          "rank": 127,
           "player_id": "W269",
           "player_name": "Febi Widhiyanto",
           "rating": 1722.17,
@@ -6562,25 +6553,16 @@
           "is_active": false
         },
         {
+          "rank": 127,
+          "player_id": "R09X",
+          "player_name": "Jurij Rodionov",
+          "rating": 1722.12,
+          "matches": 25,
+          "last_played": "2026-09-03",
+          "is_active": true
+        },
+        {
           "rank": 128,
-          "player_id": "MV14",
-          "player_name": "Alex Molcan",
-          "rating": 1721.98,
-          "matches": 43,
-          "last_played": "2026-09-02",
-          "is_active": true
-        },
-        {
-          "rank": 129,
-          "player_id": "Z0BZ",
-          "player_name": "Michael Zheng",
-          "rating": 1721.55,
-          "matches": 13,
-          "last_played": "2026-09-05",
-          "is_active": true
-        },
-        {
-          "rank": 130,
           "player_id": "J397",
           "player_name": "Jerzy Janowicz",
           "rating": 1720.71,
@@ -6589,16 +6571,7 @@
           "is_active": false
         },
         {
-          "rank": 131,
-          "player_id": "B0CD",
-          "player_name": "Jenson Brooksby",
-          "rating": 1719.98,
-          "matches": 101,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 132,
+          "rank": 129,
           "player_id": "B676",
           "player_name": "James Blake",
           "rating": 1719.65,
@@ -6607,7 +6580,7 @@
           "is_active": false
         },
         {
-          "rank": 133,
+          "rank": 130,
           "player_id": "P09Z",
           "player_name": "Alexei Popyrin",
           "rating": 1719.31,
@@ -6616,16 +6589,16 @@
           "is_active": true
         },
         {
-          "rank": 134,
-          "player_id": "CD85",
-          "player_name": "Pablo Carreno Busta",
-          "rating": 1717.6,
-          "matches": 303,
-          "last_played": "2026-08-30",
+          "rank": 131,
+          "player_id": "KF17",
+          "player_name": "Soonwoo Kwon",
+          "rating": 1718.83,
+          "matches": 110,
+          "last_played": "2026-09-19",
           "is_active": true
         },
         {
-          "rank": 135,
+          "rank": 132,
           "player_id": "C524",
           "player_name": "Guillermo Coria",
           "rating": 1717.11,
@@ -6634,25 +6607,25 @@
           "is_active": false
         },
         {
-          "rank": 136,
-          "player_id": "M0CI",
-          "player_name": "Fabian Marozsan",
-          "rating": 1713.17,
-          "matches": 101,
-          "last_played": "2026-09-02",
+          "rank": 133,
+          "player_id": "W367",
+          "player_name": "Stan Wawrinka",
+          "rating": 1716.91,
+          "matches": 573,
+          "last_played": "2026-09-18",
           "is_active": true
         },
         {
-          "rank": 137,
-          "player_id": "MQ75",
-          "player_name": "Kamil Majchrzak",
-          "rating": 1712.89,
-          "matches": 80,
-          "last_played": "2026-09-02",
+          "rank": 134,
+          "player_id": "F0F2",
+          "player_name": "Jaime Faria",
+          "rating": 1715.9,
+          "matches": 23,
+          "last_played": "2026-10-07",
           "is_active": true
         },
         {
-          "rank": 138,
+          "rank": 135,
           "player_id": "L428",
           "player_name": "Michael Llodra",
           "rating": 1712.41,
@@ -6661,7 +6634,7 @@
           "is_active": false
         },
         {
-          "rank": 139,
+          "rank": 136,
           "player_id": "PD07",
           "player_name": "Vasek Pospisil",
           "rating": 1712.2,
@@ -6670,7 +6643,7 @@
           "is_active": false
         },
         {
-          "rank": 140,
+          "rank": 137,
           "player_id": "MA21",
           "player_name": "Juan Monaco",
           "rating": 1711.53,
@@ -6679,34 +6652,34 @@
           "is_active": false
         },
         {
-          "rank": 141,
-          "player_id": "D0FJ",
-          "player_name": "Luciano Darderi",
-          "rating": 1709.49,
-          "matches": 57,
-          "last_played": "2026-09-07",
+          "rank": 138,
+          "player_id": "HG86",
+          "player_name": "Lloyd Harris",
+          "rating": 1711.38,
+          "matches": 121,
+          "last_played": "2026-09-27",
           "is_active": true
         },
         {
-          "rank": 142,
+          "rank": 139,
+          "player_id": "H0BH",
+          "player_name": "Rinky Hijikata",
+          "rating": 1709.7,
+          "matches": 86,
+          "last_played": "2026-10-07",
+          "is_active": true
+        },
+        {
+          "rank": 140,
           "player_id": "BD06",
           "player_name": "Roberto Bautista Agut",
-          "rating": 1707.96,
+          "rating": 1707.95,
           "matches": 467,
           "last_played": "2026-03-21",
           "is_active": true
         },
         {
-          "rank": 143,
-          "player_id": "C0C8",
-          "player_name": "Juan Manuel Cerundolo",
-          "rating": 1707.58,
-          "matches": 31,
-          "last_played": "2026-09-01",
-          "is_active": true
-        },
-        {
-          "rank": 144,
+          "rank": 141,
           "player_id": "L918",
           "player_name": "Yong-Kyu Lim",
           "rating": 1706.84,
@@ -6715,7 +6688,7 @@
           "is_active": false
         },
         {
-          "rank": 145,
+          "rank": 142,
           "player_id": "M762",
           "player_name": "Jurgen Melzer",
           "rating": 1705.89,
@@ -6724,7 +6697,7 @@
           "is_active": false
         },
         {
-          "rank": 146,
+          "rank": 143,
           "player_id": "PF39",
           "player_name": "Lucas Pouille",
           "rating": 1705.85,
@@ -6733,34 +6706,16 @@
           "is_active": false
         },
         {
-          "rank": 147,
-          "player_id": "KI95",
-          "player_name": "Miomir Kecmanovic",
-          "rating": 1704.9,
-          "matches": 248,
-          "last_played": "2026-08-30",
-          "is_active": true
-        },
-        {
-          "rank": 148,
-          "player_id": "D0DT",
-          "player_name": "Martin Damm",
-          "rating": 1704.59,
-          "matches": 19,
-          "last_played": "2026-08-31",
-          "is_active": true
-        },
-        {
-          "rank": 149,
+          "rank": 144,
           "player_id": "F0DM",
           "player_name": "Arthur Fery",
-          "rating": 1704.27,
-          "matches": 13,
-          "last_played": "2026-09-01",
+          "rating": 1704.11,
+          "matches": 17,
+          "last_played": "2026-10-09",
           "is_active": true
         },
         {
-          "rank": 150,
+          "rank": 145,
           "player_id": "E687",
           "player_name": "Daniel Evans",
           "rating": 1703.79,
@@ -6769,16 +6724,34 @@
           "is_active": false
         },
         {
-          "rank": 151,
+          "rank": 146,
+          "player_id": "D0FJ",
+          "player_name": "Luciano Darderi",
+          "rating": 1702.32,
+          "matches": 60,
+          "last_played": "2026-10-10",
+          "is_active": true
+        },
+        {
+          "rank": 147,
           "player_id": "Y268",
           "player_name": "Mikael Ymer",
           "rating": 1701.96,
           "matches": 108,
           "last_played": "2025-10-13",
+          "is_active": false
+        },
+        {
+          "rank": 148,
+          "player_id": "Y09V",
+          "player_name": "Yunchaokete Bu",
+          "rating": 1701.6,
+          "matches": 59,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
-          "rank": 152,
+          "rank": 149,
           "player_id": "BE90",
           "player_name": "Ricardas Berankis",
           "rating": 1701.15,
@@ -6787,7 +6760,7 @@
           "is_active": false
         },
         {
-          "rank": 153,
+          "rank": 150,
           "player_id": "F724",
           "player_name": "Marton Fucsovics",
           "rating": 1701.12,
@@ -6796,16 +6769,7 @@
           "is_active": true
         },
         {
-          "rank": 154,
-          "player_id": "TA46",
-          "player_name": "Bernard Tomic",
-          "rating": 1700.84,
-          "matches": 240,
-          "last_played": "2026-07-31",
-          "is_active": true
-        },
-        {
-          "rank": 155,
+          "rank": 151,
           "player_id": "G628",
           "player_name": "Richard Gasquet",
           "rating": 1699.09,
@@ -6814,16 +6778,16 @@
           "is_active": false
         },
         {
-          "rank": 156,
-          "player_id": "SX50",
-          "player_name": "Roman Safiullin",
-          "rating": 1698.22,
-          "matches": 92,
-          "last_played": "2026-08-31",
+          "rank": 152,
+          "player_id": "B0BI",
+          "player_name": "Sebastian Baez",
+          "rating": 1698.65,
+          "matches": 108,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
-          "rank": 157,
+          "rank": 153,
           "player_id": "J129",
           "player_name": "Thomas Johansson",
           "rating": 1698.0,
@@ -6832,7 +6796,16 @@
           "is_active": false
         },
         {
-          "rank": 158,
+          "rank": 154,
+          "player_id": "M0CI",
+          "player_name": "Fabian Marozsan",
+          "rating": 1697.64,
+          "matches": 106,
+          "last_played": "2026-10-08",
+          "is_active": true
+        },
+        {
+          "rank": 155,
           "player_id": "KB05",
           "player_name": "Filip Krajinovic",
           "rating": 1696.83,
@@ -6841,7 +6814,7 @@
           "is_active": false
         },
         {
-          "rank": 159,
+          "rank": 156,
           "player_id": "A479",
           "player_name": "Nicolas Almagro",
           "rating": 1696.74,
@@ -6850,7 +6823,7 @@
           "is_active": false
         },
         {
-          "rank": 160,
+          "rank": 157,
           "player_id": "SE69",
           "player_name": "Ivan Sergeyev",
           "rating": 1696.56,
@@ -6859,7 +6832,16 @@
           "is_active": false
         },
         {
-          "rank": 161,
+          "rank": 158,
+          "player_id": "MQ75",
+          "player_name": "Kamil Majchrzak",
+          "rating": 1696.52,
+          "matches": 85,
+          "last_played": "2026-10-07",
+          "is_active": true
+        },
+        {
+          "rank": 159,
           "player_id": "H756",
           "player_name": "Robin Haase",
           "rating": 1696.26,
@@ -6868,16 +6850,25 @@
           "is_active": false
         },
         {
-          "rank": 162,
-          "player_id": "S0GD",
-          "player_name": "Dalibor Svrcina",
-          "rating": 1694.85,
-          "matches": 24,
-          "last_played": "2026-09-03",
+          "rank": 160,
+          "player_id": "C0B2",
+          "player_name": "Cezar Cretu",
+          "rating": 1695.66,
+          "matches": 4,
+          "last_played": "2026-09-18",
           "is_active": true
         },
         {
-          "rank": 163,
+          "rank": 161,
+          "player_id": "KI95",
+          "player_name": "Miomir Kecmanovic",
+          "rating": 1694.93,
+          "matches": 252,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
+          "rank": 162,
           "player_id": "MA30",
           "player_name": "Gilles Muller",
           "rating": 1694.6,
@@ -6886,7 +6877,7 @@
           "is_active": false
         },
         {
-          "rank": 164,
+          "rank": 163,
           "player_id": "CA99",
           "player_name": "Marius Copil",
           "rating": 1693.64,
@@ -6895,16 +6886,16 @@
           "is_active": false
         },
         {
-          "rank": 165,
-          "player_id": "KF17",
-          "player_name": "Soonwoo Kwon",
-          "rating": 1693.35,
-          "matches": 108,
-          "last_played": "2026-07-29",
+          "rank": 164,
+          "player_id": "EA24",
+          "player_name": "Tomas Martin Etcheverry",
+          "rating": 1693.23,
+          "matches": 109,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
-          "rank": 166,
+          "rank": 165,
           "player_id": "MH30",
           "player_name": "John Millman",
           "rating": 1692.17,
@@ -6913,7 +6904,7 @@
           "is_active": false
         },
         {
-          "rank": 167,
+          "rank": 166,
           "player_id": "K267",
           "player_name": "Yevgeny Kafelnikov",
           "rating": 1691.78,
@@ -6922,12 +6913,21 @@
           "is_active": false
         },
         {
-          "rank": 168,
+          "rank": 167,
           "player_id": "N0BG",
           "player_name": "Luca Nardi",
           "rating": 1691.29,
           "matches": 40,
           "last_played": "2026-02-24",
+          "is_active": true
+        },
+        {
+          "rank": 168,
+          "player_id": "D0DT",
+          "player_name": "Martin Damm",
+          "rating": 1691.23,
+          "matches": 21,
+          "last_played": "2026-09-26",
           "is_active": true
         },
         {
@@ -6950,6 +6950,15 @@
         },
         {
           "rank": 171,
+          "player_id": "B0PG",
+          "player_name": "Alexander Blockx",
+          "rating": 1686.9,
+          "matches": 27,
+          "last_played": "2026-10-09",
+          "is_active": true
+        },
+        {
+          "rank": 172,
           "player_id": "M605",
           "player_name": "Carlos Moya",
           "rating": 1686.46,
@@ -6958,7 +6967,7 @@
           "is_active": false
         },
         {
-          "rank": 172,
+          "rank": 173,
           "player_id": "C570",
           "player_name": "Hee-Seok Chung",
           "rating": 1685.11,
@@ -6967,7 +6976,25 @@
           "is_active": false
         },
         {
-          "rank": 173,
+          "rank": 174,
+          "player_id": "TA46",
+          "player_name": "Bernard Tomic",
+          "rating": 1684.76,
+          "matches": 241,
+          "last_played": "2026-10-08",
+          "is_active": true
+        },
+        {
+          "rank": 175,
+          "player_id": "MP20",
+          "player_name": "Alexandre Muller",
+          "rating": 1684.65,
+          "matches": 73,
+          "last_played": "2026-09-27",
+          "is_active": true
+        },
+        {
+          "rank": 176,
           "player_id": "GB88",
           "player_name": "David Goffin",
           "rating": 1684.06,
@@ -6976,34 +7003,43 @@
           "is_active": true
         },
         {
-          "rank": 174,
+          "rank": 177,
           "player_id": "A853",
           "player_name": "Marcelo Arevalo",
           "rating": 1683.78,
           "matches": 33,
           "last_played": "2025-09-13",
-          "is_active": true
+          "is_active": false
         },
         {
-          "rank": 175,
+          "rank": 178,
           "player_id": "D0DW",
           "player_name": "Titouan Droguet",
-          "rating": 1682.05,
+          "rating": 1682.03,
           "matches": 11,
           "last_played": "2026-08-14",
           "is_active": true
         },
         {
-          "rank": 176,
-          "player_id": "HG86",
-          "player_name": "Lloyd Harris",
-          "rating": 1681.43,
-          "matches": 118,
-          "last_played": "2026-09-02",
+          "rank": 179,
+          "player_id": "SL28",
+          "player_name": "Jan-Lennard Struff",
+          "rating": 1681.53,
+          "matches": 299,
+          "last_played": "2026-10-10",
           "is_active": true
         },
         {
-          "rank": 177,
+          "rank": 180,
+          "player_id": "C0C8",
+          "player_name": "Juan Manuel Cerundolo",
+          "rating": 1681.03,
+          "matches": 36,
+          "last_played": "2026-10-10",
+          "is_active": true
+        },
+        {
+          "rank": 181,
           "player_id": "K310",
           "player_name": "Stefan Koubek",
           "rating": 1679.2,
@@ -7012,16 +7048,7 @@
           "is_active": false
         },
         {
-          "rank": 178,
-          "player_id": "H0BF",
-          "player_name": "Philip Henning",
-          "rating": 1678.83,
-          "matches": 6,
-          "last_played": "2025-02-01",
-          "is_active": false
-        },
-        {
-          "rank": 179,
+          "rank": 182,
           "player_id": "F0BT",
           "player_name": "Jonas Forejtek",
           "rating": 1678.78,
@@ -7030,7 +7057,7 @@
           "is_active": false
         },
         {
-          "rank": 180,
+          "rank": 183,
           "player_id": "BI23",
           "player_name": "Liam Broady",
           "rating": 1678.18,
@@ -7039,7 +7066,7 @@
           "is_active": false
         },
         {
-          "rank": 181,
+          "rank": 184,
           "player_id": "T742",
           "player_name": "Janko Tipsarevic",
           "rating": 1677.76,
@@ -7048,7 +7075,7 @@
           "is_active": false
         },
         {
-          "rank": 182,
+          "rank": 185,
           "player_id": "H996",
           "player_name": "Pierre-Hugues Herbert",
           "rating": 1677.71,
@@ -7057,7 +7084,7 @@
           "is_active": true
         },
         {
-          "rank": 183,
+          "rank": 186,
           "player_id": "SM25",
           "player_name": "Jack Sock",
           "rating": 1677.4,
@@ -7066,7 +7093,7 @@
           "is_active": false
         },
         {
-          "rank": 184,
+          "rank": 187,
           "player_id": "DB63",
           "player_name": "Laslo Djere",
           "rating": 1677.2,
@@ -7075,16 +7102,16 @@
           "is_active": true
         },
         {
-          "rank": 185,
-          "player_id": "N0BS",
-          "player_name": "Mariano Navone",
-          "rating": 1675.78,
-          "matches": 46,
-          "last_played": "2026-09-04",
+          "rank": 188,
+          "player_id": "P09O",
+          "player_name": "Zsombor Piros",
+          "rating": 1674.67,
+          "matches": 14,
+          "last_played": "2026-09-18",
           "is_active": true
         },
         {
-          "rank": 186,
+          "rank": 189,
           "player_id": "M873",
           "player_name": "Nicolas Mahut",
           "rating": 1673.8,
@@ -7093,7 +7120,7 @@
           "is_active": false
         },
         {
-          "rank": 187,
+          "rank": 190,
           "player_id": "N732",
           "player_name": "Yoshihito Nishioka",
           "rating": 1673.5,
@@ -7102,16 +7129,7 @@
           "is_active": true
         },
         {
-          "rank": 188,
-          "player_id": "HB64",
-          "player_name": "Quentin Halys",
-          "rating": 1673.07,
-          "matches": 106,
-          "last_played": "2026-09-03",
-          "is_active": true
-        },
-        {
-          "rank": 189,
+          "rank": 191,
           "player_id": "D0F6",
           "player_name": "Gabriel Diallo",
           "rating": 1673.0,
@@ -7120,7 +7138,7 @@
           "is_active": true
         },
         {
-          "rank": 190,
+          "rank": 192,
           "player_id": "R237",
           "player_name": "Greg Rusedski",
           "rating": 1672.45,
@@ -7129,7 +7147,7 @@
           "is_active": false
         },
         {
-          "rank": 191,
+          "rank": 193,
           "player_id": "KC56",
           "player_name": "Aslan Karatsev",
           "rating": 1671.88,
@@ -7138,7 +7156,7 @@
           "is_active": false
         },
         {
-          "rank": 192,
+          "rank": 194,
           "player_id": "V306",
           "player_name": "Fernando Verdasco",
           "rating": 1671.73,
@@ -7147,16 +7165,7 @@
           "is_active": false
         },
         {
-          "rank": 193,
-          "player_id": "MP20",
-          "player_name": "Alexandre Muller",
-          "rating": 1671.58,
-          "matches": 70,
-          "last_played": "2026-03-19",
-          "is_active": true
-        },
-        {
-          "rank": 194,
+          "rank": 195,
           "player_id": "C0H0",
           "player_name": "Arthur Cazaux",
           "rating": 1671.54,
@@ -7165,21 +7174,12 @@
           "is_active": true
         },
         {
-          "rank": 195,
+          "rank": 196,
           "player_id": "B0EJ",
           "player_name": "Tristan Boyer",
           "rating": 1671.33,
           "matches": 13,
           "last_played": "2026-07-30",
-          "is_active": true
-        },
-        {
-          "rank": 196,
-          "player_id": "S0DE",
-          "player_name": "Dhakshineswar Suresh",
-          "rating": 1669.84,
-          "matches": 6,
-          "last_played": "2026-08-26",
           "is_active": true
         },
         {
@@ -7222,12 +7222,12 @@
     }
   ],
   "metadata": {
-    "generated_at": "2026-09-22T01:38:16.243848Z",
-    "as_of": "2026-09-13",
-    "active_cutoff": "2025-09-13",
+    "generated_at": "2026-10-20T01:50:49.189356Z",
+    "as_of": "2026-10-18",
+    "active_cutoff": "2025-10-18",
     "active_window_days": 365,
     "data_through_year": 2026,
-    "n_matches": 80208,
+    "n_matches": 80530,
     "note": "Ace's own rating, not the official ATP ranking."
   }
 }
